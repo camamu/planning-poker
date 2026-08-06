@@ -1,0 +1,31 @@
+services:
+  api:
+    build:
+      context: .
+      dockerfile: apps/api/Dockerfile
+      target: development
+    environment:
+      - DATABASE_URL=postgres://postgres:postgres@db:5432/planningpoker
+      - PORT=3000
+      - NODE_ENV=development
+      - CORS_ORIGIN=http://localhost:5173
+      - LOG_LEVEL=info
+      - SESSION_SECRET=dev-secret-change-me
+    ports: ['3000:3000']
+    depends_on:
+      db: { condition: service_healthy }
+    volumes:
+      - ./apps/api/src:/app/apps/api/src
+
+  db:
+    image: postgres:16-alpine
+    environment:
+      POSTGRES_PASSWORD: postgres
+      POSTGRES_DB: planningpoker
+    healthcheck:
+      test: ['CMD-SHELL', 'pg_isready -U postgres']
+      interval: 5s
+    volumes: [pgdata:/var/lib/postgresql/data]
+
+volumes:
+  pgdata:
