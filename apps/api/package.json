@@ -10,10 +10,13 @@
     "test": "vitest run",
     "test:unit": "vitest run tests/domain tests/use-cases",
     "test:contract": "vitest run tests/contract",
-    "test:e2e": "vitest run tests/e2e"
+    "test:e2e": "vitest run tests/e2e",
+    "migrate:up": "tsx src/infrastructure/persistence/postgres/migrate.ts up",
+    "migrate:down": "tsx src/infrastructure/persistence/postgres/migrate.ts down"
   },
   "dependencies": {
     "fastify": "^5.11.2",
+    "kysely": "^0.29.4",
     "pg": "^8.22.0",
     "zod": "^4.4.3"
   },
