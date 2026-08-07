@@ -7,15 +7,17 @@
 
 ## 1. Qué resuelve cada workflow
 
-| Fichero        | Dispara                          | Responsabilidad                                                                           |
-| -------------- | -------------------------------- | ----------------------------------------------------------------------------------------- |
-| `ci.yml`       | `pull_request` y `push` a `main` | Validar el código: lint, tipos, arquitectura, tests, build de imágenes                    |
-| `pr-title.yml` | `pull_request` (título editado)  | Que el título de la PR sea convencional — es lo que acaba en el changelog al hacer squash |
-| `release.yml`  | `push` a `main`                  | Calcular versión, generar changelog, crear tag y release                                  |
-| `publish.yml`  | `release: published`             | Construir y publicar imágenes Docker en GHCR con la versión                               |
-| `deploy.yml`   | manual o tras `publish`          | Avisar al VPS para que despliegue la nueva versión                                        |
+| Fichero        | Dispara                                    | Responsabilidad                                                                           |
+| -------------- | ------------------------------------------ | ----------------------------------------------------------------------------------------- |
+| `ci.yml`       | `pull_request` y `push` a `develop`/`main` | Validar el código: lint, tipos, arquitectura, tests, build de imágenes                    |
+| `pr-title.yml` | `pull_request` (título editado)            | Que el título de la PR sea convencional — es lo que acaba en el changelog al hacer squash |
+| `release.yml`  | `push` a `main`                            | Calcular versión, generar changelog, crear tag y release                                  |
+| `publish.yml`  | `release: published`                       | Construir y publicar imágenes Docker en GHCR con la versión                               |
+| `deploy.yml`   | manual o tras `publish`                    | Avisar al VPS para que despliegue la nueva versión                                        |
 
 Separar release de publish importa: la versión se decide una vez y las imágenes se construyen a partir de un tag inmutable, no de "lo que hubiera en main en ese momento".
+
+`release.yml` solo dispara con `push` a `main`, y a `main` solo llega código por el merge de `develop` (ver §7): cada release es, literalmente, "lo que hay acumulado en `develop`" en el momento de mergear.
 
 ---
 
@@ -34,7 +36,7 @@ name: CI
 on:
   pull_request:
   push:
-    branches: [main]
+    branches: [develop, main]
 
 concurrency:
   group: ci-${{ github.workflow }}-${{ github.ref }}
@@ -144,7 +146,7 @@ jobs:
 
 ## 3. `pr-title.yml`
 
-Con merges por squash, el título de la PR es el mensaje de commit que llega a `main` y por tanto lo que lee el versionado. Validarlo:
+Con merges por squash, el título de la PR es el mensaje de commit que llega a `develop` — y de ahí, al mergear `develop` en `main` para una release, lo que lee el versionado. Validarlo:
 
 ```yaml
 name: PR title
@@ -300,19 +302,24 @@ El paso de verificación no es adorno: sin él, un despliegue fallido queda en v
 
 ---
 
-## 7. Protección de `main` y flujo de trabajo
+## 7. Protección de ramas y flujo de trabajo
 
-El flujo es **una rama y una PR por bloque del plan**. Nada llega a `main` sin pasar por ahí.
+Git-flow simplificado, dos ramas largas:
+
+- **`develop`** es la rama de integración. Todo bloque del plan nace de `develop` actualizado y su PR se mergea **contra `develop`**.
+- **`main`** solo se mueve por releases: cuando `develop` está en un punto que se quiere publicar, se mergea `develop` → `main` y ese `push` a `main` es lo que dispara `release.yml` (§4). Nunca se rama directamente desde `main`, y nunca se le hace push salvo ese merge de release.
+
+El flujo por bloque es **una rama y una PR por bloque del plan**. Nada llega a `develop` sin pasar por ahí, y nada llega a `main` salvo el merge de `develop` para una release.
 
 ### 7.1 Reglas de la rama
 
-Configúralo con un **Ruleset** (Settings → Rules → Rulesets; sustituye a la protección clásica):
+Configúralo con un **Ruleset** (Settings → Rules → Rulesets; sustituye a la protección clásica) aplicado a **`develop` y `main`**:
 
-- Prohibido el push directo a `main`, incluidos administradores.
+- Prohibido el push directo a `develop` y a `main`, incluidos administradores (la única excepción real es el merge `develop` → `main` para cortar una release, que también pasa por PR).
 - **PR obligatoria, con 0 aprobaciones requeridas.**
 - Checks requeridos: `quality`, `unit`, `contract`, `e2e`, `docker-build`, `pr-title`.
 - Ramas actualizadas antes de mergear.
-- Solo squash merge, con el título de la PR como mensaje.
+- Solo squash merge en las PRs de bloque contra `develop`, con el título de la PR como mensaje.
 - Conversaciones resueltas antes del merge.
 
 **Por qué 0 aprobaciones:** GitHub no permite aprobar tu propia PR. Con 1 aprobación requerida y un solo mantenedor, toda PR queda bloqueada para siempre. Con 0, la PR sigue siendo obligatoria, los checks siguen siendo bloqueantes y tú decides cuándo mergear — que es justo el control que buscas. Cuando entre otra persona al repo, subes el número a 1 y ya está.
@@ -321,11 +328,11 @@ Configúralo con un **Ruleset** (Settings → Rules → Rulesets; sustituye a la
 
 Para cada bloque del plan:
 
-1. `git switch -c feat/NN-nombre-del-bloque` desde `main` actualizado.
+1. `git switch -c feat/NN-nombre-del-bloque` desde `develop` actualizado.
 2. Commits convencionales pequeños, uno por unidad de trabajo coherente.
-3. `gh pr create --draft` **al empezar**, no al terminar: así ves la CI corriendo mientras se construye.
+3. `gh pr create --draft --base develop` **al empezar**, no al terminar: así ves la CI corriendo mientras se construye.
 4. Cuando la checklist del bloque esté completa, `gh pr ready`.
-5. **Claude Code nunca mergea.** Deja la PR lista y para. El merge es tuyo.
+5. **Claude Code nunca mergea.** Deja la PR lista y para. El merge es tuyo. Tampoco mergea `develop` en `main`: cortar una release es una decisión humana.
 
 Si un bloque crece más de ~600 líneas de diff, pártelo. Una PR que no puedes revisar en una sentada no la estás revisando.
 
@@ -363,7 +370,7 @@ Bloque N — <nombre>
 
 - **Auto-merge** (`gh pr merge --auto --squash`) para las PRs que ya has revisado: mergea sola en cuanto la CI acabe, sin que estés esperando.
 - **Labels por bloque** (`bloque-2`, `dominio`, `infra`) para filtrar el histórico luego.
-- **PRs apiladas** solo si es imprescindible: si el bloque 3 depende del 2 sin mergear, abre la PR del 3 contra la rama del 2 y cambia la base al mergear. Es incómodo; mejor mergear el 2 primero.
+- **PRs apiladas** solo si es imprescindible: si el bloque 3 depende del 2 sin mergear, abre la PR del 3 contra la rama del 2 (no contra `develop`) y cambia la base a `develop` al mergear. Es incómodo; mejor mergear el 2 primero.
 
 ---
 
@@ -385,6 +392,7 @@ Bloque N — <nombre>
 - [ ] Un merge con `feat(domain): ...` abre PR de release con bump minor y changelog
 - [ ] Mergear esa PR crea el tag y publica las imágenes en GHCR
 - [ ] `/health` de la imagen publicada devuelve la versión del tag
-- [ ] Los checks aparecen como requeridos en el ruleset de `main`
+- [ ] Los checks aparecen como requeridos en el ruleset de `develop` y de `main`
 - [ ] Puedes mergear tu propia PR sin que GitHub pida una aprobación ajena
-- [ ] Un push directo a `main` es rechazado
+- [ ] Un push directo a `develop` es rechazado
+- [ ] Un push directo a `main` es rechazado salvo el merge `develop` → `main` de una release

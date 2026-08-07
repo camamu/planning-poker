@@ -11,7 +11,7 @@ The numbered docs in `docs/` are the source of truth and are not summarized here
 
 **Before starting a new block of the plan:** read `docs/02-decisiones-y-plan.md` §5 and whichever doc(s) that block references.
 
-The project is built in ordered blocks (see `docs/02-decisiones-y-plan.md` §5). As of now only **block 1 (skeleton)** is done: monorepo, tooling, architectural barrier, Docker skeleton, health/readiness endpoints. No domain model, use cases, HTTP routes beyond health, or frontend exist yet.
+The project is built in ordered blocks (see `docs/02-decisiones-y-plan.md` §5). As of now **blocks 1 (skeleton) and 2 (estimation domain)** are done: monorepo/tooling/architectural barrier/Docker from block 1, plus the `Game` aggregate (`CardValue`, `Deck`, `Game`, `Round`, `RoundResult`, `Participant`, `Issue`) with the 10 business invariants under test — see `docs/adr/0001-modelo-de-dominio-de-estimacion.md`. No use cases, repositories, HTTP routes beyond health, or frontend exist yet.
 
 ## Commands
 
@@ -75,7 +75,7 @@ The `pg.Pool` in `main.ts` has a `.on('error', ...)` handler — without it, an 
 5. No comments explaining _what_ code does — only _why_, for non-obvious decisions.
 6. Domain names stay in English in code; ubiquitous language (`revelar`/`reveal`, `facilitador`, `ronda`) is documented in `docs/adr`.
 7. Every structural decision gets an ADR in `docs/adr/NNNN-titulo.md` (context, decision, consequences — half a page).
-8. **Never push directly to `main`.** One branch + PR per plan block, named `feat/NN-nombre-del-bloque`, CI green before merge. **Never merge the PR yourself** — leave it ready (or in draft while still working) and stop there; the merge belongs to the human. (`docs/03-ci-cd.md` specifies the intended GitHub Actions workflows and branch protection — not yet implemented; `.github/workflows/` currently only exists as an empty placeholder directory.)
+8. **Git-flow, two long-lived branches: `develop` and `main`.** Branch every plan block from `develop` updated, named `feat/NN-nombre-del-bloque`, PR against `develop`, CI green before merge. **Never push directly to `develop` or `main`**, and never branch from `main`. `main` only moves via merging `develop` into it to cut a release — that merge is a human decision, never Claude Code's. **Never merge any PR yourself** — leave it ready (or in draft while still working) and stop there. (`docs/03-ci-cd.md` §7 specifies the intended GitHub Actions workflows and branch protection — not yet implemented; `.github/workflows/` currently only exists as an empty placeholder directory.)
 9. Conventional commits: `feat(scope): ...`. Valid scopes: `domain`, `app`, `infra`, `web`, `contracts`, `ci`, `docker`, `deps` (enforced by commitlint, see `commitlint.config.js`).
 
 ## Frontend
@@ -84,7 +84,7 @@ The `pg.Pool` in `main.ts` has a `.on('error', ...)` handler — without it, an 
 
 ## Estado
 
-Bloque actual del plan: 1 (esqueleto + CI). Actualiza esta línea al cerrar cada bloque.
+Bloque actual del plan: 2 (dominio de estimación). Actualiza esta línea al cerrar cada bloque.
 
 ## Known local-environment gotchas
 
