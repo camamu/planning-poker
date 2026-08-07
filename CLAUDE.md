@@ -11,7 +11,7 @@ The numbered docs in `docs/` are the source of truth and are not summarized here
 
 **Before starting a new block of the plan:** read `docs/02-decisiones-y-plan.md` §5 and whichever doc(s) that block references.
 
-The project is built in ordered blocks (see `docs/02-decisiones-y-plan.md` §5). As of now **blocks 1 (skeleton) and 2 (estimation domain)** are done: monorepo/tooling/architectural barrier/Docker from block 1, plus the `Game` aggregate (`CardValue`, `Deck`, `Game`, `Round`, `RoundResult`, `Participant`, `Issue`) with the 10 business invariants under test — see `docs/adr/0001-modelo-de-dominio-de-estimacion.md`. No use cases, repositories, HTTP routes beyond health, or frontend exist yet.
+The project is built in ordered blocks (see `docs/02-decisiones-y-plan.md` §5). As of now **blocks 1 (skeleton), 2 (estimation domain) and 3 (use cases + in-memory repo)** are done: monorepo/tooling/architectural barrier/Docker from block 1, the `Game` aggregate with the 10 business invariants under test from block 2 (`docs/adr/0001-modelo-de-dominio-de-estimacion.md`), and now `CreateGame`, `JoinGame`, `AddIssue`, `StartVotingRound`, `CastVote`, `RevealRound` in `application/use-cases/` backed by `InMemoryGameRepository` — see `docs/adr/0002-casos-de-uso-y-repositorio-in-memory.md`. No Postgres persistence, HTTP routes beyond health, or frontend exist yet.
 
 ## Commands
 
@@ -84,7 +84,7 @@ The `pg.Pool` in `main.ts` has a `.on('error', ...)` handler — without it, an 
 
 ## Estado
 
-Bloque actual del plan: 2 (dominio de estimación). Actualiza esta línea al cerrar cada bloque.
+Bloque actual del plan: 3 (casos de uso + repo in-memory). Actualiza esta línea al cerrar cada bloque.
 
 ## Known local-environment gotchas
 
