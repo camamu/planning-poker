@@ -74,4 +74,50 @@ describe('Round', () => {
     round.reveal(NOW);
     expect(round.currentRevealedAt()).toBe(NOW);
   });
+
+  it('allVotesRaw() expone los votos de una ronda abierta sin pasar por la invariante 7', () => {
+    const round = openRound();
+    const p1 = ParticipantId.of('p1');
+    round.castVote(p1, CardValue.of('5'));
+
+    expect(round.allVotesRaw()).toEqual([{ participantId: p1, card: CardValue.of('5') }]);
+  });
+
+  it('reconstitute() con status OPEN reconstruye los votos sin calcular resultado', () => {
+    const p1 = ParticipantId.of('p1');
+    const round = Round.reconstitute(
+      RoundId.of('r1'),
+      IssueId.of('i1'),
+      1,
+      'OPEN',
+      [{ participantId: p1, card: CardValue.of('5') }],
+      null,
+    );
+
+    expect(round.isOpen()).toBe(true);
+    expect(round.hasVoted(p1)).toBe(true);
+    expect(round.allVotesRaw()).toEqual([{ participantId: p1, card: CardValue.of('5') }]);
+    expect(() => round.revealedResult()).toThrow(RoundNotRevealedError);
+  });
+
+  it('reconstitute() con status REVEALED recalcula el resultado a partir de los votos', () => {
+    const p1 = ParticipantId.of('p1');
+    const p2 = ParticipantId.of('p2');
+    const round = Round.reconstitute(
+      RoundId.of('r1'),
+      IssueId.of('i1'),
+      1,
+      'REVEALED',
+      [
+        { participantId: p1, card: CardValue.of('5') },
+        { participantId: p2, card: CardValue.of('5') },
+      ],
+      NOW,
+    );
+
+    expect(round.isRevealed()).toBe(true);
+    expect(round.currentRevealedAt()).toBe(NOW);
+    expect(round.revealedResult().isUnanimous).toBe(true);
+    expect(round.revealedVotes()).toHaveLength(2);
+  });
 });

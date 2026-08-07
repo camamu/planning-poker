@@ -76,6 +76,16 @@ export interface CreateGameProps {
   readonly facilitatorName: DisplayName;
 }
 
+export interface ReconstituteGameProps {
+  readonly id: GameId;
+  readonly name: GameName;
+  readonly deck: Deck;
+  readonly settings: GameSettings;
+  readonly participants: ReadonlyArray<Participant>;
+  readonly issues: ReadonlyArray<Issue>;
+  readonly rounds: ReadonlyArray<Round>;
+}
+
 export class Game {
   private readonly participants = new Map<string, Participant>();
   private readonly issues: Issue[] = [];
@@ -97,8 +107,46 @@ export class Game {
     return game;
   }
 
+  /**
+   * Reconstruye una partida desde su estado persistido. A diferencia de `create()`, no registra
+   * ningún evento de dominio: cargar una partida de la BD no es un hecho de negocio nuevo, y
+   * publicarlo otra vez inundaría a los suscriptores con eventos que ya ocurrieron.
+   */
+  static reconstitute(props: ReconstituteGameProps): Game {
+    const game = new Game(props.id, props.name, props.deck, props.settings);
+    for (const participant of props.participants) {
+      game.participants.set(participant.id.value, participant);
+    }
+    game.issues.push(...props.issues);
+    game.rounds.push(...props.rounds);
+    return game;
+  }
+
   currentName(): GameName {
     return this.name;
+  }
+
+  currentDeck(): Deck {
+    return this.deck;
+  }
+
+  currentSettings(): GameSettings {
+    return this.settings;
+  }
+
+  /** Solo para el mapper de persistencia; usa `findIssue`/`currentRound` para lógica de negocio. */
+  allParticipants(): ReadonlyArray<Participant> {
+    return [...this.participants.values()];
+  }
+
+  /** Solo para el mapper de persistencia; usa `findIssue`/`currentRound` para lógica de negocio. */
+  allIssues(): ReadonlyArray<Issue> {
+    return [...this.issues];
+  }
+
+  /** Solo para el mapper de persistencia; usa `findIssue`/`currentRound` para lógica de negocio. */
+  allRounds(): ReadonlyArray<Round> {
+    return [...this.rounds];
   }
 
   addParticipant(

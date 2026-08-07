@@ -26,4 +26,20 @@ describe('Issue', () => {
     expect(issue.currentStatus()).toBe('ESTIMATED');
     expect(issue.currentFinalEstimate()?.raw).toBe('5');
   });
+
+  it('reconstitute() reproduce el estado persistido sin repasar create()/estimate()', () => {
+    const issue = Issue.reconstitute(
+      IssueId.of('i1'),
+      'Implementar login',
+      'Descripción',
+      'https://tracker/i1',
+      'ESTIMATED',
+      CardValue.of('8'),
+    );
+
+    expect(issue.currentStatus()).toBe('ESTIMATED');
+    expect(issue.currentFinalEstimate()?.raw).toBe('8');
+    expect(issue.description).toBe('Descripción');
+    expect(issue.externalUrl).toBe('https://tracker/i1');
+  });
 });
