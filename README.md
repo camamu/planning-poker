@@ -55,4 +55,4 @@ Los documentos numerados en `docs/` son la fuente de verdad del proyecto:
 
 ## Flujo de trabajo
 
-Una rama y una PR por bloque del plan (`feat/NN-nombre-del-bloque`), commits convencionales (`feat(scope): ...`, scopes: `domain`, `app`, `infra`, `web`, `contracts`, `ci`, `docker`, `deps`), sin `push` directo a `main` salvo el arranque inicial del repositorio. Toda decisión estructural genera un ADR corto en `docs/adr/`.
+Git-flow simplificado con dos ramas largas: `develop` (integración) y `main` (solo releases). Una rama y una PR por bloque del plan (`feat/NN-nombre-del-bloque`), siempre desde `develop` actualizado y contra `develop`; commits convencionales (`feat(scope): ...`, scopes: `domain`, `app`, `infra`, `web`, `contracts`, `ci`, `docker`, `deps`); sin `push` directo a `develop` ni a `main`. `main` solo avanza mergeando `develop` para cortar una release. Toda decisión estructural genera un ADR corto en `docs/adr/`.
