@@ -12,7 +12,7 @@ Herramienta interna de estimación ágil para un equipo de desarrollo: votación
 
 ## Estado actual
 
-**Bloque 1 completado:** monorepo, TypeScript estricto, ESLint/Prettier, Vitest, barrera arquitectónica, hooks de commit, Docker (api + Postgres) con `/health` y `/ready`. Todavía no hay modelo de dominio, casos de uso, rutas HTTP más allá del health check, ni frontend.
+**Bloques 1 y 2 completados.** Bloque 1: monorepo, TypeScript estricto, ESLint/Prettier, Vitest, barrera arquitectónica, hooks de commit, Docker (api + Postgres) con `/health` y `/ready`. Bloque 2: agregado `Game` y objetos de valor (`CardValue`, `Deck`, `RoundResult`, `Round`, `Participant`, `Issue`) con las 10 invariantes de negocio bajo test, sin BD ni HTTP (ver `docs/adr/0001-modelo-de-dominio-de-estimacion.md`). Todavía no hay casos de uso, repositorios, rutas HTTP más allá del health check, ni frontend.
 
 El plan completo por bloques está en [`docs/02-decisiones-y-plan.md`](docs/02-decisiones-y-plan.md) §5.
 
