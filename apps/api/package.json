@@ -15,13 +15,17 @@
     "migrate:down": "tsx src/infrastructure/persistence/postgres/migrate.ts down"
   },
   "dependencies": {
+    "@fastify/cors": "^11.3.0",
+    "@pp/contracts": "workspace:*",
     "fastify": "^5.11.2",
     "kysely": "^0.29.4",
     "pg": "^8.22.0",
+    "socket.io": "^4.8.3",
     "zod": "^4.4.3"
   },
   "devDependencies": {
     "@types/pg": "^8.20.4",
+    "socket.io-client": "^4.8.3",
     "tsx": "^4.23.8"
   }
 }
