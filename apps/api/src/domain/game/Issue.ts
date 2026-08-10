@@ -27,6 +27,21 @@ export class Issue {
     return new Issue(id, trimmed, description, externalUrl);
   }
 
+  /** Reconstruye una issue desde su estado persistido, sin repasar `create()`/`startVoting()`/`estimate()`. */
+  static reconstitute(
+    id: IssueId,
+    title: string,
+    description: string | undefined,
+    externalUrl: string | undefined,
+    status: IssueStatus,
+    finalEstimate: CardValue | null,
+  ): Issue {
+    const issue = new Issue(id, title, description, externalUrl);
+    issue.status = status;
+    issue.finalEstimate = finalEstimate;
+    return issue;
+  }
+
   currentStatus(): IssueStatus {
     return this.status;
   }
