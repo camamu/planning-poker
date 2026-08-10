@@ -84,7 +84,7 @@ The `pg.Pool` in `main.ts` has a `.on('error', ...)` handler — without it, an 
 
 ## Estado
 
-Bloque actual del plan: 4 (persistencia Postgres). Actualiza esta línea al cerrar cada bloque.
+Bloque actual del plan: 5 (HTTP + WebSocket). Actualiza esta línea al cerrar cada bloque.
 
 ## Known local-environment gotchas
 
