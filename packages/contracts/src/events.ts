@@ -1,4 +1,4 @@
-import type { GameView, ParticipantRoleView, RoundResultView } from './views.js';
+import type { GameSettingsView, GameView, ParticipantRoleView, RoundResultView } from './views.js';
 
 /**
  * Todos los eventos servidor→cliente llevan `version`, el contador incremental de la
@@ -45,7 +45,8 @@ export type ServerEvent =
       readonly type: 'issue_estimated';
       readonly issueId: string;
       readonly finalEstimate: string;
-    });
+    })
+  | (ServerEventBase & { readonly type: 'settings_changed'; readonly settings: GameSettingsView });
 
 export type ServerEventType = ServerEvent['type'];
 
@@ -53,3 +54,23 @@ export interface ServerErrorEvent {
   readonly type: 'error';
   readonly message: string;
 }
+
+/**
+ * Eventos que no son un hecho de negocio del agregado `Game`: no llevan `version`, no pasan por
+ * `WsEventPublisher` ni por `state_sync`, y perderlos en una reconexión es aceptable (docs/adr/
+ * 0005-extension-de-alcance-bloque-6.md). `emoji_thrown` es flair transitorio; `discussion_timer_sync`
+ * es un detalle de entrega en tiempo real (F8), no un dato que sobreviva a un reinicio del servidor.
+ */
+export type EphemeralEvent =
+  | {
+      readonly type: 'emoji_thrown';
+      readonly fromParticipantId: string;
+      readonly toParticipantId: string | null;
+      readonly emoji: string;
+    }
+  | {
+      readonly type: 'discussion_timer_sync';
+      readonly roundId: string;
+      readonly running: boolean;
+      readonly remainingMs: number;
+    };

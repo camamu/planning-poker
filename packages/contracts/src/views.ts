@@ -1,7 +1,7 @@
 export type ParticipantRoleView = 'VOTER' | 'SPECTATOR';
 export type IssueStatusView = 'PENDING' | 'VOTING' | 'ESTIMATED';
 export type RoundStatusView = 'OPEN' | 'REVEALED' | 'CLOSED';
-export type WhoCanRevealView = 'FACILITATOR_ONLY' | 'ANYONE' | 'NAMED_LIST';
+export type WhoCanRevealView = 'FACILITATOR_ONLY' | 'ANYONE' | 'NAMED_LIST' | 'DEALER';
 
 export interface ParticipantView {
   readonly id: string;
@@ -43,12 +43,21 @@ export interface RoundView {
   readonly status: RoundStatusView;
   readonly votes: ReadonlyArray<RoundVoteView>;
   readonly result: RoundResultView | null;
+  /** Participante elegido como "dealer" para la tarea de esta ronda; ver `Game.currentDealer()`. */
+  readonly dealerId: string | null;
+  /** ISO 8601. Fecha límite de la cuenta atrás (F5), o `null` si `countdownSeconds` está desactivado. */
+  readonly timerDeadline: string | null;
 }
 
 export interface GameSettingsView {
   readonly autoReveal: boolean;
   readonly whoCanReveal: WhoCanRevealView;
   readonly namedRevealers: ReadonlyArray<string>;
+  readonly allowVoteChange: boolean;
+  readonly celebrate: boolean;
+  readonly throwEmojis: boolean;
+  readonly countdownSeconds: number | null;
+  readonly revealOnTimeout: boolean;
 }
 
 export interface GameView {
