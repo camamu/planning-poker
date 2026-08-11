@@ -122,9 +122,11 @@ export class Round {
   }
 
   /**
-   * Solo para el mapper de persistencia: a diferencia de `revealedVotes()`, no comprueba la
-   * invariante 7 porque la fila de BD no es un canal por el que un participante pueda leer el
-   * voto de otro. Ningún caso de uso ni proyección de lectura debe llamar a esto.
+   * Para el mapper de persistencia y para la proyección de lectura filtrada
+   * (`application/read-models/toGameView.ts`): a diferencia de `revealedVotes()`, no comprueba la
+   * invariante 7 porque ninguno de los dos es el canal por el que un participante lee el voto de
+   * otro — esa responsabilidad es de quien llama, que debe enmascarar antes de serializar hacia
+   * fuera. Ningún otro caso de uso debe llamar a esto.
    */
   allVotesRaw(): ReadonlyArray<RoundVote> {
     return [...this.votes.values()];
