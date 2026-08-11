@@ -1,7 +1,9 @@
-import { useEffect, useRef } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import type { JSX } from 'react';
 import { Avatar } from '../../design-system/index.js';
+import { addIssue } from '../../shared/api/gamesClient.js';
 import { playRevealSound, playVoteSound } from '../../shared/audio/sounds.js';
+import { IssueListPanel } from '../issue-list/IssueListPanel.js';
 import { ResultsPanel } from '../results-panel/ResultsPanel.js';
 import { Hand } from './components/Hand.js';
 import { Table } from './components/Table.js';
@@ -15,6 +17,7 @@ export interface GameTablePageProps {
 
 export function GameTablePage({ gameId, participantId }: GameTablePageProps): JSX.Element {
   const table = useGameTable(gameId, participantId);
+  const [issuesOpen, setIssuesOpen] = useState(false);
 
   useEffect(() => {
     document.documentElement.setAttribute('data-theme', table.theme);
@@ -55,6 +58,9 @@ export function GameTablePage({ gameId, participantId }: GameTablePageProps): JS
         muted={table.muted}
         onToggleMuted={table.toggleMuted}
         viewerId={participantId}
+        onToggleIssues={() => {
+          setIssuesOpen((open) => !open);
+        }}
       />
       <div className="grid min-h-0 flex-1 grid-cols-[1fr_316px]">
         <div className="flex min-w-0 flex-col" style={{ background: 'var(--pp-felt)' }}>
@@ -125,6 +131,37 @@ export function GameTablePage({ gameId, participantId }: GameTablePageProps): JS
           />
         </aside>
       </div>
+
+      {issuesOpen ? (
+        <div
+          className="fixed inset-0 z-50 flex justify-end"
+          role="presentation"
+          onClick={() => {
+            setIssuesOpen(false);
+          }}
+        >
+          <div
+            className="h-full shadow-2xl"
+            style={{ boxShadow: '-12px 0 30px rgba(0,0,0,.4)' }}
+            onClick={(event) => {
+              event.stopPropagation();
+            }}
+          >
+            <IssueListPanel
+              issues={game.issues}
+              currentIssueId={round?.issueId ?? null}
+              canStartRound={round === null}
+              onAddIssue={(title) => {
+                void addIssue(gameId, { title });
+              }}
+              onStartRound={table.startRound}
+              onClose={() => {
+                setIssuesOpen(false);
+              }}
+            />
+          </div>
+        </div>
+      ) : null}
     </div>
   );
 }

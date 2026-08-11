@@ -10,6 +10,7 @@ export interface TopBarProps {
   readonly muted: boolean;
   readonly onToggleMuted: () => void;
   readonly viewerId: string;
+  readonly onToggleIssues: () => void;
 }
 
 export function TopBar(props: TopBarProps): JSX.Element {
@@ -52,6 +53,9 @@ export function TopBar(props: TopBarProps): JSX.Element {
             ⏱ {formatCountdown(props.remainingMs)}
           </div>
         ) : null}
+        <button type="button" className="btn btn-secondary" onClick={props.onToggleIssues}>
+          📋 Tareas
+        </button>
         <button type="button" className="btn btn-secondary" onClick={props.onToggleMuted}>
           {props.muted ? '🔇' : '🔊'}
         </button>
