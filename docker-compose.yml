@@ -17,6 +17,20 @@ services:
     volumes:
       - ./apps/api/src:/app/apps/api/src
 
+  web:
+    build:
+      context: .
+      dockerfile: apps/web/Dockerfile
+      target: development
+    environment:
+      - VITE_API_URL=http://localhost:3000
+      - VITE_WS_URL=http://localhost:3000
+    ports: ['5173:5173']
+    depends_on:
+      - api
+    volumes:
+      - ./apps/web/src:/app/apps/web/src
+
   db:
     image: postgres:16-alpine
     environment:
