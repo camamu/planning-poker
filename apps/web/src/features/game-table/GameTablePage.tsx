@@ -1,6 +1,7 @@
 import { useEffect, useRef, useState } from 'react';
 import type { JSX } from 'react';
-import { Avatar } from '../../design-system/index.js';
+import { Link } from 'react-router-dom';
+import { Avatar, Button, Toast } from '../../design-system/index.js';
 import { addIssue } from '../../shared/api/gamesClient.js';
 import {
   playImpactSound,
@@ -54,7 +55,29 @@ export function GameTablePage({ gameId, participantId }: GameTablePageProps): JS
     previousRoundStatusRef.current = table.round?.status;
   }, [table.round?.status, table.round?.result?.isUnanimous, table.muted]);
 
-  if (table.status === 'connecting' || !table.game) {
+  useEffect(() => {
+    if (!table.game || !table.errorMessage) return;
+    const timeout = setTimeout(table.clearError, 4000);
+    return () => {
+      clearTimeout(timeout);
+    };
+  }, [table.game, table.errorMessage, table.clearError]);
+
+  if (!table.game && table.errorMessage) {
+    return (
+      <div
+        className="flex h-screen flex-col items-center justify-center gap-4 p-8 text-center"
+        style={{ background: 'var(--color-bg)' }}
+      >
+        <p style={{ color: 'var(--color-text)' }}>{table.errorMessage}</p>
+        <Link to="/">
+          <Button variant="secondary">Volver al inicio</Button>
+        </Link>
+      </div>
+    );
+  }
+
+  if (!table.game) {
     return (
       <div
         className="flex h-screen items-center justify-center"
@@ -72,9 +95,22 @@ export function GameTablePage({ gameId, participantId }: GameTablePageProps): JS
 
   return (
     <div
-      className="flex h-screen flex-col overflow-hidden"
+      className="flex min-h-screen flex-col lg:h-screen lg:overflow-hidden"
       style={{ background: 'var(--color-bg)' }}
     >
+      {table.status === 'disconnected' ? (
+        <div
+          className="flex flex-none items-center justify-center gap-2 py-1.5 text-xs"
+          style={{ background: 'var(--color-accent-900)', color: 'var(--color-accent-200)' }}
+        >
+          <span
+            className="h-1.5 w-1.5 rounded-full"
+            style={{ background: 'currentColor', animation: 'ppPulse 1.4s ease-in-out infinite' }}
+            aria-hidden="true"
+          />
+          Reconectando…
+        </div>
+      ) : null}
       <TopBar
         gameName={game.name}
         meta={`${(game.deck.cards.length - 2).toString()} valores · ${table.totalVoters.toString()} votantes · ${table.spectators.length.toString()} mirones`}
@@ -93,19 +129,25 @@ export function GameTablePage({ gameId, participantId }: GameTablePageProps): JS
             : undefined
         }
       />
-      <div className="grid min-h-0 flex-1 grid-cols-[1fr_316px]">
+      <div className="grid min-h-0 flex-1 grid-cols-1 lg:grid-cols-[1fr_316px]">
         <div className="flex min-w-0 flex-col" style={{ background: 'var(--pp-felt)' }}>
           <div className="flex min-h-0 flex-1 items-center justify-center p-6">
-            <Table
-              game={game}
-              round={round}
-              seats={table.seats}
-              viewerId={participantId}
-              selectedCard={table.selectedCard}
-              emojisInFlight={emoji.emojisInFlight}
-              seatCursor={emoji.armedEmoji ? 'crosshair' : undefined}
-              onSeatClick={emoji.armedEmoji ? emoji.throwAtSeat : undefined}
-            />
+            {table.seats.length === 0 ? (
+              <p className="text-sm" style={{ color: 'var(--pp-muted)' }}>
+                Todavía no hay nadie sentado a la mesa.
+              </p>
+            ) : (
+              <Table
+                game={game}
+                round={round}
+                seats={table.seats}
+                viewerId={participantId}
+                selectedCard={table.selectedCard}
+                emojisInFlight={emoji.emojisInFlight}
+                seatCursor={emoji.armedEmoji ? 'crosshair' : undefined}
+                onSeatClick={emoji.armedEmoji ? emoji.throwAtSeat : undefined}
+              />
+            )}
           </div>
 
           <div className="flex flex-none items-center gap-2.5 px-7 pb-3">
@@ -144,9 +186,9 @@ export function GameTablePage({ gameId, participantId }: GameTablePageProps): JS
         </div>
 
         <aside
-          className="flex flex-col gap-4.5 overflow-hidden p-5"
+          className="flex flex-col gap-4.5 border-t p-5 lg:overflow-hidden lg:border-l lg:border-t-0"
           style={{
-            borderLeft: '1px solid var(--color-divider)',
+            borderColor: 'var(--color-divider)',
             background: 'var(--color-surface)',
           }}
         >
@@ -229,6 +271,12 @@ export function GameTablePage({ gameId, participantId }: GameTablePageProps): JS
               }}
             />
           </div>
+        </div>
+      ) : null}
+
+      {table.errorMessage ? (
+        <div className="fixed bottom-5 left-1/2 z-[60] w-[calc(100%-2.5rem)] max-w-sm -translate-x-1/2">
+          <Toast message={table.errorMessage} />
         </div>
       ) : null}
     </div>

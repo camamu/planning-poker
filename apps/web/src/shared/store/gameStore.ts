@@ -40,6 +40,7 @@ interface GameStoreState {
   readonly discussionTimer: DiscussionTimerState | null;
 
   connect: (gameId: string, participantId: string) => void;
+  clearError: () => void;
   castVote: (card: string) => void;
   startRound: (issueId: string) => void;
   reveal: () => void;
@@ -88,6 +89,10 @@ export const useGameStore = create<GameStoreState>((set, get) => ({
     if (socket.connected) socket.disconnect();
     socket.connect();
     socket.emit('join', { gameId, participantId });
+  },
+
+  clearError() {
+    set({ errorMessage: null });
   },
 
   castVote(card) {

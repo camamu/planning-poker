@@ -19,12 +19,12 @@ export function TopBar(props: TopBarProps): JSX.Element {
 
   return (
     <nav
-      className="flex h-[58px] flex-none items-center gap-4 px-5"
+      className="flex min-h-[58px] flex-none flex-wrap items-center gap-x-4 gap-y-2 px-5 py-2"
       style={{ borderBottom: '1px solid var(--color-divider)', background: 'var(--color-surface)' }}
     >
-      <div className="flex items-center gap-2">
+      <div className="flex min-w-0 items-center gap-2">
         <div
-          className="flex h-[30px] w-[22px] items-center justify-center rounded text-[11px] font-bold"
+          className="flex h-[30px] w-[22px] flex-none items-center justify-center rounded text-[11px] font-bold"
           style={{
             border: '1.5px solid var(--color-accent)',
             color: 'var(--color-accent)',
@@ -33,10 +33,10 @@ export function TopBar(props: TopBarProps): JSX.Element {
         >
           8
         </div>
-        <span className="text-sm font-semibold">{props.gameName}</span>
+        <span className="truncate text-sm font-semibold">{props.gameName}</span>
       </div>
       <span
-        className="text-xs"
+        className="hidden truncate text-xs sm:block"
         style={{
           color: 'var(--pp-muted)',
           borderLeft: '1px solid var(--color-divider)',

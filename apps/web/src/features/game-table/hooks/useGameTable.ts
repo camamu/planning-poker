@@ -25,6 +25,7 @@ export interface UseGameTableResult {
   readonly toggleTheme: () => void;
   readonly toggleMuted: () => void;
   readonly canReveal: boolean;
+  readonly clearError: () => void;
 }
 
 export function useGameTable(gameId: string, participantId: string): UseGameTableResult {
@@ -32,6 +33,7 @@ export function useGameTable(gameId: string, participantId: string): UseGameTabl
   const game = useGameStore((state) => state.game);
   const status = useGameStore((state) => state.status);
   const errorMessage = useGameStore((state) => state.errorMessage);
+  const clearError = useGameStore((state) => state.clearError);
   const selectedCard = useGameStore((state) => state.selectedCard);
   const castVote = useGameStore((state) => state.castVote);
   const startRound = useGameStore((state) => state.startRound);
@@ -80,6 +82,7 @@ export function useGameTable(gameId: string, participantId: string): UseGameTabl
     toggleTheme,
     toggleMuted,
     canReveal: game ? canParticipantReveal(game, participantId) : false,
+    clearError,
   };
 }
 
