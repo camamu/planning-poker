@@ -1,0 +1,130 @@
+import { useEffect, useRef } from 'react';
+import type { JSX } from 'react';
+import { Avatar } from '../../design-system/index.js';
+import { playRevealSound, playVoteSound } from '../../shared/audio/sounds.js';
+import { ResultsPanel } from '../results-panel/ResultsPanel.js';
+import { Hand } from './components/Hand.js';
+import { Table } from './components/Table.js';
+import { TopBar } from './components/TopBar.js';
+import { useGameTable } from './hooks/useGameTable.js';
+
+export interface GameTablePageProps {
+  readonly gameId: string;
+  readonly participantId: string;
+}
+
+export function GameTablePage({ gameId, participantId }: GameTablePageProps): JSX.Element {
+  const table = useGameTable(gameId, participantId);
+
+  useEffect(() => {
+    document.documentElement.setAttribute('data-theme', table.theme);
+  }, [table.theme]);
+
+  const previousRoundStatusRef = useRef<string | undefined>(undefined);
+  useEffect(() => {
+    if (previousRoundStatusRef.current === 'OPEN' && table.round?.status === 'REVEALED') {
+      playRevealSound(table.round.result?.isUnanimous ?? false, table.muted);
+    }
+    previousRoundStatusRef.current = table.round?.status;
+  }, [table.round?.status, table.round?.result?.isUnanimous, table.muted]);
+
+  if (table.status === 'connecting' || !table.game) {
+    return (
+      <div
+        className="flex h-screen items-center justify-center"
+        style={{ background: 'var(--color-bg)' }}
+      >
+        <p style={{ color: 'var(--pp-muted)' }}>Conectando con la mesa…</p>
+      </div>
+    );
+  }
+
+  const { game, round } = table;
+  const nextPendingIssueId = game.issues.find((issue) => issue.status === 'PENDING')?.id ?? null;
+  const isMyTurnToVote = game.participants.find((p) => p.id === participantId)?.role === 'VOTER';
+
+  return (
+    <div
+      className="flex h-screen flex-col overflow-hidden"
+      style={{ background: 'var(--color-bg)' }}
+    >
+      <TopBar
+        gameName={game.name}
+        meta={`${(game.deck.cards.length - 2).toString()} valores · ${table.totalVoters.toString()} votantes · ${table.spectators.length.toString()} mirones`}
+        remainingMs={round?.status === 'OPEN' ? table.remainingMs : null}
+        muted={table.muted}
+        onToggleMuted={table.toggleMuted}
+        viewerId={participantId}
+      />
+      <div className="grid min-h-0 flex-1 grid-cols-[1fr_316px]">
+        <div className="flex min-w-0 flex-col" style={{ background: 'var(--pp-felt)' }}>
+          <div className="flex min-h-0 flex-1 items-center justify-center p-6">
+            <Table
+              game={game}
+              round={round}
+              seats={table.seats}
+              viewerId={participantId}
+              selectedCard={table.selectedCard}
+            />
+          </div>
+
+          <div className="flex flex-none items-center gap-2.5 px-7 pb-3">
+            <span className="pp-kicker">Mirando desde la barrera</span>
+            <div className="flex gap-2">
+              {table.spectators.map((spectator) => (
+                <div
+                  key={spectator.id}
+                  className="flex items-center gap-1.5 rounded-full py-1 pl-1 pr-2.5"
+                  style={{ border: '1px dashed var(--pp-line)' }}
+                >
+                  <Avatar seed={spectator.id} size={20} opacity={0.85} />
+                  <span className="text-[11px]" style={{ color: 'var(--pp-muted)' }}>
+                    {spectator.displayName}
+                  </span>
+                </div>
+              ))}
+            </div>
+          </div>
+
+          {round && isMyTurnToVote ? (
+            <Hand
+              cards={game.deck.cards}
+              selected={table.selectedCard}
+              disabled={round.status !== 'OPEN'}
+              hint={round.status === 'OPEN' ? 'Elige tu carta' : 'La ronda ya está revelada'}
+              onSelect={(card) => {
+                table.castVote(card);
+                playVoteSound(table.muted);
+              }}
+            />
+          ) : null}
+        </div>
+
+        <aside
+          className="flex flex-col gap-4.5 overflow-hidden p-5"
+          style={{
+            borderLeft: '1px solid var(--color-divider)',
+            background: 'var(--color-surface)',
+          }}
+        >
+          <ResultsPanel
+            round={round}
+            celebrate={game.settings.celebrate}
+            votedCount={table.votedCount}
+            totalVoters={table.totalVoters}
+            remainingMs={table.remainingMs}
+            canReveal={table.canReveal}
+            onReveal={table.reveal}
+            onRevote={() => {
+              if (round) table.startRound(round.issueId);
+            }}
+            hasNextIssue={nextPendingIssueId !== null}
+            onNextIssue={() => {
+              if (nextPendingIssueId) table.startRound(nextPendingIssueId);
+            }}
+          />
+        </aside>
+      </div>
+    </div>
+  );
+}

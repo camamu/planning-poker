@@ -48,9 +48,10 @@ export const useGameStore = create<GameStoreState>((set, get) => ({
       selectedCard: null,
     });
     const socket = getSocket();
-    // Reconecta siempre: Socket.IO no abandona rooms anteriores por sí solo, y un socket que
-    // arrastrara la room de otra partida seguiría recibiendo sus eventos.
-    socket.disconnect();
+    // Reconecta si ya había una conexión: Socket.IO no abandona rooms anteriores por sí solo, y
+    // un socket que arrastrara la room de otra partida seguiría recibiendo sus eventos. Si el
+    // socket no se ha conectado nunca, desconectar antes de conectar solo añade un intento fallido.
+    if (socket.connected) socket.disconnect();
     socket.connect();
     socket.emit('join', { gameId, participantId });
   },
