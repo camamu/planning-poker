@@ -19,6 +19,11 @@ export interface CreateGameCommand {
     readonly autoReveal: boolean;
     readonly whoCanReveal: WhoCanReveal;
     readonly namedRevealers?: ReadonlyArray<string>;
+    readonly allowVoteChange?: boolean;
+    readonly celebrate?: boolean;
+    readonly throwEmojis?: boolean;
+    readonly countdownSeconds?: number | null;
+    readonly revealOnTimeout?: boolean;
   };
   readonly facilitatorName: string;
 }
@@ -57,6 +62,21 @@ export class CreateGame {
           whoCanReveal: command.settings.whoCanReveal,
           ...(command.settings.namedRevealers
             ? { namedRevealers: command.settings.namedRevealers.map((id) => ParticipantId.of(id)) }
+            : {}),
+          ...(command.settings.allowVoteChange !== undefined
+            ? { allowVoteChange: command.settings.allowVoteChange }
+            : {}),
+          ...(command.settings.celebrate !== undefined
+            ? { celebrate: command.settings.celebrate }
+            : {}),
+          ...(command.settings.throwEmojis !== undefined
+            ? { throwEmojis: command.settings.throwEmojis }
+            : {}),
+          ...(command.settings.countdownSeconds !== undefined
+            ? { countdownSeconds: command.settings.countdownSeconds }
+            : {}),
+          ...(command.settings.revealOnTimeout !== undefined
+            ? { revealOnTimeout: command.settings.revealOnTimeout }
             : {}),
         }),
         facilitatorId,

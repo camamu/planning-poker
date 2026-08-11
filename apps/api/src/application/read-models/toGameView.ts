@@ -20,6 +20,7 @@ import type { RoundResult } from '../../domain/game/RoundResult.js';
 export function toGameView(game: Game, viewerId: ParticipantId): GameView {
   const round = game.currentRound();
   const settings = game.currentSettings();
+  const dealerId = game.currentDealer();
 
   return {
     id: game.id.value,
@@ -34,10 +35,15 @@ export function toGameView(game: Game, viewerId: ParticipantId): GameView {
       autoReveal: settings.autoReveal,
       whoCanReveal: settings.whoCanReveal,
       namedRevealers: settings.namedRevealers.map((id) => id.value),
+      allowVoteChange: settings.allowVoteChange,
+      celebrate: settings.celebrate,
+      throwEmojis: settings.throwEmojis,
+      countdownSeconds: settings.countdownSeconds,
+      revealOnTimeout: settings.revealOnTimeout,
     },
     participants: game.allParticipants().map(toParticipantView),
     issues: game.allIssues().map(toIssueView),
-    currentRound: round ? toRoundView(round, viewerId) : null,
+    currentRound: round ? toRoundView(round, viewerId, dealerId) : null,
   };
 }
 
@@ -59,7 +65,11 @@ function toIssueView(issue: Issue): IssueView {
   };
 }
 
-function toRoundView(round: Round, viewerId: ParticipantId): RoundView {
+function toRoundView(
+  round: Round,
+  viewerId: ParticipantId,
+  dealerId: ParticipantId | null,
+): RoundView {
   const revealed = round.isRevealed();
 
   return {
@@ -73,6 +83,8 @@ function toRoundView(round: Round, viewerId: ParticipantId): RoundView {
       hasVoted: true,
     })),
     result: revealed ? toRoundResultView(round.revealedResult()) : null,
+    dealerId: dealerId?.value ?? null,
+    timerDeadline: round.currentTimerDeadline()?.toISOString() ?? null,
   };
 }
 
