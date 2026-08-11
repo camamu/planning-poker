@@ -40,7 +40,10 @@ const ids = new UuidGenerator();
 const versions = new GameVersionTracker();
 const discussionTimer = new DiscussionTimerTracker();
 
-await app.register(cors, { origin: env.CORS_ORIGIN });
+await app.register(cors, {
+  origin: env.CORS_ORIGIN,
+  methods: ['GET', 'POST', 'PATCH', 'PUT', 'DELETE'],
+});
 registerHealthRoutes(app, pool);
 
 const io = new SocketIoServer(app.server, { cors: { origin: env.CORS_ORIGIN } });

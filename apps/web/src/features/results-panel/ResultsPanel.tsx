@@ -1,8 +1,10 @@
 import type { RoundView } from '@pp/contracts';
 import type { JSX } from 'react';
 import { Badge, Button, Tooltip } from '../../design-system/index.js';
+import type { DiscussionTimerState } from '../../shared/store/gameStore.js';
 import { formatCountdown } from '../game-table/hooks/useCountdown.js';
 import { Confetti } from './Confetti.js';
+import { DiscussionTimerControls } from './DiscussionTimerControls.js';
 import { DistributionBar } from './DistributionBar.js';
 
 export interface ResultsPanelProps {
@@ -16,6 +18,11 @@ export interface ResultsPanelProps {
   readonly onRevote: () => void;
   readonly hasNextIssue: boolean;
   readonly onNextIssue: () => void;
+  readonly discussionTimer: DiscussionTimerState | null;
+  readonly onStartDiscussionTimer: (roundId: string, seconds: number) => void;
+  readonly onPauseDiscussionTimer: (roundId: string) => void;
+  readonly onResumeDiscussionTimer: (roundId: string) => void;
+  readonly onAddDiscussionSeconds: (roundId: string, seconds: number) => void;
 }
 
 export function ResultsPanel(props: ResultsPanelProps): JSX.Element {
@@ -80,6 +87,14 @@ function WaitingPanel(props: ResultsPanelProps & { round: RoundView }): JSX.Elem
             {votedCount === 0 ? 'Nadie ha votado todavía.' : 'No tienes permiso para revelar.'}
           </span>
         ) : null}
+        <DiscussionTimerControls
+          roundId={props.round.id}
+          timer={props.discussionTimer}
+          onStart={props.onStartDiscussionTimer}
+          onPause={props.onPauseDiscussionTimer}
+          onResume={props.onResumeDiscussionTimer}
+          onAddSeconds={props.onAddDiscussionSeconds}
+        />
       </div>
     </div>
   );
@@ -133,6 +148,14 @@ function RevealedPanel(props: ResultsPanelProps & { round: RoundView }): JSX.Ele
       </p>
 
       <div className="mt-auto flex flex-col gap-2">
+        <DiscussionTimerControls
+          roundId={round.id}
+          timer={props.discussionTimer}
+          onStart={props.onStartDiscussionTimer}
+          onPause={props.onPauseDiscussionTimer}
+          onResume={props.onResumeDiscussionTimer}
+          onAddSeconds={props.onAddDiscussionSeconds}
+        />
         <Tooltip label="Marcar la estimación final llega en un bloque futuro">
           <Button variant="primary" block disabled>
             Aceptar {result.average ?? result.mostVoted} y pasar página

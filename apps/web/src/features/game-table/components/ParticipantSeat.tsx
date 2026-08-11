@@ -13,6 +13,7 @@ export interface ParticipantSeatProps {
   /** null = no ha votado (hueco vacío). */
   readonly card: { readonly hasVoted: boolean; readonly value: string | null } | null;
   readonly badge?: SeatBadge | undefined;
+  readonly onClick?: (() => void) | undefined;
 }
 
 export function ParticipantSeat(props: ParticipantSeatProps): JSX.Element {
@@ -27,7 +28,10 @@ export function ParticipantSeat(props: ParticipantSeatProps): JSX.Element {
         top: props.seat.top,
         background: 'rgba(22,24,38,.42)',
         boxShadow: 'inset 0 0 0 1px rgba(145,132,217,.14)',
+        cursor: props.onClick ? 'pointer' : undefined,
       }}
+      onClick={props.onClick}
+      role={props.onClick ? 'button' : undefined}
     >
       {props.badge === 'feather' ? <FeatherOverlay /> : null}
       {props.badge === 'cape' ? <CapeOverlay /> : null}

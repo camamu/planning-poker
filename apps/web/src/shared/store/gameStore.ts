@@ -1,9 +1,26 @@
-import type { GameView, ServerEvent } from '@pp/contracts';
+import type { EphemeralEvent, GameView, ServerEvent } from '@pp/contracts';
 import { create } from 'zustand';
 import { getSocket } from '../socket/connection.js';
 import { gameEventsReducer, needsResync } from '../socket/gameEventsReducer.js';
 
 export type ConnectionStatus = 'idle' | 'connecting' | 'connected' | 'disconnected';
+
+export interface EmojiInFlight {
+  readonly id: string;
+  readonly fromParticipantId: string;
+  readonly toParticipantId: string | null;
+  readonly emoji: string;
+}
+
+export interface DiscussionTimerState {
+  readonly roundId: string;
+  readonly running: boolean;
+  readonly remainingMs: number;
+  /** `Date.now()` en el momento de este snapshot — deja interpolar el conteo entre syncs. */
+  readonly syncedAt: number;
+}
+
+type DiscussionTimerAction = 'start' | 'pause' | 'resume' | 'reset' | 'addSeconds';
 
 interface GameStoreState {
   readonly status: ConnectionStatus;
@@ -17,6 +34,10 @@ interface GameStoreState {
   readonly selectedCard: string | null;
   readonly theme: 'dark' | 'light';
   readonly muted: boolean;
+  readonly emojiMode: 'throw' | 'react';
+  readonly armedEmoji: string | null;
+  readonly emojisInFlight: ReadonlyArray<EmojiInFlight>;
+  readonly discussionTimer: DiscussionTimerState | null;
 
   connect: (gameId: string, participantId: string) => void;
   castVote: (card: string) => void;
@@ -25,6 +46,15 @@ interface GameStoreState {
   timeoutReveal: () => void;
   toggleTheme: () => void;
   toggleMuted: () => void;
+  setEmojiMode: (mode: 'throw' | 'react') => void;
+  armEmoji: (emoji: string | null) => void;
+  sendEmoji: (toParticipantId: string | null, emoji: string) => void;
+  dismissEmoji: (id: string) => void;
+  controlDiscussionTimer: (
+    roundId: string,
+    action: DiscussionTimerAction,
+    seconds?: number,
+  ) => void;
 }
 
 export const useGameStore = create<GameStoreState>((set, get) => ({
@@ -37,6 +67,10 @@ export const useGameStore = create<GameStoreState>((set, get) => ({
   selectedCard: null,
   theme: 'dark',
   muted: false,
+  emojiMode: 'throw',
+  armedEmoji: null,
+  emojisInFlight: [],
+  discussionTimer: null,
 
   connect(gameId, participantId) {
     set({
@@ -88,6 +122,37 @@ export const useGameStore = create<GameStoreState>((set, get) => ({
 
   toggleMuted() {
     set((state) => ({ muted: !state.muted }));
+  },
+
+  setEmojiMode(mode) {
+    set({ emojiMode: mode, armedEmoji: null });
+  },
+
+  armEmoji(emoji) {
+    set({ armedEmoji: emoji });
+  },
+
+  sendEmoji(toParticipantId, emoji) {
+    const { gameId, participantId } = get();
+    if (!gameId || !participantId) return;
+    getSocket().emit('emoji_thrown', { gameId, participantId, toParticipantId, emoji });
+    set({ armedEmoji: null });
+  },
+
+  dismissEmoji(id) {
+    set((state) => ({ emojisInFlight: state.emojisInFlight.filter((entry) => entry.id !== id) }));
+  },
+
+  controlDiscussionTimer(roundId, action, seconds) {
+    const { gameId, participantId } = get();
+    if (!gameId || !participantId) return;
+    getSocket().emit('discussion_timer_control', {
+      gameId,
+      participantId,
+      roundId,
+      action,
+      ...(seconds !== undefined ? { seconds } : {}),
+    });
   },
 }));
 
@@ -147,3 +212,36 @@ socket.on('issue_estimated', (event: Extract<ServerEvent, { type: 'issue_estimat
 socket.on('settings_changed', (event: Extract<ServerEvent, { type: 'settings_changed' }>) => {
   applyEvent(event);
 });
+
+// `emoji_thrown`/`discussion_timer_sync` son EphemeralEvent, no ServerEvent: no llevan `version`
+// y no pasan por gameEventsReducer (docs/adr/0005-extension-de-alcance-bloque-6.md).
+socket.on('emoji_thrown', (event: Extract<EphemeralEvent, { type: 'emoji_thrown' }>) => {
+  const id = crypto.randomUUID();
+  useGameStore.setState((state) => ({
+    emojisInFlight: [
+      ...state.emojisInFlight,
+      {
+        id,
+        fromParticipantId: event.fromParticipantId,
+        toParticipantId: event.toParticipantId,
+        emoji: event.emoji,
+      },
+    ],
+  }));
+  setTimeout(() => {
+    useGameStore.getState().dismissEmoji(id);
+  }, 2500);
+});
+socket.on(
+  'discussion_timer_sync',
+  (event: Extract<EphemeralEvent, { type: 'discussion_timer_sync' }>) => {
+    useGameStore.setState({
+      discussionTimer: {
+        roundId: event.roundId,
+        running: event.running,
+        remainingMs: event.remainingMs,
+        syncedAt: Date.now(),
+      },
+    });
+  },
+);

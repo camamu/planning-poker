@@ -2,13 +2,21 @@ import { useEffect, useRef, useState } from 'react';
 import type { JSX } from 'react';
 import { Avatar } from '../../design-system/index.js';
 import { addIssue } from '../../shared/api/gamesClient.js';
-import { playRevealSound, playVoteSound } from '../../shared/audio/sounds.js';
+import {
+  playImpactSound,
+  playReactionSound,
+  playRevealSound,
+  playThrowSound,
+  playVoteSound,
+} from '../../shared/audio/sounds.js';
 import { DeckSettingsPanel } from '../deck-settings/DeckSettingsPanel.js';
 import { IssueListPanel } from '../issue-list/IssueListPanel.js';
 import { ResultsPanel } from '../results-panel/ResultsPanel.js';
 import { Hand } from './components/Hand.js';
 import { Table } from './components/Table.js';
 import { TopBar } from './components/TopBar.js';
+import { useDiscussionTimer } from './hooks/useDiscussionTimer.js';
+import { useEmojiThrow } from './hooks/useEmojiThrow.js';
 import { useGameTable } from './hooks/useGameTable.js';
 
 export interface GameTablePageProps {
@@ -18,8 +26,21 @@ export interface GameTablePageProps {
 
 export function GameTablePage({ gameId, participantId }: GameTablePageProps): JSX.Element {
   const table = useGameTable(gameId, participantId);
+  const emoji = useEmojiThrow();
+  const discussionTimer = useDiscussionTimer();
   const [issuesOpen, setIssuesOpen] = useState(false);
   const [settingsOpen, setSettingsOpen] = useState(false);
+
+  const previousEmojiCountRef = useRef(0);
+  useEffect(() => {
+    const latest = emoji.emojisInFlight.at(-1);
+    if (emoji.emojisInFlight.length > previousEmojiCountRef.current && latest) {
+      if (latest.fromParticipantId === participantId) playThrowSound(table.muted);
+      else playImpactSound(table.muted);
+      if (latest.toParticipantId === latest.fromParticipantId) playReactionSound(table.muted);
+    }
+    previousEmojiCountRef.current = emoji.emojisInFlight.length;
+  }, [emoji.emojisInFlight, participantId, table.muted]);
 
   useEffect(() => {
     document.documentElement.setAttribute('data-theme', table.theme);
@@ -81,6 +102,9 @@ export function GameTablePage({ gameId, participantId }: GameTablePageProps): JS
               seats={table.seats}
               viewerId={participantId}
               selectedCard={table.selectedCard}
+              emojisInFlight={emoji.emojisInFlight}
+              seatCursor={emoji.armedEmoji ? 'crosshair' : undefined}
+              onSeatClick={emoji.armedEmoji ? emoji.throwAtSeat : undefined}
             />
           </div>
 
@@ -112,6 +136,9 @@ export function GameTablePage({ gameId, participantId }: GameTablePageProps): JS
                 table.castVote(card);
                 playVoteSound(table.muted);
               }}
+              emoji={emoji}
+              viewerId={participantId}
+              throwEmojisEnabled={game.settings.throwEmojis}
             />
           ) : null}
         </div>
@@ -138,6 +165,11 @@ export function GameTablePage({ gameId, participantId }: GameTablePageProps): JS
             onNextIssue={() => {
               if (nextPendingIssueId) table.startRound(nextPendingIssueId);
             }}
+            discussionTimer={discussionTimer.timer}
+            onStartDiscussionTimer={discussionTimer.start}
+            onPauseDiscussionTimer={discussionTimer.pause}
+            onResumeDiscussionTimer={discussionTimer.resume}
+            onAddDiscussionSeconds={discussionTimer.addSeconds}
           />
         </aside>
       </div>

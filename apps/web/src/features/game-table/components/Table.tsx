@@ -1,7 +1,9 @@
 import type { GameView, RoundView } from '@pp/contracts';
 import type { JSX } from 'react';
-import type { SeatPosition } from '../seatLayout.js';
+import type { EmojiInFlight } from '../../../shared/store/gameStore.js';
 import { computeResultBadges } from '../resultBadges.js';
+import type { SeatPosition } from '../seatLayout.js';
+import { EmojiThrowLayer } from './EmojiThrowLayer.js';
 import { ParticipantSeat } from './ParticipantSeat.js';
 
 export interface TableProps {
@@ -14,9 +16,21 @@ export interface TableProps {
   }>;
   readonly viewerId: string;
   readonly selectedCard: string | null;
+  readonly emojisInFlight?: ReadonlyArray<EmojiInFlight> | undefined;
+  readonly onSeatClick?: ((participantId: string) => void) | undefined;
+  readonly seatCursor?: string | undefined;
 }
 
-export function Table({ game, round, seats, viewerId, selectedCard }: TableProps): JSX.Element {
+export function Table({
+  game,
+  round,
+  seats,
+  viewerId,
+  selectedCard,
+  emojisInFlight = [],
+  onSeatClick,
+  seatCursor,
+}: TableProps): JSX.Element {
   const issue = round ? game.issues.find((candidate) => candidate.id === round.issueId) : undefined;
   const revealed = round?.status === 'REVEALED' || round?.status === 'CLOSED';
   const badges =
@@ -24,8 +38,13 @@ export function Table({ game, round, seats, viewerId, selectedCard }: TableProps
       ? computeResultBadges(round.votes)
       : { feathers: new Set<string>(), capes: new Set<string>() };
 
+  const seatsById = new Map(seats.map((seat) => [seat.id, seat.seat]));
+
   return (
-    <div className="relative mx-auto aspect-[900/520] w-full max-w-[900px]">
+    <div
+      className="relative mx-auto aspect-[900/520] w-full max-w-[900px]"
+      style={{ cursor: seatCursor }}
+    >
       <div
         className="absolute inset-0 rounded-full"
         style={{
@@ -97,9 +116,18 @@ export function Table({ game, round, seats, viewerId, selectedCard }: TableProps
                   }
                 : null
             }
+            onClick={
+              onSeatClick
+                ? () => {
+                    onSeatClick(seat.id);
+                  }
+                : undefined
+            }
           />
         );
       })}
+
+      <EmojiThrowLayer emojisInFlight={emojisInFlight} seatsById={seatsById} />
     </div>
   );
 }
