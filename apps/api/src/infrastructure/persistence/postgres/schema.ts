@@ -9,6 +9,12 @@ export interface GameTable {
   who_can_reveal: string;
   /** Array de `ParticipantId.value`, serializado a JSON al escribir. */
   named_revealers: ColumnType<ReadonlyArray<string>, string, string>;
+  allow_vote_change: boolean;
+  celebrate: boolean;
+  throw_emojis: boolean;
+  /** F5 — segundos de cuenta atrás por ronda, o `null` si está desactivada. */
+  countdown_seconds: number | null;
+  reveal_on_timeout: boolean;
   created_at: Generated<Date>;
 }
 
@@ -18,6 +24,8 @@ export interface ParticipantTable {
   display_name: string;
   role: string;
   is_facilitator: boolean;
+  /** Orden de entrada a la partida; base de `Game.currentDealer()`. Mismo patrón que issues/rounds. */
+  position: number;
 }
 
 export interface IssueTable {
@@ -39,6 +47,8 @@ export interface RoundTable {
   round_number: number;
   status: string;
   revealed_at: Date | null;
+  /** F5 — fecha límite de la cuenta atrás con la que se abrió la ronda, o `null`. */
+  timer_deadline: Date | null;
 }
 
 export interface VoteTable {

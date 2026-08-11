@@ -81,6 +81,20 @@ export class WsEventPublisher implements EventPublisher {
           issueId: event.issueId.value,
           finalEstimate: event.finalEstimate.raw,
         };
+      case 'GameSettingsChanged':
+        return {
+          type: 'settings_changed',
+          settings: {
+            autoReveal: event.settings.autoReveal,
+            whoCanReveal: event.settings.whoCanReveal,
+            namedRevealers: event.settings.namedRevealers.map((id) => id.value),
+            allowVoteChange: event.settings.allowVoteChange,
+            celebrate: event.settings.celebrate,
+            throwEmojis: event.settings.throwEmojis,
+            countdownSeconds: event.settings.countdownSeconds,
+            revealOnTimeout: event.settings.revealOnTimeout,
+          },
+        };
     }
   }
 

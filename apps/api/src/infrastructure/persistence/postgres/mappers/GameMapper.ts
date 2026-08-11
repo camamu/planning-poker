@@ -37,6 +37,11 @@ export function toGameRow(game: Game): Insertable<GameTable> {
     auto_reveal: settings.autoReveal,
     who_can_reveal: settings.whoCanReveal,
     named_revealers: JSON.stringify(settings.namedRevealers.map((id) => id.value)),
+    allow_vote_change: settings.allowVoteChange,
+    celebrate: settings.celebrate,
+    throw_emojis: settings.throwEmojis,
+    countdown_seconds: settings.countdownSeconds,
+    reveal_on_timeout: settings.revealOnTimeout,
   };
 }
 
@@ -47,6 +52,7 @@ export function toParticipantRows(game: Game): Insertable<ParticipantTable>[] {
     display_name: participant.displayName.value,
     role: participant.currentRole(),
     is_facilitator: participant.isFacilitator,
+    position: participant.joinOrder,
   }));
 }
 
@@ -72,6 +78,7 @@ export function toRoundRows(game: Game): Insertable<RoundTable>[] {
     round_number: round.roundNumber,
     status: round.currentStatus(),
     revealed_at: round.currentRevealedAt(),
+    timer_deadline: round.currentTimerDeadline(),
   }));
 }
 
@@ -104,13 +111,21 @@ export function toDomainGame(rows: GameRowSet): Game {
       autoReveal: rows.game.auto_reveal,
       whoCanReveal: parseWhoCanReveal(rows.game.who_can_reveal),
       namedRevealers: rows.game.named_revealers.map((raw) => ParticipantId.of(raw)),
+      allowVoteChange: rows.game.allow_vote_change,
+      celebrate: rows.game.celebrate,
+      throwEmojis: rows.game.throw_emojis,
+      countdownSeconds: rows.game.countdown_seconds,
+      revealOnTimeout: rows.game.reveal_on_timeout,
     }),
+    // El orden importa (Game.currentDealer() lo usa) y lo garantiza la consulta con
+    // `orderBy('position', 'asc')` en PostgresGameRepository, no este mapper.
     participants: rows.participants.map((row) =>
       Participant.join(
         ParticipantId.of(row.id),
         DisplayName.of(row.display_name),
         parseParticipantRole(row.role),
         row.is_facilitator,
+        row.position,
       ),
     ),
     issues: rows.issues.map((row) =>
@@ -131,13 +146,21 @@ export function toDomainGame(rows: GameRowSet): Game {
         parseRoundStatus(row.status),
         votesByRound.get(row.id) ?? [],
         row.revealed_at,
+        row.timer_deadline,
       ),
     ),
   });
 }
 
 function parseWhoCanReveal(value: string): WhoCanReveal {
-  if (value === 'FACILITATOR_ONLY' || value === 'ANYONE' || value === 'NAMED_LIST') return value;
+  if (
+    value === 'FACILITATOR_ONLY' ||
+    value === 'ANYONE' ||
+    value === 'NAMED_LIST' ||
+    value === 'DEALER'
+  ) {
+    return value;
+  }
   throw new Error(`who_can_reveal desconocido en BD: "${value}"`);
 }
 
