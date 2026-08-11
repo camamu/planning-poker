@@ -1,1 +1,15 @@
 @import 'tailwindcss';
+@import '../design-system/tokens/colors.css';
+@import '../design-system/tokens/base.css';
+
+/* La fuente Inter se carga desde index.html (mismo patrón que el prototipo: <link> en <head>,
+   no @import — evita el aviso de PostCSS por un @import que no precede al resto de reglas). */
+
+* {
+  box-sizing: border-box;
+}
+
+body {
+  margin: 0;
+  font-variant-numeric: tabular-nums;
+}
