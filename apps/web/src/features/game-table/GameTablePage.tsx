@@ -3,6 +3,7 @@ import type { JSX } from 'react';
 import { Avatar } from '../../design-system/index.js';
 import { addIssue } from '../../shared/api/gamesClient.js';
 import { playRevealSound, playVoteSound } from '../../shared/audio/sounds.js';
+import { DeckSettingsPanel } from '../deck-settings/DeckSettingsPanel.js';
 import { IssueListPanel } from '../issue-list/IssueListPanel.js';
 import { ResultsPanel } from '../results-panel/ResultsPanel.js';
 import { Hand } from './components/Hand.js';
@@ -18,6 +19,7 @@ export interface GameTablePageProps {
 export function GameTablePage({ gameId, participantId }: GameTablePageProps): JSX.Element {
   const table = useGameTable(gameId, participantId);
   const [issuesOpen, setIssuesOpen] = useState(false);
+  const [settingsOpen, setSettingsOpen] = useState(false);
 
   useEffect(() => {
     document.documentElement.setAttribute('data-theme', table.theme);
@@ -44,7 +46,8 @@ export function GameTablePage({ gameId, participantId }: GameTablePageProps): JS
 
   const { game, round } = table;
   const nextPendingIssueId = game.issues.find((issue) => issue.status === 'PENDING')?.id ?? null;
-  const isMyTurnToVote = game.participants.find((p) => p.id === participantId)?.role === 'VOTER';
+  const me = game.participants.find((p) => p.id === participantId);
+  const isMyTurnToVote = me?.role === 'VOTER';
 
   return (
     <div
@@ -61,6 +64,13 @@ export function GameTablePage({ gameId, participantId }: GameTablePageProps): JS
         onToggleIssues={() => {
           setIssuesOpen((open) => !open);
         }}
+        onToggleSettings={
+          me?.isFacilitator
+            ? () => {
+                setSettingsOpen((open) => !open);
+              }
+            : undefined
+        }
       />
       <div className="grid min-h-0 flex-1 grid-cols-[1fr_316px]">
         <div className="flex min-w-0 flex-col" style={{ background: 'var(--pp-felt)' }}>
@@ -157,6 +167,33 @@ export function GameTablePage({ gameId, participantId }: GameTablePageProps): JS
               onStartRound={table.startRound}
               onClose={() => {
                 setIssuesOpen(false);
+              }}
+            />
+          </div>
+        </div>
+      ) : null}
+
+      {settingsOpen ? (
+        <div
+          className="fixed inset-0 z-50 flex justify-end"
+          role="presentation"
+          onClick={() => {
+            setSettingsOpen(false);
+          }}
+        >
+          <div
+            className="h-full shadow-2xl"
+            style={{ boxShadow: '-12px 0 30px rgba(0,0,0,.4)' }}
+            onClick={(event) => {
+              event.stopPropagation();
+            }}
+          >
+            <DeckSettingsPanel
+              gameId={gameId}
+              participantId={participantId}
+              settings={game.settings}
+              onClose={() => {
+                setSettingsOpen(false);
               }}
             />
           </div>
