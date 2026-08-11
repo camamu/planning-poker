@@ -34,10 +34,17 @@ export class Round {
     readonly id: RoundId,
     readonly issueId: IssueId,
     readonly roundNumber: number,
+    /** Fecha límite de la cuenta atrás (F5), fijada al abrir la ronda. `null` si está desactivada. */
+    private readonly timerDeadline: Date | null,
   ) {}
 
-  static open(id: RoundId, issueId: IssueId, roundNumber: number): Round {
-    return new Round(id, issueId, roundNumber);
+  static open(
+    id: RoundId,
+    issueId: IssueId,
+    roundNumber: number,
+    timerDeadline: Date | null,
+  ): Round {
+    return new Round(id, issueId, roundNumber, timerDeadline);
   }
 
   /**
@@ -54,8 +61,9 @@ export class Round {
     status: RoundStatus,
     votes: ReadonlyArray<RoundVote>,
     revealedAt: Date | null,
+    timerDeadline: Date | null,
   ): Round {
-    const round = new Round(id, issueId, roundNumber);
+    const round = new Round(id, issueId, roundNumber, timerDeadline);
     for (const vote of votes) {
       round.votes.set(vote.participantId.value, vote);
     }
@@ -79,6 +87,10 @@ export class Round {
 
   currentRevealedAt(): Date | null {
     return this.revealedAt;
+  }
+
+  currentTimerDeadline(): Date | null {
+    return this.timerDeadline;
   }
 
   hasVoted(participantId: ParticipantId): boolean {

@@ -11,6 +11,8 @@ export class Participant {
     readonly displayName: DisplayName,
     role: ParticipantRole,
     readonly isFacilitator: boolean,
+    /** Orden de entrada a la partida, estable entre reconstituciones. Base de `Game.currentDealer()`. */
+    readonly joinOrder: number,
   ) {
     this.role = role;
   }
@@ -20,8 +22,9 @@ export class Participant {
     displayName: DisplayName,
     role: ParticipantRole,
     isFacilitator: boolean,
+    joinOrder: number,
   ): Participant {
-    return new Participant(id, displayName, role, isFacilitator);
+    return new Participant(id, displayName, role, isFacilitator, joinOrder);
   }
 
   changeRole(role: ParticipantRole): void {

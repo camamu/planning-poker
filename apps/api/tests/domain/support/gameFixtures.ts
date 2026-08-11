@@ -25,6 +25,11 @@ export function createGame(
     whoCanReveal?: WhoCanReveal;
     namedRevealers?: ParticipantId[];
     deck?: Deck;
+    allowVoteChange?: boolean;
+    celebrate?: boolean;
+    throwEmojis?: boolean;
+    countdownSeconds?: number | null;
+    revealOnTimeout?: boolean;
   } = {},
 ): GameSetup {
   const facilitatorId = ParticipantId.of(nextId('participant'));
@@ -37,6 +42,17 @@ export function createGame(
         autoReveal: overrides.autoReveal ?? false,
         whoCanReveal: overrides.whoCanReveal ?? 'FACILITATOR_ONLY',
         ...(overrides.namedRevealers ? { namedRevealers: overrides.namedRevealers } : {}),
+        ...(overrides.allowVoteChange !== undefined
+          ? { allowVoteChange: overrides.allowVoteChange }
+          : {}),
+        ...(overrides.celebrate !== undefined ? { celebrate: overrides.celebrate } : {}),
+        ...(overrides.throwEmojis !== undefined ? { throwEmojis: overrides.throwEmojis } : {}),
+        ...(overrides.countdownSeconds !== undefined
+          ? { countdownSeconds: overrides.countdownSeconds }
+          : {}),
+        ...(overrides.revealOnTimeout !== undefined
+          ? { revealOnTimeout: overrides.revealOnTimeout }
+          : {}),
       }),
       facilitatorId,
       facilitatorName: DisplayName.of('Facilitador'),

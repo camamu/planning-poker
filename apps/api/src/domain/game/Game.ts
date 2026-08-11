@@ -67,6 +67,18 @@ export class EstimateRequiresRevealedRoundError extends DomainError {
   }
 }
 
+export class VoteChangeNotAllowedError extends DomainError {
+  constructor(readonly participantId: ParticipantId) {
+    super(`El participante ${participantId.value} no puede cambiar su voto en esta ronda.`);
+  }
+}
+
+export class SettingsChangeNotAllowedError extends DomainError {
+  constructor(readonly participantId: ParticipantId) {
+    super(`El participante ${participantId.value} no puede cambiar los ajustes de la partida.`);
+  }
+}
+
 export interface CreateGameProps {
   readonly id: GameId;
   readonly name: GameName;
@@ -96,12 +108,18 @@ export class Game {
     readonly id: GameId,
     private readonly name: GameName,
     private readonly deck: Deck,
-    private readonly settings: GameSettings,
+    private settings: GameSettings,
   ) {}
 
   static create(props: CreateGameProps, now: Date): Game {
     const game = new Game(props.id, props.name, props.deck, props.settings);
-    const facilitator = Participant.join(props.facilitatorId, props.facilitatorName, 'VOTER', true);
+    const facilitator = Participant.join(
+      props.facilitatorId,
+      props.facilitatorName,
+      'VOTER',
+      true,
+      0,
+    );
     game.participants.set(facilitator.id.value, facilitator);
     game.record({ type: 'GameCreated', occurredAt: now, gameId: props.id });
     return game;
@@ -156,7 +174,10 @@ export class Game {
     now: Date,
   ): void {
     if (this.participants.has(id.value)) throw new ParticipantAlreadyJoinedError(id);
-    this.participants.set(id.value, Participant.join(id, displayName, role, false));
+    this.participants.set(
+      id.value,
+      Participant.join(id, displayName, role, false, this.participants.size),
+    );
     this.record({ type: 'ParticipantJoined', occurredAt: now, gameId: this.id, participantId: id });
   }
 
@@ -181,7 +202,11 @@ export class Game {
     const issue = this.requireIssue(issueId);
 
     const roundNumber = this.rounds.filter((round) => round.issueId.equals(issueId)).length + 1;
-    this.rounds.push(Round.open(id, issueId, roundNumber));
+    const timerDeadline =
+      this.settings.countdownSeconds != null
+        ? new Date(now.getTime() + this.settings.countdownSeconds * 1000)
+        : null;
+    this.rounds.push(Round.open(id, issueId, roundNumber, timerDeadline));
     issue.startVoting();
     this.record({
       type: 'VotingRoundStarted',
@@ -199,6 +224,9 @@ export class Game {
 
     const round = this.requireOpenRound();
     if (round.hasSameVote(participantId, card)) return;
+    if (!this.settings.allowVoteChange && round.hasVoted(participantId)) {
+      throw new VoteChangeNotAllowedError(participantId);
+    }
 
     round.castVote(participantId, card);
     this.record({
@@ -238,7 +266,55 @@ export class Game {
     const participant = this.requireParticipant(participantId);
     if (this.settings.whoCanReveal === 'FACILITATOR_ONLY') return participant.isFacilitator;
     if (this.settings.whoCanReveal === 'ANYONE') return true;
+    if (this.settings.whoCanReveal === 'DEALER') {
+      return this.currentDealer()?.equals(participantId) ?? false;
+    }
     return this.settings.namedRevealers.some((allowed) => allowed.equals(participantId));
+  }
+
+  /**
+   * Reveal disparado por el cliente al agotarse la cuenta atrás (F5) y validado aquí contra la
+   * fecha límite guardada en la ronda — nunca contra el reloj local del cliente. No comprueba
+   * `canReveal()`: es una acción del sistema, mismo precedente que el auto-reveal de `castVote`.
+   * Idempotente: si ya no hay ronda abierta (alguien reveló antes) o el plazo no se ha cumplido,
+   * no hace nada en vez de lanzar.
+   */
+  revealOnTimeout(participantId: ParticipantId, now: Date): void {
+    this.requireParticipant(participantId);
+    const round = this.openRound();
+    if (!round) return;
+    const deadline = round.currentTimerDeadline();
+    if (!deadline || now.getTime() < deadline.getTime()) return;
+    this.performReveal(round, now);
+  }
+
+  /**
+   * El "dealer" (docs/06-handoff-diseno.md §1) no es un hecho persistido: se calcula a partir de
+   * la posición de la tarea actual entre las issues de la partida y del orden de entrada de los
+   * `VOTER` (los espectadores nunca reparten). Rota al pasar a la ronda de la siguiente issue;
+   * "Volver a votar" sobre la misma issue no lo cambia, porque usa el mismo `currentRound()`.
+   */
+  currentDealer(): ParticipantId | null {
+    const round = this.currentRound();
+    if (!round) return null;
+    const issueIndex = this.issues.findIndex((issue) => issue.id.equals(round.issueId));
+    if (issueIndex < 0) return null;
+
+    const voters = [...this.participants.values()]
+      .filter((participant) => !participant.isSpectator())
+      .sort((a, b) => a.joinOrder - b.joinOrder);
+    if (voters.length === 0) return null;
+
+    const dealer = voters[issueIndex % voters.length];
+    return dealer ? dealer.id : null;
+  }
+
+  /** Solo el facilitador puede tocar la configuración compartida de la partida. */
+  updateSettings(settings: GameSettings, requestedBy: ParticipantId, now: Date): void {
+    const participant = this.requireParticipant(requestedBy);
+    if (!participant.isFacilitator) throw new SettingsChangeNotAllowedError(requestedBy);
+    this.settings = settings;
+    this.record({ type: 'GameSettingsChanged', occurredAt: now, gameId: this.id, settings });
   }
 
   setFinalEstimate(cardValue: CardValue, now: Date): void {
