@@ -1,3 +1,3 @@
 import { defineWorkspace } from 'vitest/config';
 
-export default defineWorkspace(['apps/api', 'packages/contracts']);
+export default defineWorkspace(['apps/api', 'apps/web', 'packages/contracts']);

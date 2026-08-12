@@ -8,9 +8,12 @@ import { GetGameState } from '../../../src/application/use-cases/GetGameState.js
 import { JoinGame } from '../../../src/application/use-cases/JoinGame.js';
 import { RevealRound } from '../../../src/application/use-cases/RevealRound.js';
 import { StartVotingRound } from '../../../src/application/use-cases/StartVotingRound.js';
+import { TimeoutReveal } from '../../../src/application/use-cases/TimeoutReveal.js';
+import { UpdateGameSettings } from '../../../src/application/use-cases/UpdateGameSettings.js';
 import { registerGameRoutes } from '../../../src/infrastructure/http/routes/games.js';
 import { UuidGenerator } from '../../../src/infrastructure/ids/UuidGenerator.js';
 import { InMemoryGameRepository } from '../../../src/infrastructure/persistence/in-memory/InMemoryGameRepository.js';
+import { DiscussionTimerTracker } from '../../../src/infrastructure/realtime/DiscussionTimerTracker.js';
 import { GameVersionTracker } from '../../../src/infrastructure/realtime/GameVersionTracker.js';
 import { registerSocketGateway } from '../../../src/infrastructure/realtime/SocketIoGateway.js';
 import { SocketIoBroadcaster } from '../../../src/infrastructure/realtime/SocketIoBroadcaster.js';
@@ -35,6 +38,7 @@ export async function startTestServer(): Promise<TestServer> {
   const clock = new SystemClock();
   const ids = new UuidGenerator();
   const versions = new GameVersionTracker();
+  const discussionTimer = new DiscussionTimerTracker();
 
   const io = new SocketIoServer(app.server);
   const broadcaster = new SocketIoBroadcaster(io);
@@ -46,10 +50,29 @@ export async function startTestServer(): Promise<TestServer> {
   const startVotingRound = new StartVotingRound(games, events, clock, ids);
   const castVote = new CastVote(games, events, clock);
   const revealRound = new RevealRound(games, events, clock);
+  const timeoutReveal = new TimeoutReveal(games, events, clock);
+  const updateGameSettings = new UpdateGameSettings(games, events, clock);
   const getGameState = new GetGameState(games);
 
-  registerGameRoutes(app, { createGame, joinGame, addIssue, getGameState, versions });
-  registerSocketGateway(io, { getGameState, castVote, startVotingRound, revealRound, versions });
+  registerGameRoutes(app, {
+    createGame,
+    joinGame,
+    addIssue,
+    getGameState,
+    updateGameSettings,
+    versions,
+  });
+  registerSocketGateway(io, {
+    getGameState,
+    castVote,
+    startVotingRound,
+    revealRound,
+    timeoutReveal,
+    versions,
+    games,
+    discussionTimer,
+    clock,
+  });
 
   await app.listen({ port: 0, host: '127.0.0.1' });
   const address = app.server.address();

@@ -5,8 +5,8 @@ import { Round, RoundNotOpenError, RoundNotRevealedError } from '../../src/domai
 
 const NOW = new Date('2026-08-07T10:00:00Z');
 
-function openRound(): Round {
-  return Round.open(RoundId.of('r1'), IssueId.of('i1'), 1);
+function openRound(timerDeadline: Date | null = null): Round {
+  return Round.open(RoundId.of('r1'), IssueId.of('i1'), 1, timerDeadline);
 }
 
 describe('Round', () => {
@@ -92,6 +92,7 @@ describe('Round', () => {
       'OPEN',
       [{ participantId: p1, card: CardValue.of('5') }],
       null,
+      null,
     );
 
     expect(round.isOpen()).toBe(true);
@@ -113,11 +114,19 @@ describe('Round', () => {
         { participantId: p2, card: CardValue.of('5') },
       ],
       NOW,
+      null,
     );
 
     expect(round.isRevealed()).toBe(true);
     expect(round.currentRevealedAt()).toBe(NOW);
     expect(round.revealedResult().isUnanimous).toBe(true);
     expect(round.revealedVotes()).toHaveLength(2);
+  });
+
+  it('expone la fecha límite con la que se abrió, o null si la cuenta atrás está desactivada', () => {
+    expect(openRound().currentTimerDeadline()).toBeNull();
+
+    const deadline = new Date(NOW.getTime() + 45_000);
+    expect(openRound(deadline).currentTimerDeadline()).toBe(deadline);
   });
 });

@@ -11,7 +11,7 @@ The numbered docs in `docs/` are the source of truth and are not summarized here
 
 **Before starting a new block of the plan:** read `docs/02-decisiones-y-plan.md` §5 and whichever doc(s) that block references.
 
-The project is built in ordered blocks (see `docs/02-decisiones-y-plan.md` §5). As of now **blocks 1 (skeleton), 2 (estimation domain) and 3 (use cases + in-memory repo)** are done: monorepo/tooling/architectural barrier/Docker from block 1, the `Game` aggregate with the 10 business invariants under test from block 2 (`docs/adr/0001-modelo-de-dominio-de-estimacion.md`), and now `CreateGame`, `JoinGame`, `AddIssue`, `StartVotingRound`, `CastVote`, `RevealRound` in `application/use-cases/` backed by `InMemoryGameRepository` — see `docs/adr/0002-casos-de-uso-y-repositorio-in-memory.md`. No Postgres persistence, HTTP routes beyond health, or frontend exist yet.
+The project is built in ordered blocks (see `docs/02-decisiones-y-plan.md` §5). As of now **blocks 1 through 6** are done: monorepo/tooling/architectural barrier/Docker from block 1, the `Game` aggregate with the 10 business invariants under test from block 2 (`docs/adr/0001-modelo-de-dominio-de-estimacion.md`), the use cases (`CreateGame`, `JoinGame`, `AddIssue`, `StartVotingRound`, `CastVote`, `RevealRound`) backed by `InMemoryGameRepository` from block 3 (`docs/adr/0002-casos-de-uso-y-repositorio-in-memory.md`), Postgres persistence via Kysely from block 4, the Fastify + Socket.IO transport from block 5, and the full `@pp/web` frontend from block 6 — built from the Nocturne design handoff and deliberately extended beyond the plan's original block 6/7/8 split (dealer rotation, discussion timer, emoji throw, live settings) per `docs/adr/0005-extension-de-alcance-bloque-6.md`. Still pending: block 7's team/deck-selector and functional custom-deck editor, and block 9's production hardening.
 
 ## Commands
 
@@ -48,7 +48,7 @@ Domain aggregate shape (target, not yet built) is fully specified in `docs/01-es
 
 ### Monorepo layout
 
-pnpm workspace, 3 packages: `@pp/api` (Fastify backend), `@pp/web` (folder skeleton only — no `package.json`, no Vite/React/Tailwind yet; those land in block 6), `@pp/contracts` (shared zod schemas/types between api and web — currently just a placeholder export). `packages/contracts` is meant to hold `events.ts`/`commands.ts`/`views.ts` once the WS contract is implemented.
+pnpm workspace, 3 packages: `@pp/api` (Fastify backend), `@pp/web` (React + Vite + Tailwind frontend, built in block 6), `@pp/contracts` (shared zod schemas/types between api and web — `events.ts`/`commands.ts`/`views.ts`).
 
 `apps/web/src/` mirrors the backend's hexagonal split with different names: `design-system/` (pure, no business knowledge — the equivalent of `domain/`), `features/` (equivalent of `application/`), `shared/` (equivalent of `infrastructure/` — API client, socket, store). Rules and rationale in `apps/web/CLAUDE.md` and `docs/05-estructura-frontend.md`.
 
@@ -58,7 +58,7 @@ pnpm workspace, 3 packages: `@pp/api` (Fastify backend), `@pp/web` (folder skele
 
 ## Stack decisions (locked, see `docs/02-decisiones-y-plan.md` §1)
 
-Fastify · Socket.IO · Postgres via `pg` + Kysely (query builder, not an ORM — mappers stay explicit) · Zod for edge validation in `packages/contracts` · Vitest · React + Vite + Tailwind + Zustand for the frontend (not built yet) · manual composition root in `main.ts` (no DI container) · no accounts, URL-based auth with a facilitator token.
+Fastify · Socket.IO · Postgres via `pg` + Kysely (query builder, not an ORM — mappers stay explicit) · Zod for edge validation in `packages/contracts` · Vitest · React + Vite + Tailwind + Zustand for the frontend · manual composition root in `main.ts` (no DI container) · no accounts, URL-based auth with a facilitator token.
 
 ## Environment / config
 
@@ -80,11 +80,11 @@ The `pg.Pool` in `main.ts` has a `.on('error', ...)` handler — without it, an 
 
 ## Frontend
 
-`apps/web/CLAUDE.md` holds that folder's own dependency rules and loads automatically when working on files inside it — don't duplicate its content here. Design work itself (Claude Design handoff, actual components) is block 6; only the folder skeleton and its architectural barrier exist so far.
+`apps/web/CLAUDE.md` holds that folder's own dependency rules and loads automatically when working on files inside it — don't duplicate its content here. The Nocturne design handoff (`docs/design/`, `docs/06-handoff-diseno.md`) landed in block 6: `design-system/` has the ported tokens and components, `features/` and `shared/` wire them to the real backend.
 
 ## Estado
 
-Bloque actual del plan: 5 (HTTP + WebSocket). Actualiza esta línea al cerrar cada bloque.
+Bloque actual del plan: 6 (frontend de la mesa) cerrado, ampliado con partes de los bloques 7 y 8 del handoff Nocturne (dealer, temporizador de discusión, emojis — `docs/adr/0005-extension-de-alcance-bloque-6.md`). Siguiente: terminar el bloque 7 (equipos, editor de barajas funcional) y el bloque 9 (producción). Actualiza esta línea al cerrar cada bloque.
 
 ## Known local-environment gotchas
 

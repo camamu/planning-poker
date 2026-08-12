@@ -1,5 +1,6 @@
 import type { CardValue } from '../../deck/CardValue.js';
 import type { DomainEvent } from '../../shared/DomainEvent.js';
+import type { GameSettings } from '../GameSettings.js';
 import type { GameId, IssueId, ParticipantId, RoundId } from '../ids.js';
 import type { ParticipantRole } from '../Participant.js';
 
@@ -42,5 +43,10 @@ export type GameEvent = DomainEvent &
         readonly gameId: GameId;
         readonly issueId: IssueId;
         readonly finalEstimate: CardValue;
+      }
+    | {
+        readonly type: 'GameSettingsChanged';
+        readonly gameId: GameId;
+        readonly settings: GameSettings;
       }
   );

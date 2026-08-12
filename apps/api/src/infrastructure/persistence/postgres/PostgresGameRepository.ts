@@ -24,7 +24,12 @@ export class PostgresGameRepository implements GameRepository {
     if (!gameRow) return undefined;
 
     const [participants, issues, rounds] = await Promise.all([
-      this.db.selectFrom('participants').selectAll().where('game_id', '=', id.value).execute(),
+      this.db
+        .selectFrom('participants')
+        .selectAll()
+        .where('game_id', '=', id.value)
+        .orderBy('position', 'asc')
+        .execute(),
       this.db
         .selectFrom('issues')
         .selectAll()
@@ -66,6 +71,11 @@ export class PostgresGameRepository implements GameRepository {
             auto_reveal: gameRow.auto_reveal,
             who_can_reveal: gameRow.who_can_reveal,
             named_revealers: gameRow.named_revealers,
+            allow_vote_change: gameRow.allow_vote_change,
+            celebrate: gameRow.celebrate,
+            throw_emojis: gameRow.throw_emojis,
+            countdown_seconds: gameRow.countdown_seconds,
+            reveal_on_timeout: gameRow.reveal_on_timeout,
           }),
         )
         .execute();

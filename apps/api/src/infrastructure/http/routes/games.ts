@@ -2,12 +2,14 @@ import {
   addIssueCommandSchema,
   createGameCommandSchema,
   joinGameCommandSchema,
+  updateGameSettingsCommandSchema,
 } from '@pp/contracts';
 import type { FastifyInstance } from 'fastify';
 import type { AddIssue } from '../../../application/use-cases/AddIssue.js';
 import type { CreateGame } from '../../../application/use-cases/CreateGame.js';
 import type { GetGameState } from '../../../application/use-cases/GetGameState.js';
 import type { JoinGame } from '../../../application/use-cases/JoinGame.js';
+import type { UpdateGameSettings } from '../../../application/use-cases/UpdateGameSettings.js';
 import { GameId } from '../../../domain/game/ids.js';
 import type { GameVersionTracker } from '../../realtime/GameVersionTracker.js';
 import { sendError } from '../errors.js';
@@ -17,6 +19,7 @@ export interface GameRoutesDependencies {
   readonly joinGame: JoinGame;
   readonly addIssue: AddIssue;
   readonly getGameState: GetGameState;
+  readonly updateGameSettings: UpdateGameSettings;
   readonly versions: GameVersionTracker;
 }
 
@@ -42,6 +45,11 @@ export function registerGameRoutes(app: FastifyInstance, deps: GameRoutesDepende
           ...(command.settings.namedRevealers
             ? { namedRevealers: command.settings.namedRevealers }
             : {}),
+          allowVoteChange: command.settings.allowVoteChange,
+          celebrate: command.settings.celebrate,
+          throwEmojis: command.settings.throwEmojis,
+          countdownSeconds: command.settings.countdownSeconds,
+          revealOnTimeout: command.settings.revealOnTimeout,
         },
       });
       await reply.code(201).send(result);
@@ -93,6 +101,31 @@ export function registerGameRoutes(app: FastifyInstance, deps: GameRoutesDepende
         title: command.title,
       });
       await reply.code(201).send({ issueId });
+    } catch (error) {
+      sendError(reply, error);
+    }
+  });
+
+  app.patch<{ Params: GameIdParams }>('/api/games/:id/settings', async (request, reply) => {
+    try {
+      const command = updateGameSettingsCommandSchema.parse(request.body);
+      await deps.updateGameSettings.execute({
+        gameId: request.params.id,
+        participantId: command.participantId,
+        settings: {
+          autoReveal: command.settings.autoReveal,
+          whoCanReveal: command.settings.whoCanReveal,
+          ...(command.settings.namedRevealers
+            ? { namedRevealers: command.settings.namedRevealers }
+            : {}),
+          allowVoteChange: command.settings.allowVoteChange,
+          celebrate: command.settings.celebrate,
+          throwEmojis: command.settings.throwEmojis,
+          countdownSeconds: command.settings.countdownSeconds,
+          revealOnTimeout: command.settings.revealOnTimeout,
+        },
+      });
+      await reply.code(204).send();
     } catch (error) {
       sendError(reply, error);
     }

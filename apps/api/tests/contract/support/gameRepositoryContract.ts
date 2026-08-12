@@ -172,5 +172,80 @@ export function defineGameRepositoryContractTests(
         reloaded?.currentSettings().namedRevealers.some((id) => id.equals(namedRevealer)),
       ).toBe(true);
     });
+
+    it('conserva los ajustes del bloque 6 (allowVoteChange, celebrate, throwEmojis, countdownSeconds, revealOnTimeout) tras recargar', async () => {
+      const repository = await makeRepository();
+      const game = Game.create(
+        {
+          id: GameId.of('game-9'),
+          name: GameName.of('Sprint 42'),
+          deck: Deck.fibonacci(),
+          settings: GameSettings.of({
+            autoReveal: false,
+            whoCanReveal: 'DEALER',
+            allowVoteChange: false,
+            celebrate: false,
+            throwEmojis: true,
+            countdownSeconds: 90,
+            revealOnTimeout: true,
+          }),
+          facilitatorId: ParticipantId.of('game-9-facilitator'),
+          facilitatorName: DisplayName.of('Ada'),
+        },
+        NOW,
+      );
+      await repository.save(game);
+
+      const reloaded = await repository.findById(GameId.of('game-9'));
+      const settings = reloaded?.currentSettings();
+      expect(settings?.whoCanReveal).toBe('DEALER');
+      expect(settings?.allowVoteChange).toBe(false);
+      expect(settings?.celebrate).toBe(false);
+      expect(settings?.throwEmojis).toBe(true);
+      expect(settings?.countdownSeconds).toBe(90);
+      expect(settings?.revealOnTimeout).toBe(true);
+    });
+
+    it('conserva el orden de entrada de los participantes tras recargar (base de Game.currentDealer())', async () => {
+      const repository = await makeRepository();
+      const { game, facilitatorId } = newGame('game-10');
+      const secondVoterId = ParticipantId.of('game-10-second-voter');
+      const thirdVoterId = ParticipantId.of('game-10-third-voter');
+      game.addParticipant(secondVoterId, DisplayName.of('Bea'), 'VOTER', NOW);
+      game.addParticipant(thirdVoterId, DisplayName.of('Cleo'), 'VOTER', NOW);
+      game.addIssue(IssueId.of('issue-1'), 'Implementar login', NOW);
+      game.startVotingRound(RoundId.of('round-1'), IssueId.of('issue-1'), NOW);
+      await repository.save(game);
+
+      const reloaded = await repository.findById(GameId.of('game-10'));
+      expect(reloaded?.currentDealer()?.equals(facilitatorId)).toBe(true);
+    });
+
+    it('conserva la fecha límite de la cuenta atrás de una ronda abierta tras recargar', async () => {
+      const repository = await makeRepository();
+      const game = Game.create(
+        {
+          id: GameId.of('game-11'),
+          name: GameName.of('Sprint 42'),
+          deck: Deck.fibonacci(),
+          settings: GameSettings.of({
+            autoReveal: false,
+            whoCanReveal: 'FACILITATOR_ONLY',
+            countdownSeconds: 45,
+          }),
+          facilitatorId: ParticipantId.of('game-11-facilitator'),
+          facilitatorName: DisplayName.of('Ada'),
+        },
+        NOW,
+      );
+      game.addIssue(IssueId.of('issue-1'), 'Implementar login', NOW);
+      game.startVotingRound(RoundId.of('round-1'), IssueId.of('issue-1'), NOW);
+      await repository.save(game);
+
+      const reloaded = await repository.findById(GameId.of('game-11'));
+      expect(reloaded?.currentRound()?.currentTimerDeadline()).toEqual(
+        new Date(NOW.getTime() + 45_000),
+      );
+    });
   });
 }

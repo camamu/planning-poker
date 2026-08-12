@@ -1,0 +1,1193 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+<meta name="design_doc_mode" content="canvas">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap">
+<link rel="stylesheet" href="_ds/nocturne-ec2a995a-7d23-4b45-964d-834b321795db/styles.css">
+<script src="_ds/nocturne-ec2a995a-7d23-4b45-964d-834b321795db/_ds_bundle.js"></script>
+<style>
+  body { margin:0; background:#0f101a; }
+  a { color:#b5abfc; text-decoration:none; }
+  a:hover { color:#d2cefd; }
+  [data-theme="light"] {
+    --color-bg:#e4e7f5; --color-surface:#f3f5fe; --color-text:#292b31;
+    --color-accent:#5d5294; --color-divider:rgba(41,43,49,0.16);
+    --pp-muted:#595d6c; --pp-line:#cfd3e5; --pp-felt:#dbdff1; --pp-back:#cfd3e5;
+    --shadow-sm:0 0 0 1px #cfd3e5; --shadow-md:0 0 0 1px #cfd3e5, 0 6px 18px rgba(41,43,49,0.10);
+  }
+  [data-theme="dark"] {
+    --pp-muted:#9397ab; --pp-line:#3f424d; --pp-felt:#1b1d2c; --pp-back:#2b2741;
+  }
+  @keyframes ppFloat { 0%,100%{transform:translateY(0)} 50%{transform:translateY(-3px)} }
+  @keyframes ppPulse { 0%,100%{opacity:.35} 50%{opacity:1} }
+  @keyframes ppConfeti { 0%{transform:translateY(-30px) rotate(0deg);opacity:0} 10%{opacity:1} 100%{transform:translateY(320px) rotate(540deg);opacity:0} }
+  @keyframes ppPop { 0%{transform:scale(.9);opacity:0} 100%{transform:scale(1);opacity:1} }
+  @keyframes ppPluma { 0%{transform:translate(0,-10px) rotate(-20deg);opacity:0} 12%{opacity:.95} 100%{transform:translate(16px,62px) rotate(160deg);opacity:0} }
+  @keyframes ppCapa { 0%,100%{transform:translateX(-50%) rotate(-7deg)} 50%{transform:translateX(-50%) rotate(7deg)} }
+  @keyframes ppAura { 0%,100%{box-shadow:0 0 0 0 rgba(145,132,217,.40)} 50%{box-shadow:0 0 24px 5px rgba(145,132,217,.38)} }
+  @keyframes ppReact { 0%{transform:translate(-50%,0) scale(.6);opacity:0} 18%{transform:translate(-50%,-10px) scale(1.15);opacity:1} 100%{transform:translate(-50%,-58px) scale(1);opacity:0} }
+</style>
+</helmet>
+
+<div data-theme="{{ theme }}" style="min-height:100vh;background:#0f101a;font-family:'Inter',system-ui,sans-serif;color:var(--color-text);padding:56px 48px 120px;display:flex;flex-direction:column;gap:64px">
+
+  <header style="display:flex;align-items:flex-end;justify-content:space-between;gap:24px;max-width:1440px">
+    <div style="display:flex;flex-direction:column;gap:8px">
+      <div style="font:500 11px/1 ui-monospace,SFMono-Regular,Menlo,monospace;letter-spacing:.14em;text-transform:uppercase;color:#75798c">camamu / planning-poker · apps/web</div>
+      <h1 style="margin:0;font-size:34px;font-weight:500;letter-spacing:-0.02em;color:#e9e9ed">Pantallas de la partida</h1>
+      <p style="margin:0;max-width:56ch;font-size:14px;line-height:1.6;color:#9397ab">Escritorio, sistema Nocturne. La mesa es interactiva: elige carta, revela y vuelve a votar.</p>
+    </div>
+    <button onClick="{{ toggleTheme }}" style="cursor:pointer;font:500 13px 'Inter',sans-serif;color:#e9e9ed;background:transparent;border:1px solid #3f424d;border-radius:8px;padding:9px 16px" style-hover="background:#232532;border-color:#5d5294">{{ themeLabel }}</button>
+  </header>
+
+  <section style="display:flex;flex-direction:column;gap:14px">
+    <div style="display:flex;align-items:center;gap:14px;flex-wrap:wrap">
+      <div style="font:500 11px/1 ui-monospace,Menlo,monospace;letter-spacing:.14em;text-transform:uppercase;color:#75798c">01 · Mesa de votación — votos ocultos / revelada</div>
+      <div style="display:flex;gap:7px">
+        <button onClick="{{ toggleCrowd }}" style="cursor:pointer;font:500 12px 'Inter';color:#cfd3e5;background:transparent;border:1px solid #3f424d;border-radius:8px;padding:6px 12px" style-hover="border-color:#5d5294">{{ crowdLabel }}</button>
+        <button onClick="{{ toggleLongTitle }}" style="cursor:pointer;font:500 12px 'Inter';color:#cfd3e5;background:transparent;border:1px solid #3f424d;border-radius:8px;padding:6px 12px" style-hover="border-color:#5d5294">{{ titleLabel }}</button>
+      </div>
+    </div>
+    <div style="width:1440px;height:900px;border-radius:14px;overflow:hidden;background:var(--color-bg);box-shadow:0 0 0 1px #3f424d,0 24px 60px rgba(0,0,0,.5);display:flex;flex-direction:column;position:relative">
+
+      <nav style="height:58px;flex:none;display:flex;align-items:center;gap:16px;padding:0 20px;border-bottom:1px solid var(--color-divider);background:var(--color-surface)">
+        <div style="display:flex;align-items:center;gap:9px">
+          <div style="width:22px;height:30px;border-radius:4px;border:1.5px solid var(--color-accent);display:flex;align-items:center;justify-content:center;font:700 11px 'Inter';color:var(--color-accent);transform:rotate(-8deg)">8</div>
+          <span style="font-size:14px;font-weight:600;letter-spacing:-0.01em">Refinamiento · Squad Pingüino</span>
+        </div>
+        <span style="font-size:12px;color:var(--pp-muted);border-left:1px solid var(--color-divider);padding-left:16px">{{ tableMeta }}</span>
+        <div style="margin-left:auto;display:flex;align-items:center;gap:10px">
+          <div style="display:flex;align-items:center;gap:7px;padding:6px 11px;border-radius:8px;background:rgba(145,132,217,.12);font:500 12px 'Inter';color:var(--color-accent);font-variant-numeric:tabular-nums">⏱ 04:32</div>
+          <button onClick="{{ toggleSound }}" style="cursor:pointer;font:500 12px 'Inter';color:{{ soundFg }};background:transparent;border:1px solid {{ soundBorder }};border-radius:8px;padding:7px 12px" style-hover="color:var(--color-text);border-color:var(--color-accent)">{{ soundLabel }}</button>
+          <button style="cursor:pointer;font:500 12px 'Inter';color:var(--pp-muted);background:transparent;border:1px solid var(--pp-line);border-radius:8px;padding:7px 12px" style-hover="color:var(--color-text);border-color:var(--color-accent)">Copiar enlace</button>
+          <div style="width:32px;height:32px;border-radius:10px;background:oklch(0.73 0.125 289);display:flex;align-items:center;justify-content:center;font:700 12px 'Inter';color:#1b1d2c">TÚ</div>
+        </div>
+      </nav>
+
+      <div style="flex:1;display:grid;grid-template-columns:1fr 316px;min-height:0">
+
+        <div style="display:flex;flex-direction:column;min-width:0;background:var(--pp-felt)">
+          <div style="flex:1;display:flex;align-items:center;justify-content:center;padding:20px 24px;min-height:0">
+            <div style="position:relative;width:900px;height:100%;max-height:520px">
+
+              <div style="position:absolute;inset:0;border-radius:50%;background:linear-gradient(180deg,var(--color-neutral-800),var(--color-neutral-900));box-shadow:0 26px 60px rgba(0,0,0,.55),inset 0 2px 0 rgba(233,233,237,.06)"></div>
+              <div style="position:absolute;inset:18px;border-radius:50%;background:radial-gradient(120% 100% at 50% 32%,var(--color-accent-800) 0%,var(--color-accent-900) 55%,#1b1d2c 100%);box-shadow:inset 0 0 0 1px var(--color-accent-700),inset 0 18px 50px rgba(0,0,0,.45)"></div>
+              <div style="position:absolute;inset:18px;border-radius:50%;opacity:.5;background:repeating-linear-gradient(45deg,rgba(233,233,237,.028) 0 3px,transparent 3px 6px)"></div>
+              <div style="position:absolute;inset:44px;border-radius:50%;border:1px solid rgba(145,132,217,.28)"></div>
+
+              <div style="position:absolute;left:50%;top:50%;transform:translate(-50%,-50%);width:400px;display:flex;flex-direction:column;align-items:center;gap:11px;text-align:center">
+                <div style="font:500 11px/1 ui-monospace,Menlo,monospace;letter-spacing:.14em;text-transform:uppercase;color:var(--color-accent-300)">Estimando ahora · PP-142</div>
+                <h2 style="margin:0;font-size:20px;font-weight:500;letter-spacing:-0.015em;line-height:1.35;text-wrap:pretty;color:var(--color-neutral-100);display:-webkit-box;-webkit-line-clamp:3;-webkit-box-orient:vertical;overflow:hidden">{{ taskTitle }}</h2>
+                <div style="padding:6px 13px;border-radius:999px;border:1px solid var(--color-accent-400);color:var(--color-accent-300);font:500 12px 'Inter'">{{ roundBadge }}</div>
+                <div style="display:flex;align-items:center;gap:9px;margin-top:2px">
+                  <div style="display:flex">
+                    <div style="width:30px;height:30px;border-radius:999px;background:var(--color-accent-900);box-shadow:inset 0 0 0 3px var(--color-accent-600),0 3px 8px rgba(0,0,0,.5)"></div>
+                    <div style="width:30px;height:30px;border-radius:999px;margin-left:-11px;background:var(--color-neutral-900);box-shadow:inset 0 0 0 3px var(--color-neutral-600),0 3px 8px rgba(0,0,0,.5)"></div>
+                    <div style="width:30px;height:30px;border-radius:999px;margin-left:-11px;background:var(--color-accent-900);box-shadow:inset 0 0 0 3px var(--color-accent-600),0 3px 8px rgba(0,0,0,.5)"></div>
+                  </div>
+                  <span style="font:500 12px 'Inter';color:var(--color-accent-300);font-variant-numeric:tabular-nums">{{ potLabel }}</span>
+                </div>
+              </div>
+
+              <sc-for list="{{ flying }}" as="f" hint-placeholder-count="0">
+                <div style="position:absolute;left:{{ f.x }};top:{{ f.y }};z-index:5;pointer-events:none;font-size:26px;transform:translate(-50%,-50%) scale({{ f.scale }}) rotate({{ f.rot }});transition:left .62s cubic-bezier(.35,-0.35,.6,1),top .62s cubic-bezier(.35,-0.55,.6,1),transform .62s ease-out,opacity .3s;opacity:{{ f.op }}">{{ f.emoji }}</div>
+              </sc-for>
+
+              <sc-for list="{{ seats }}" as="p" hint-placeholder-count="9">
+                <div onClick="{{ p.onClick }}" style="position:absolute;left:{{ p.x }};top:{{ p.y }};transform:translate(-50%,-50%);width:112px;display:flex;flex-direction:column;align-items:center;gap:7px;padding:8px 4px 9px;border-radius:14px;background:{{ p.seatBg }};box-shadow:{{ p.seatRing }};cursor:{{ p.cursor }}">
+                  <sc-for list="{{ p.reacts }}" as="r" hint-placeholder-count="0">
+                    <span style="position:absolute;left:50%;top:-4px;font-size:24px;pointer-events:none;animation:ppReact 2.2s ease-out forwards">{{ r.emoji }}</span>
+                  </sc-for>
+                  <sc-if value="{{ p.isGallina }}" hint-placeholder-val="{{ false }}">
+                    <div style="position:absolute;left:0;right:0;top:-16px;height:96px;pointer-events:none">
+                      <span style="position:absolute;left:18%;top:0;width:9px;height:15px;background:var(--color-neutral-200);border-radius:60% 60% 50% 50% / 80% 80% 35% 35%;animation:ppPluma 2.6s ease-in infinite"></span>
+                      <span style="position:absolute;left:46%;top:6px;width:8px;height:13px;background:var(--color-neutral-300);border-radius:60% 60% 50% 50% / 80% 80% 35% 35%;animation:ppPluma 3.1s ease-in .5s infinite"></span>
+                      <span style="position:absolute;left:70%;top:2px;width:9px;height:14px;background:var(--color-neutral-200);border-radius:60% 60% 50% 50% / 80% 80% 35% 35%;animation:ppPluma 2.9s ease-in 1.1s infinite"></span>
+                    </div>
+                  </sc-if>
+                  <sc-if value="{{ p.isHeroe }}" hint-placeholder-val="{{ false }}">
+                    <div style="position:absolute;left:50%;top:6px;width:64px;height:74px;background:linear-gradient(180deg,var(--color-accent-600),var(--color-accent-800));clip-path:polygon(50% 0,100% 8%,86% 100%,50% 84%,14% 100%,0 8%);transform-origin:50% 8%;animation:ppCapa 2.4s ease-in-out infinite;pointer-events:none;opacity:.85"></div>
+                  </sc-if>
+                  <div style="perspective:700px;width:50px;height:70px;position:relative">
+                    <div style="position:relative;width:100%;height:100%;transform-style:preserve-3d;transition:transform .6s cubic-bezier(.2,.85,.3,1);transform:{{ p.flip }};border-radius:7px;animation:{{ p.aura }}">
+                      <div style="position:absolute;inset:0;backface-visibility:hidden;-webkit-backface-visibility:hidden;display:{{ p.faceBack }};border-radius:7px;border:1px solid {{ p.backBorder }};background:{{ p.backBg }};align-items:center;justify-content:center">
+                        <sc-if value="{{ p.hasVoted }}" hint-placeholder-val="{{ true }}">
+                          <div style="width:24px;height:24px;border-radius:999px;border:1.5px solid var(--color-accent-400);display:flex;align-items:center;justify-content:center;font:700 12px 'Inter';color:var(--color-accent-300)">✓</div>
+                        </sc-if>
+                        <sc-if value="{{ p.pending }}" hint-placeholder-val="{{ false }}">
+                          <div style="font:500 14px 'Inter';color:var(--color-neutral-300);opacity:.75;animation:ppPulse 1.8s ease-in-out infinite">···</div>
+                        </sc-if>
+                      </div>
+                      <div style="position:absolute;inset:0;backface-visibility:hidden;-webkit-backface-visibility:hidden;display:{{ p.faceFront }};transform:rotateY(180deg);border-radius:7px;border:1px solid var(--color-accent);background:var(--color-surface);align-items:center;justify-content:center;font:600 24px 'Inter';font-variant-numeric:tabular-nums;color:var(--color-text);box-shadow:0 0 18px rgba(145,132,217,.28)">{{ p.vote }}</div>
+                    </div>
+                  </div>
+                  <div style="display:flex;align-items:center;gap:6px;max-width:108px">
+                    <div style="flex:none;width:24px;height:24px;border-radius:8px;background:{{ p.color }};position:relative;animation:ppFloat 4s ease-in-out infinite">
+                      <div style="position:absolute;top:7px;left:5px;width:5px;height:5px;border-radius:999px;background:#1b1d2c"></div>
+                      <div style="position:absolute;top:7px;right:5px;width:5px;height:5px;border-radius:999px;background:#1b1d2c"></div>
+                      <div style="position:absolute;bottom:5px;left:50%;margin-left:-4px;width:8px;height:3px;border-radius:2px;background:rgba(27,29,44,.55)"></div>
+                    </div>
+                    <span style="font:500 12px 'Inter';color:var(--color-neutral-100);overflow:hidden;text-overflow:ellipsis;white-space:nowrap">{{ p.name }}</span>
+                    <sc-if value="{{ p.dealer }}" hint-placeholder-val="{{ false }}">
+                      <span style="flex:none;width:17px;height:17px;border-radius:999px;background:var(--color-neutral-200);color:#1b1d2c;font:700 9px 'Inter';display:flex;align-items:center;justify-content:center">D</span>
+                    </sc-if>
+                  </div>
+                  <sc-if value="{{ p.isGallina }}" hint-placeholder-val="{{ false }}">
+                    <span style="max-width:104px;padding:3px 8px;border-radius:999px;background:rgba(233,233,237,.14);border:1px solid var(--color-neutral-400);color:var(--color-neutral-100);font:500 10px 'Inter';white-space:nowrap;overflow:hidden;text-overflow:ellipsis;animation:ppPop .4s ease-out">🐔 Cobarde</span>
+                  </sc-if>
+                  <sc-if value="{{ p.isHeroe }}" hint-placeholder-val="{{ false }}">
+                    <span style="max-width:104px;padding:3px 8px;border-radius:999px;background:rgba(145,132,217,.20);border:1px solid var(--color-accent-400);color:var(--color-accent-200);font:500 10px 'Inter';white-space:nowrap;overflow:hidden;text-overflow:ellipsis;animation:ppPop .4s ease-out">🦸 Valiente</span>
+                  </sc-if>
+                </div>
+              </sc-for>
+            </div>
+          </div>
+
+          <div style="flex:none;padding:0 28px 12px;display:flex;align-items:center;gap:10px">
+            <span style="font:500 11px/1 ui-monospace,Menlo,monospace;letter-spacing:.12em;text-transform:uppercase;color:var(--pp-muted)">Mirando desde la barrera</span>
+            <div style="display:flex;gap:8px">
+              <div style="display:flex;align-items:center;gap:6px;padding:4px 10px 4px 4px;border-radius:999px;border:1px dashed var(--pp-line)">
+                <div style="width:20px;height:20px;border-radius:7px;background:oklch(0.73 0.125 30);opacity:.85"></div>
+                <span style="font:500 11px 'Inter';color:var(--pp-muted)">Rocío · PO</span>
+              </div>
+              <div style="display:flex;align-items:center;gap:6px;padding:4px 10px 4px 4px;border-radius:999px;border:1px dashed var(--pp-line)">
+                <div style="width:20px;height:20px;border-radius:7px;background:oklch(0.73 0.125 150);opacity:.85"></div>
+                <span style="font:500 11px 'Inter';color:var(--pp-muted)">Kike · QA</span>
+              </div>
+            </div>
+          </div>
+
+          <div style="flex:none;border-top:1px solid var(--color-divider);background:var(--color-bg);padding:16px 28px 20px;display:flex;flex-direction:column;gap:10px">
+            <div style="display:flex;align-items:center;justify-content:space-between;gap:16px">
+              <span style="font:500 12px 'Inter';color:var(--pp-muted)">{{ handHint }}</span>
+              <div style="display:flex;align-items:center;gap:7px">
+                <span style="font:500 11px 'Inter';color:{{ reactHintFg }}">{{ reactHint }}</span>
+                <div style="display:flex;gap:3px;padding:3px;border-radius:9px;border:1px solid var(--pp-line);background:var(--color-surface)">
+                  <button onClick="{{ setThrow }}" style="cursor:pointer;padding:5px 10px;border-radius:6px;border:none;font:600 11px 'Inter';background:{{ throwBg }};color:{{ throwFg }}">🎯 Lanzar</button>
+                  <button onClick="{{ setReact }}" style="cursor:pointer;padding:5px 10px;border-radius:6px;border:none;font:600 11px 'Inter';background:{{ reactBg }};color:{{ reactFg }}">💬 Reaccionar</button>
+                </div>
+                <sc-for list="{{ reactionBar }}" as="r" hint-placeholder-count="5">
+                  <button onClick="{{ r.arm }}" style="cursor:pointer;width:32px;height:32px;border-radius:9px;border:1px solid {{ r.border }};background:{{ r.bg }};font-size:15px;line-height:1;display:flex;align-items:center;justify-content:center;transition:transform .15s;transform:{{ r.lift }}" style-hover="border-color:var(--color-accent);transform:translateY(-3px) scale(1.08)">{{ r.emoji }}</button>
+                </sc-for>
+              </div>
+            </div>
+            <div style="display:flex;gap:10px">
+              <sc-for list="{{ hand }}" as="c" hint-placeholder-count="9">
+                <button onClick="{{ c.pick }}" style="cursor:pointer;width:74px;height:104px;border-radius:10px;border:1.5px solid {{ c.border }};background:{{ c.bg }};color:{{ c.fg }};font:600 26px 'Inter';font-variant-numeric:tabular-nums;display:flex;align-items:center;justify-content:center;transition:transform .18s cubic-bezier(.2,.85,.3,1),box-shadow .18s;transform:{{ c.lift }};box-shadow:{{ c.glow }}" style-hover="transform:translateY(-12px) rotate(-2deg)">{{ c.label }}</button>
+              </sc-for>
+            </div>
+          </div>
+        </div>
+
+        <aside style="border-left:1px solid var(--color-divider);background:var(--color-surface);padding:20px;display:flex;flex-direction:column;gap:18px;overflow:hidden">
+          <sc-if value="{{ hidden }}" hint-placeholder-val="{{ true }}">
+            <div style="display:flex;flex-direction:column;gap:18px">
+              <div style="display:flex;flex-direction:column;gap:9px">
+                <div style="display:flex;align-items:baseline;justify-content:space-between">
+                  <span style="font:600 14px 'Inter'">{{ progressTitle }}</span>
+                  <span style="font:500 12px 'Inter';color:var(--pp-muted);font-variant-numeric:tabular-nums">{{ progressCount }}</span>
+                </div>
+                <div style="height:6px;border-radius:999px;background:var(--pp-line);overflow:hidden">
+                  <div style="height:100%;border-radius:999px;background:var(--color-accent);transition:width .4s ease;width:{{ progressPct }}"></div>
+                </div>
+                <p style="margin:0;font-size:12px;line-height:1.55;color:var(--pp-muted);text-wrap:pretty">{{ progressNote }}</p>
+              </div>
+
+              <div style="display:flex;flex-direction:column;gap:8px;padding:14px;border-radius:12px;border:1px dashed var(--pp-line)">
+                <span style="font:500 11px/1 ui-monospace,Menlo,monospace;letter-spacing:.12em;text-transform:uppercase;color:var(--pp-muted)">Cuenta atrás</span>
+                <div style="font:600 30px 'Inter';font-variant-numeric:tabular-nums;letter-spacing:-0.02em">00:47</div>
+                <span style="font-size:12px;color:var(--pp-muted)">Al llegar a cero se revela solo. Sin piedad.</span>
+              </div>
+
+              <div style="display:flex;flex-direction:column;gap:8px;margin-top:auto">
+                <button onClick="{{ reveal }}" disabled="{{ revealDisabled }}" style="cursor:pointer;width:100%;padding:13px;border-radius:10px;border:1.5px solid var(--color-accent);background:transparent;color:var(--color-accent);font:600 15px 'Inter'" style-hover="background:rgba(145,132,217,.14)">Revelar las cartas</button>
+                <span style="font-size:11px;color:var(--pp-muted);text-align:center">{{ revealNote }}</span>
+                <button style="cursor:pointer;width:100%;padding:11px;border-radius:10px;border:1px solid var(--pp-line);background:transparent;color:var(--pp-muted);font:500 13px 'Inter'" style-hover="color:var(--color-text);border-color:var(--color-accent)">Arrancar temporizador de discusión</button>
+              </div>
+            </div>
+          </sc-if>
+
+          <sc-if value="{{ revealed }}" hint-placeholder-val="{{ false }}">
+            <div style="display:flex;flex-direction:column;gap:16px;animation:ppPop .35s ease-out">
+              <div style="display:flex;align-items:baseline;justify-content:space-between">
+                <span style="font:600 15px 'Inter'">Resultado</span>
+                <span style="font:500 11px 'Inter';padding:4px 9px;border-radius:999px;border:1px solid var(--color-accent);color:var(--color-accent)">Revelada</span>
+              </div>
+              <div style="display:grid;grid-template-columns:1fr 1fr;gap:9px">
+                <div style="padding:12px;border-radius:10px;background:var(--color-bg);border:1px solid var(--color-divider)">
+                  <div style="font:500 11px 'Inter';color:var(--pp-muted);margin-bottom:4px">Media</div>
+                  <div style="font:600 26px 'Inter';font-variant-numeric:tabular-nums;letter-spacing:-0.02em">{{ media }}</div>
+                </div>
+                <div style="padding:12px;border-radius:10px;background:var(--color-bg);border:1px solid var(--color-divider)">
+                  <div style="font:500 11px 'Inter';color:var(--pp-muted);margin-bottom:4px">Acuerdo</div>
+                  <div style="font:600 26px 'Inter';font-variant-numeric:tabular-nums;letter-spacing:-0.02em">{{ acuerdo }}</div>
+                </div>
+              </div>
+              <div style="display:flex;flex-direction:column;gap:9px">
+                <span style="font:500 11px/1 ui-monospace,Menlo,monospace;letter-spacing:.12em;text-transform:uppercase;color:var(--pp-muted)">Distribución</span>
+                <sc-for list="{{ dist }}" as="d" hint-placeholder-count="3">
+                  <div style="display:flex;align-items:center;gap:9px">
+                    <span style="width:28px;font:600 14px 'Inter';font-variant-numeric:tabular-nums;color:{{ d.fg }}">{{ d.label }}</span>
+                    <div style="flex:1;height:22px;border-radius:6px;background:var(--pp-line);overflow:hidden">
+                      <div style="height:100%;border-radius:6px;background:{{ d.fill }};width:{{ d.w }}"></div>
+                    </div>
+                    <span style="width:16px;text-align:right;font:500 12px 'Inter';color:var(--pp-muted);font-variant-numeric:tabular-nums">{{ d.count }}</span>
+                  </div>
+                </sc-for>
+              </div>
+              <p style="margin:0;font-size:12px;line-height:1.55;color:var(--pp-muted);text-wrap:pretty">{{ verdict }}</p>
+              <div style="display:flex;flex-direction:column;gap:8px;margin-top:auto">
+                <button style="cursor:pointer;width:100%;padding:13px;border-radius:10px;border:1.5px solid var(--color-accent);background:transparent;color:var(--color-accent);font:600 15px 'Inter'" style-hover="background:rgba(145,132,217,.14)">Aceptar {{ media }} y pasar página</button>
+                <div style="display:flex;gap:8px">
+                  <button onClick="{{ revote }}" style="cursor:pointer;flex:1;padding:11px;border-radius:10px;border:1px solid var(--pp-line);background:transparent;color:var(--pp-muted);font:500 13px 'Inter'" style-hover="color:var(--color-text);border-color:var(--color-accent)">Volver a votar</button>
+                  <button style="cursor:pointer;flex:1;padding:11px;border-radius:10px;border:1px solid var(--pp-line);background:transparent;color:var(--pp-muted);font:500 13px 'Inter'" style-hover="color:var(--color-text);border-color:var(--color-accent)">Siguiente tarea</button>
+                </div>
+              </div>
+            </div>
+          </sc-if>
+        </aside>
+      </div>
+    </div>
+  </section>
+
+  <section style="display:flex;flex-direction:column;gap:14px">
+    <div style="font:500 11px/1 ui-monospace,Menlo,monospace;letter-spacing:.14em;text-transform:uppercase;color:#75798c">02 · Mesa — esperando a que se abra la ronda</div>
+    <div data-theme="dark" style="width:1440px;height:520px;border-radius:14px;overflow:hidden;background:var(--color-bg);box-shadow:0 0 0 1px #3f424d;display:flex;flex-direction:column">
+      <nav style="height:58px;flex:none;display:flex;align-items:center;gap:16px;padding:0 20px;border-bottom:1px solid var(--color-divider);background:var(--color-surface)">
+        <div style="display:flex;align-items:center;gap:9px">
+          <div style="width:22px;height:30px;border-radius:4px;border:1.5px solid var(--color-accent);display:flex;align-items:center;justify-content:center;font:700 11px 'Inter';color:var(--color-accent);transform:rotate(-8deg)">8</div>
+          <span style="font-size:14px;font-weight:600">Refinamiento · Squad Pingüino</span>
+        </div>
+        <span style="font-size:12px;color:var(--pp-muted);border-left:1px solid var(--color-divider);padding-left:16px">Fibonacci · 9 votantes · 2 mirones</span>
+      </nav>
+      <div style="flex:1;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:20px;background:var(--pp-felt);padding:24px">
+        <div style="display:flex;gap:10px">
+          <div style="width:56px;height:80px;border-radius:8px;border:1px dashed var(--pp-line);opacity:.65"></div>
+          <div style="width:56px;height:80px;border-radius:8px;border:1px dashed var(--pp-line);opacity:.65"></div>
+          <div style="width:56px;height:80px;border-radius:8px;border:1px dashed var(--pp-line);opacity:.65"></div>
+          <div style="width:56px;height:80px;border-radius:8px;border:1px dashed var(--pp-line);opacity:.65"></div>
+        </div>
+        <div style="display:flex;flex-direction:column;align-items:center;gap:7px;text-align:center">
+          <span style="font:500 11px/1 ui-monospace,Menlo,monospace;letter-spacing:.12em;text-transform:uppercase;color:var(--color-accent)">Siguiente · PP-142</span>
+          <h2 style="margin:0;font-size:22px;font-weight:500;letter-spacing:-0.015em;max-width:44ch;text-wrap:pretty">Migrar el gateway de pagos a la nueva API sin que se entere nadie</h2>
+          <p style="margin:0;font-size:13px;color:var(--pp-muted)">La ronda aún no está abierta. Aprovecha para fingir que lees el ticket.</p>
+        </div>
+        <div style="display:flex;gap:8px">
+          <div style="display:flex;align-items:center;gap:6px;padding:5px 12px 5px 5px;border-radius:999px;background:var(--color-surface)"><div style="width:22px;height:22px;border-radius:8px;background:oklch(0.73 0.125 289)"></div><span style="font:500 12px 'Inter'">Nuria</span></div>
+          <div style="display:flex;align-items:center;gap:6px;padding:5px 12px 5px 5px;border-radius:999px;background:var(--color-surface)"><div style="width:22px;height:22px;border-radius:8px;background:oklch(0.73 0.125 250)"></div><span style="font:500 12px 'Inter'">Sergio</span></div>
+          <div style="display:flex;align-items:center;gap:6px;padding:5px 12px 5px 5px;border-radius:999px;background:var(--color-surface)"><div style="width:22px;height:22px;border-radius:8px;background:oklch(0.73 0.125 200)"></div><span style="font:500 12px 'Inter'">Bea</span></div>
+          <div style="display:flex;align-items:center;gap:6px;padding:5px 12px;border-radius:999px;background:var(--color-surface);font:500 12px 'Inter';color:var(--pp-muted)">+6 más</div>
+        </div>
+        <button style="cursor:pointer;padding:13px 22px;border-radius:10px;border:1.5px solid var(--color-accent);background:transparent;color:var(--color-accent);font:600 15px 'Inter'" style-hover="background:rgba(145,132,217,.14)">Abrir votación</button>
+      </div>
+    </div>
+  </section>
+
+  <section style="display:flex;flex-direction:column;gap:14px">
+    <div style="font:500 11px/1 ui-monospace,Menlo,monospace;letter-spacing:.14em;text-transform:uppercase;color:#75798c">03 · Panel de resultados — tres variantes</div>
+    <div style="display:flex;gap:20px;flex-wrap:wrap">
+
+      <div data-theme="dark" style="width:340px;border-radius:14px;background:var(--color-surface);box-shadow:0 0 0 1px #3f424d;padding:20px;display:flex;flex-direction:column;gap:15px">
+        <div style="display:flex;align-items:baseline;justify-content:space-between"><span style="font:600 15px 'Inter'">Con media · Fibonacci</span><span style="font:500 11px 'Inter';padding:4px 9px;border-radius:999px;border:1px solid var(--color-accent);color:var(--color-accent)">Revelada</span></div>
+        <div style="display:grid;grid-template-columns:1fr 1fr;gap:9px">
+          <div style="padding:12px;border-radius:10px;background:var(--color-bg);border:1px solid var(--color-divider)"><div style="font:500 11px 'Inter';color:var(--pp-muted);margin-bottom:4px">Media</div><div style="font:600 26px 'Inter';font-variant-numeric:tabular-nums">5.4</div></div>
+          <div style="padding:12px;border-radius:10px;background:var(--color-bg);border:1px solid var(--color-divider)"><div style="font:500 11px 'Inter';color:var(--pp-muted);margin-bottom:4px">Acuerdo</div><div style="font:600 26px 'Inter';font-variant-numeric:tabular-nums">62 %</div></div>
+        </div>
+        <div style="display:flex;flex-direction:column;gap:9px">
+          <div style="display:flex;align-items:center;gap:9px"><span style="width:28px;font:600 14px 'Inter';font-variant-numeric:tabular-nums">3</span><div style="flex:1;height:22px;border-radius:6px;background:var(--pp-line)"><div style="height:100%;border-radius:6px;background:var(--color-accent-700);width:20%"></div></div><span style="width:16px;text-align:right;font:500 12px 'Inter';color:var(--pp-muted)">1</span></div>
+          <div style="display:flex;align-items:center;gap:9px"><span style="width:28px;font:600 14px 'Inter';font-variant-numeric:tabular-nums">5</span><div style="flex:1;height:22px;border-radius:6px;background:var(--pp-line)"><div style="height:100%;border-radius:6px;background:var(--color-accent);width:100%"></div></div><span style="width:16px;text-align:right;font:500 12px 'Inter';color:var(--pp-muted)">5</span></div>
+          <div style="display:flex;align-items:center;gap:9px"><span style="width:28px;font:600 14px 'Inter';font-variant-numeric:tabular-nums">8</span><div style="flex:1;height:22px;border-radius:6px;background:var(--pp-line)"><div style="height:100%;border-radius:6px;background:var(--color-accent-700);width:40%"></div></div><span style="width:16px;text-align:right;font:500 12px 'Inter';color:var(--pp-muted)">2</span></div>
+          <div style="display:flex;align-items:center;gap:9px"><span style="width:28px;font:600 14px 'Inter';color:var(--pp-muted)">☕</span><div style="flex:1;height:22px;border-radius:6px;background:var(--pp-line)"><div style="height:100%;border-radius:6px;background:var(--color-neutral-700);width:20%"></div></div><span style="width:16px;text-align:right;font:500 12px 'Inter';color:var(--pp-muted)">1</span></div>
+        </div>
+        <p style="margin:0;font-size:12px;line-height:1.55;color:var(--pp-muted)">Gana el 5, pero Dani insiste en el 8. Que lo defienda en treinta segundos.</p>
+      </div>
+
+      <div data-theme="dark" style="width:340px;border-radius:14px;background:var(--color-surface);box-shadow:0 0 0 1px #3f424d;padding:20px;display:flex;flex-direction:column;gap:15px">
+        <div style="display:flex;align-items:baseline;justify-content:space-between"><span style="font:600 15px 'Inter'">Sin media · Tallas</span><span style="font:500 11px 'Inter';padding:4px 9px;border-radius:999px;border:1px solid var(--color-accent);color:var(--color-accent)">Revelada</span></div>
+        <div style="padding:12px;border-radius:10px;background:var(--color-bg);border:1px solid var(--color-divider)"><div style="font:500 11px 'Inter';color:var(--pp-muted);margin-bottom:4px">Carta más votada</div><div style="display:flex;align-items:baseline;gap:10px"><div style="font:600 26px 'Inter'">M</div><span style="font-size:12px;color:var(--pp-muted)">5 de 9 · acuerdo 56 %</span></div></div>
+        <div style="display:flex;flex-direction:column;gap:9px">
+          <div style="display:flex;align-items:center;gap:9px"><span style="width:28px;font:600 14px 'Inter'">S</span><div style="flex:1;height:22px;border-radius:6px;background:var(--pp-line)"><div style="height:100%;border-radius:6px;background:var(--color-accent-700);width:40%"></div></div><span style="width:16px;text-align:right;font:500 12px 'Inter';color:var(--pp-muted)">2</span></div>
+          <div style="display:flex;align-items:center;gap:9px"><span style="width:28px;font:600 14px 'Inter'">M</span><div style="flex:1;height:22px;border-radius:6px;background:var(--pp-line)"><div style="height:100%;border-radius:6px;background:var(--color-accent);width:100%"></div></div><span style="width:16px;text-align:right;font:500 12px 'Inter';color:var(--pp-muted)">5</span></div>
+          <div style="display:flex;align-items:center;gap:9px"><span style="width:28px;font:600 14px 'Inter'">L</span><div style="flex:1;height:22px;border-radius:6px;background:var(--pp-line)"><div style="height:100%;border-radius:6px;background:var(--color-accent-700);width:40%"></div></div><span style="width:16px;text-align:right;font:500 12px 'Inter';color:var(--pp-muted)">2</span></div>
+        </div>
+        <p style="margin:0;font-size:12px;line-height:1.55;color:var(--pp-muted)">Con tallas no hay media: nadie va a dividir una L entre dos.</p>
+      </div>
+
+      <div data-theme="dark" style="position:relative;overflow:hidden;width:340px;border-radius:14px;background:var(--color-surface);box-shadow:0 0 0 1px #5d5294;padding:20px;display:flex;flex-direction:column;gap:15px">
+        <span style="position:absolute;top:0;left:12%;width:7px;height:12px;background:var(--color-accent);animation:ppConfeti 2.6s linear infinite"></span>
+        <span style="position:absolute;top:0;left:24%;width:7px;height:12px;background:var(--color-accent-300);animation:ppConfeti 3.1s linear .3s infinite"></span>
+        <span style="position:absolute;top:0;left:36%;width:6px;height:10px;background:oklch(0.73 0.125 200);animation:ppConfeti 2.8s linear .6s infinite"></span>
+        <span style="position:absolute;top:0;left:48%;width:7px;height:12px;background:oklch(0.73 0.125 30);animation:ppConfeti 3.4s linear .15s infinite"></span>
+        <span style="position:absolute;top:0;left:60%;width:6px;height:10px;background:var(--color-accent);animation:ppConfeti 2.9s linear .8s infinite"></span>
+        <span style="position:absolute;top:0;left:72%;width:7px;height:12px;background:oklch(0.73 0.125 150);animation:ppConfeti 3.2s linear .45s infinite"></span>
+        <span style="position:absolute;top:0;left:86%;width:6px;height:10px;background:var(--color-accent-300);animation:ppConfeti 2.7s linear 1s infinite"></span>
+        <div style="display:flex;align-items:baseline;justify-content:space-between"><span style="font:600 15px 'Inter'">Unanimidad</span><span style="font:500 11px 'Inter';padding:4px 9px;border-radius:999px;background:rgba(145,132,217,.16);color:var(--color-accent)">🎉 9 de 9</span></div>
+        <div style="display:grid;grid-template-columns:1fr 1fr;gap:9px">
+          <div style="padding:12px;border-radius:10px;background:var(--color-bg);border:1px solid var(--color-divider)"><div style="font:500 11px 'Inter';color:var(--pp-muted);margin-bottom:4px">Media</div><div style="font:600 26px 'Inter';font-variant-numeric:tabular-nums">3.0</div></div>
+          <div style="padding:12px;border-radius:10px;background:var(--color-bg);border:1px solid var(--color-accent-700)"><div style="font:500 11px 'Inter';color:var(--pp-muted);margin-bottom:4px">Acuerdo</div><div style="font:600 26px 'Inter';font-variant-numeric:tabular-nums;color:var(--color-accent)">100 %</div></div>
+        </div>
+        <div style="display:flex;align-items:center;gap:9px"><span style="width:28px;font:600 14px 'Inter';font-variant-numeric:tabular-nums;color:var(--color-accent)">3</span><div style="flex:1;height:22px;border-radius:6px;background:var(--pp-line)"><div style="height:100%;border-radius:6px;background:var(--color-accent);width:100%"></div></div><span style="width:16px;text-align:right;font:500 12px 'Inter';color:var(--pp-muted)">9</span></div>
+        <p style="margin:0;font-size:12px;line-height:1.55;color:var(--pp-muted)">Unanimidad a la primera. Sospechoso, pero nos lo quedamos.</p>
+        <button style="cursor:pointer;width:100%;padding:12px;border-radius:10px;border:1.5px solid var(--color-accent);background:transparent;color:var(--color-accent);font:600 14px 'Inter'" style-hover="background:rgba(145,132,217,.14)">Aceptar 3 y a la siguiente</button>
+      </div>
+    </div>
+  </section>
+
+  <section style="display:flex;flex-direction:column;gap:14px">
+    <div style="font:500 11px/1 ui-monospace,Menlo,monospace;letter-spacing:.14em;text-transform:uppercase;color:#75798c">04 · Unirse · Crear partida · Enlace listo</div>
+    <div style="display:flex;gap:20px;flex-wrap:wrap;align-items:flex-start">
+
+      <div data-theme="dark" style="width:400px;border-radius:14px;background:var(--color-surface);box-shadow:0 0 0 1px #3f424d;padding:26px;display:flex;flex-direction:column;gap:18px">
+        <div style="display:flex;flex-direction:column;gap:6px">
+          <div style="display:flex;gap:5px;margin-bottom:6px">
+            <div style="width:26px;height:36px;border-radius:5px;border:1.5px solid var(--color-accent-700);transform:rotate(-10deg)"></div>
+            <div style="width:26px;height:36px;border-radius:5px;border:1.5px solid var(--color-accent);display:flex;align-items:center;justify-content:center;font:700 13px 'Inter';color:var(--color-accent)">8</div>
+            <div style="width:26px;height:36px;border-radius:5px;border:1.5px solid var(--color-accent-700);transform:rotate(10deg)"></div>
+          </div>
+          <h2 style="margin:0;font-size:24px;font-weight:500;letter-spacing:-0.02em">Te esperan para estimar</h2>
+          <p style="margin:0;font-size:13px;line-height:1.55;color:var(--pp-muted)">Refinamiento · Squad Pingüino. Ni contraseña ni registro: confiamos en ti, hasta cierto punto.</p>
+        </div>
+        <div style="display:flex;flex-direction:column;gap:6px">
+          <label style="font:500 12px 'Inter';color:var(--pp-muted)">¿Cómo te llamamos?</label>
+          <input value="Álex" style="width:100%;box-sizing:border-box;padding:12px 13px;border-radius:10px;border:1px solid var(--pp-line);background:var(--color-bg);color:var(--color-text);font:500 15px 'Inter'" style-focus="outline:2px solid var(--color-accent);outline-offset:2px;border-color:var(--color-accent)">
+        </div>
+        <div style="display:flex;flex-direction:column;gap:7px">
+          <label style="font:500 12px 'Inter';color:var(--pp-muted)">¿Vienes a votar o a mirar?</label>
+          <div style="display:flex;gap:6px;padding:4px;border-radius:12px;background:var(--color-bg);border:1px solid var(--pp-line)">
+            <div style="flex:1;text-align:center;padding:10px;border-radius:9px;background:rgba(145,132,217,.16);border:1px solid var(--color-accent);color:var(--color-accent);font:600 13px 'Inter'">🃏 Voto</div>
+            <div style="flex:1;text-align:center;padding:10px;border-radius:9px;color:var(--pp-muted);font:500 13px 'Inter'">👀 Miro</div>
+          </div>
+        </div>
+        <button style="cursor:pointer;width:100%;padding:14px;border-radius:10px;border:1.5px solid var(--color-accent);background:transparent;color:var(--color-accent);font:600 15px 'Inter'" style-hover="background:rgba(145,132,217,.14)">Sentarme a la mesa</button>
+        <span style="font-size:11px;color:var(--pp-muted);text-align:center">Ya hay 8 personas dentro. Dos de ellas leyendo el ticket ahora mismo.</span>
+      </div>
+
+      <div data-theme="dark" style="width:420px;border-radius:14px;background:var(--color-surface);box-shadow:0 0 0 1px #3f424d;padding:26px;display:flex;flex-direction:column;gap:16px">
+        <h2 style="margin:0;font-size:22px;font-weight:500;letter-spacing:-0.02em">Montar una partida</h2>
+        <div style="display:flex;flex-direction:column;gap:6px">
+          <label style="font:500 12px 'Inter';color:var(--pp-muted)">Nombre</label>
+          <input value="Refinamiento · Squad Pingüino" style="width:100%;box-sizing:border-box;padding:12px 13px;border-radius:10px;border:1px solid var(--pp-line);background:var(--color-bg);color:var(--color-text);font:500 14px 'Inter'" style-focus="outline:2px solid var(--color-accent);outline-offset:2px">
+        </div>
+        <div style="display:flex;flex-direction:column;gap:7px">
+          <label style="font:500 12px 'Inter';color:var(--pp-muted)">Baraja</label>
+          <div style="display:flex;flex-direction:column;gap:7px">
+            <div style="display:flex;align-items:center;gap:11px;padding:12px;border-radius:10px;border:1px solid var(--color-accent);background:rgba(145,132,217,.10)">
+              <div style="width:14px;height:14px;border-radius:999px;border:4px solid var(--color-accent);background:var(--color-bg)"></div>
+              <div style="flex:1"><div style="font:600 13px 'Inter'">Fibonacci</div><div style="font:500 11px 'Inter';color:var(--pp-muted);font-variant-numeric:tabular-nums">0.5 · 1 · 2 · 3 · 5 · 8 · 13 · ? · ☕</div></div>
+            </div>
+            <div style="display:flex;align-items:center;gap:11px;padding:12px;border-radius:10px;border:1px solid var(--pp-line)">
+              <div style="width:14px;height:14px;border-radius:999px;border:1.5px solid var(--pp-line)"></div>
+              <div style="flex:1"><div style="font:600 13px 'Inter'">Tallas</div><div style="font:500 11px 'Inter';color:var(--pp-muted)">XS · S · M · L · XL · XXL · ? · ☕</div></div>
+            </div>
+            <div style="display:flex;align-items:center;gap:11px;padding:12px;border-radius:10px;border:1px solid var(--pp-line)">
+              <div style="width:14px;height:14px;border-radius:999px;border:1.5px solid var(--pp-line)"></div>
+              <div style="flex:1"><div style="font:600 13px 'Inter'">Pingüino Fibo <span style="font-weight:500;color:var(--pp-muted)">· del equipo</span></div><div style="font:500 11px 'Inter';color:var(--pp-muted);font-variant-numeric:tabular-nums">1 · 2 · 3 · 5 · 8 · ∞ · ? · ☕</div></div>
+            </div>
+          </div>
+        </div>
+        <div style="display:flex;align-items:center;justify-content:space-between;padding:12px 13px;border-radius:10px;border:1px dashed var(--pp-line);cursor:pointer">
+          <span style="font:500 13px 'Inter';color:var(--pp-muted)">Ajustes finos (auto-revelar, cuenta atrás, quién revela)</span>
+          <span style="font:500 13px 'Inter';color:var(--color-accent)">▾</span>
+        </div>
+        <button style="cursor:pointer;width:100%;padding:14px;border-radius:10px;border:1.5px solid var(--color-accent);background:transparent;color:var(--color-accent);font:600 15px 'Inter'" style-hover="background:rgba(145,132,217,.14)">Crear y repartir</button>
+      </div>
+
+      <div data-theme="dark" style="width:340px;border-radius:14px;background:var(--color-surface);box-shadow:0 0 0 1px #3f424d;padding:26px;display:flex;flex-direction:column;gap:16px;align-items:center;text-align:center">
+        <h2 style="margin:0;font-size:20px;font-weight:500;letter-spacing:-0.02em">Mesa puesta</h2>
+        <p style="margin:0;font-size:13px;color:var(--pp-muted)">Pega el enlace en el hilo y que vengan.</p>
+        <div style="width:150px;height:150px;border-radius:12px;border:1px solid var(--pp-line);background:repeating-linear-gradient(45deg,var(--color-bg) 0 8px,var(--color-surface) 8px 16px);display:flex;align-items:center;justify-content:center;font:500 11px ui-monospace,Menlo,monospace;color:var(--pp-muted)">QR</div>
+        <div style="width:100%;display:flex;gap:7px">
+          <div style="flex:1;padding:11px 12px;border-radius:10px;border:1px solid var(--pp-line);background:var(--color-bg);font:500 12px ui-monospace,Menlo,monospace;color:var(--pp-muted);overflow:hidden;text-overflow:ellipsis;white-space:nowrap">poker.equipo.dev/p/8k2-mesa</div>
+          <button style="cursor:pointer;padding:11px 14px;border-radius:10px;border:1.5px solid var(--color-accent);background:transparent;color:var(--color-accent);font:600 13px 'Inter'" style-hover="background:rgba(145,132,217,.14)">Copiar</button>
+        </div>
+        <span style="font-size:11px;color:var(--pp-muted)">Caduca en 12 horas. Como la motivación del viernes.</span>
+      </div>
+    </div>
+  </section>
+
+  <section style="display:flex;flex-direction:column;gap:14px">
+    <div style="font:500 11px/1 ui-monospace,Menlo,monospace;letter-spacing:.14em;text-transform:uppercase;color:#75798c">05 · Barajas del equipo</div>
+    <div data-theme="dark" style="width:1000px;border-radius:14px;background:var(--color-bg);box-shadow:0 0 0 1px #3f424d;display:grid;grid-template-columns:360px 1fr;overflow:hidden">
+      <div style="border-right:1px solid var(--color-divider);padding:22px;display:flex;flex-direction:column;gap:11px;background:var(--color-surface)">
+        <h2 style="margin:0 0 4px;font-size:18px;font-weight:500">Barajas</h2>
+        <div style="padding:13px;border-radius:10px;border:1px solid var(--pp-line);display:flex;flex-direction:column;gap:5px">
+          <div style="display:flex;align-items:center;gap:8px"><span style="font:600 13px 'Inter'">Fibonacci</span><span style="font:500 10px 'Inter';padding:3px 7px;border-radius:999px;border:1px solid var(--pp-line);color:var(--pp-muted)">del sistema</span></div>
+          <span style="font:500 11px 'Inter';color:var(--pp-muted);font-variant-numeric:tabular-nums">0.5 · 1 · 2 · 3 · 5 · 8 · 13 · ? · ☕</span>
+        </div>
+        <div style="padding:13px;border-radius:10px;border:1px solid var(--pp-line);display:flex;flex-direction:column;gap:5px">
+          <div style="display:flex;align-items:center;gap:8px"><span style="font:600 13px 'Inter'">Tallas</span><span style="font:500 10px 'Inter';padding:3px 7px;border-radius:999px;border:1px solid var(--pp-line);color:var(--pp-muted)">del sistema</span></div>
+          <span style="font:500 11px 'Inter';color:var(--pp-muted)">XS · S · M · L · XL · XXL · ? · ☕</span>
+        </div>
+        <div style="padding:13px;border-radius:10px;border:1px solid var(--color-accent);background:rgba(145,132,217,.10);display:flex;flex-direction:column;gap:5px">
+          <div style="display:flex;align-items:center;gap:8px"><span style="font:600 13px 'Inter'">Pingüino Fibo</span><span style="font:500 10px 'Inter';padding:3px 7px;border-radius:999px;background:rgba(145,132,217,.18);color:var(--color-accent)">editando</span></div>
+          <span style="font:500 11px 'Inter';color:var(--pp-muted);font-variant-numeric:tabular-nums">1 · 2 · 3 · 5 · 8 · ∞ · ? · ☕</span>
+        </div>
+        <button style="cursor:pointer;margin-top:6px;padding:11px;border-radius:10px;border:1px dashed var(--pp-line);background:transparent;color:var(--pp-muted);font:500 13px 'Inter'" style-hover="color:var(--color-accent);border-color:var(--color-accent)">+ Baraja nueva</button>
+      </div>
+      <div style="padding:22px;display:flex;flex-direction:column;gap:16px">
+        <div style="display:flex;flex-direction:column;gap:6px">
+          <label style="font:500 12px 'Inter';color:var(--pp-muted)">Nombre</label>
+          <input value="Pingüino Fibo" style="width:280px;box-sizing:border-box;padding:11px 13px;border-radius:10px;border:1px solid var(--pp-line);background:var(--color-surface);color:var(--color-text);font:500 14px 'Inter'" style-focus="outline:2px solid var(--color-accent);outline-offset:2px">
+        </div>
+        <div style="display:flex;flex-direction:column;gap:8px">
+          <label style="font:500 12px 'Inter';color:var(--pp-muted)">Cartas · arrástralas para ordenar</label>
+          <div style="display:flex;gap:8px;flex-wrap:wrap">
+            <div style="display:flex;align-items:center;gap:7px;padding:8px 12px;border-radius:9px;border:1px solid var(--pp-line);background:var(--color-surface);font:600 14px 'Inter';font-variant-numeric:tabular-nums;cursor:grab"><span style="color:var(--pp-muted);font-size:11px">⠿</span>1</div>
+            <div style="display:flex;align-items:center;gap:7px;padding:8px 12px;border-radius:9px;border:1px solid var(--pp-line);background:var(--color-surface);font:600 14px 'Inter';font-variant-numeric:tabular-nums;cursor:grab"><span style="color:var(--pp-muted);font-size:11px">⠿</span>2</div>
+            <div style="display:flex;align-items:center;gap:7px;padding:8px 12px;border-radius:9px;border:1px solid var(--pp-line);background:var(--color-surface);font:600 14px 'Inter';font-variant-numeric:tabular-nums;cursor:grab"><span style="color:var(--pp-muted);font-size:11px">⠿</span>3</div>
+            <div style="display:flex;align-items:center;gap:7px;padding:8px 12px;border-radius:9px;border:1px solid var(--color-accent);background:rgba(145,132,217,.12);font:600 14px 'Inter';font-variant-numeric:tabular-nums;cursor:grabbing;transform:rotate(-3deg)"><span style="color:var(--color-accent);font-size:11px">⠿</span>5</div>
+            <div style="display:flex;align-items:center;gap:7px;padding:8px 12px;border-radius:9px;border:1px solid var(--pp-line);background:var(--color-surface);font:600 14px 'Inter';font-variant-numeric:tabular-nums;cursor:grab"><span style="color:var(--pp-muted);font-size:11px">⠿</span>8</div>
+            <div style="display:flex;align-items:center;gap:7px;padding:8px 12px;border-radius:9px;border:1px solid var(--pp-line);background:var(--color-surface);font:600 14px 'Inter';cursor:grab"><span style="color:var(--pp-muted);font-size:11px">⠿</span>∞</div>
+            <div style="display:flex;align-items:center;gap:6px;padding:8px 12px;border-radius:9px;border:1px dashed var(--pp-line);color:var(--pp-muted);font:600 14px 'Inter'">?<span style="font:500 10px 'Inter'">fija</span></div>
+            <div style="display:flex;align-items:center;gap:6px;padding:8px 12px;border-radius:9px;border:1px dashed var(--pp-line);color:var(--pp-muted);font:600 14px 'Inter'">☕<span style="font:500 10px 'Inter'">fija</span></div>
+          </div>
+          <span style="font-size:11px;color:var(--pp-muted)">? y ☕ vienen de serie y no se pueden quitar. Son sagradas.</span>
+        </div>
+        <div style="display:flex;flex-direction:column;gap:8px">
+          <label style="font:500 12px 'Inter';color:var(--pp-muted)">Así quedará la mano</label>
+          <div style="padding:18px;border-radius:12px;background:var(--pp-felt);display:flex;gap:8px">
+            <div style="width:52px;height:74px;border-radius:8px;border:1px solid var(--pp-line);background:var(--color-surface);display:flex;align-items:center;justify-content:center;font:600 19px 'Inter';font-variant-numeric:tabular-nums">1</div>
+            <div style="width:52px;height:74px;border-radius:8px;border:1px solid var(--pp-line);background:var(--color-surface);display:flex;align-items:center;justify-content:center;font:600 19px 'Inter';font-variant-numeric:tabular-nums">2</div>
+            <div style="width:52px;height:74px;border-radius:8px;border:1px solid var(--pp-line);background:var(--color-surface);display:flex;align-items:center;justify-content:center;font:600 19px 'Inter';font-variant-numeric:tabular-nums">3</div>
+            <div style="width:52px;height:74px;border-radius:8px;border:1px solid var(--pp-line);background:var(--color-surface);display:flex;align-items:center;justify-content:center;font:600 19px 'Inter';font-variant-numeric:tabular-nums">5</div>
+            <div style="width:52px;height:74px;border-radius:8px;border:1px solid var(--pp-line);background:var(--color-surface);display:flex;align-items:center;justify-content:center;font:600 19px 'Inter';font-variant-numeric:tabular-nums">8</div>
+            <div style="width:52px;height:74px;border-radius:8px;border:1px solid var(--pp-line);background:var(--color-surface);display:flex;align-items:center;justify-content:center;font:600 19px 'Inter'">∞</div>
+            <div style="width:52px;height:74px;border-radius:8px;border:1px dashed var(--pp-line);background:transparent;display:flex;align-items:center;justify-content:center;font:600 19px 'Inter';color:var(--pp-muted)">?</div>
+            <div style="width:52px;height:74px;border-radius:8px;border:1px dashed var(--pp-line);background:transparent;display:flex;align-items:center;justify-content:center;font:600 19px 'Inter'">☕</div>
+          </div>
+        </div>
+        <div style="display:flex;gap:8px">
+          <button style="cursor:pointer;padding:11px 18px;border-radius:10px;border:1.5px solid var(--color-accent);background:transparent;color:var(--color-accent);font:600 14px 'Inter'" style-hover="background:rgba(145,132,217,.14)">Guardar baraja</button>
+          <button style="cursor:pointer;padding:11px 18px;border-radius:10px;border:1px solid var(--pp-line);background:transparent;color:var(--pp-muted);font:500 14px 'Inter'" style-hover="color:var(--color-text);border-color:var(--color-accent)">Descartar</button>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <section style="display:flex;flex-direction:column;gap:14px">
+    <div style="font:500 11px/1 ui-monospace,Menlo,monospace;letter-spacing:.14em;text-transform:uppercase;color:#75798c">06 · Lista de tareas — panel lateral</div>
+    <div style="display:flex;gap:20px;flex-wrap:wrap;align-items:flex-start">
+
+      <div data-theme="dark" style="width:340px;height:640px;border-radius:14px;background:var(--color-surface);box-shadow:0 0 0 1px #3f424d;display:flex;flex-direction:column;overflow:hidden">
+        <div style="flex:none;padding:16px 18px;border-bottom:1px solid var(--color-divider);display:flex;align-items:baseline;justify-content:space-between">
+          <span style="font:600 15px 'Inter'">Cola de tareas</span>
+          <span style="font:500 11px 'Inter';color:var(--pp-muted);font-variant-numeric:tabular-nums">2 de 6 estimadas</span>
+        </div>
+
+        <div style="flex:1;min-height:0;overflow-y:auto;padding:12px;display:flex;flex-direction:column;gap:7px">
+
+          <div style="font:500 10px/1 ui-monospace,Menlo,monospace;letter-spacing:.12em;text-transform:uppercase;color:var(--pp-muted);padding:4px 4px 2px">En la mesa</div>
+          <div style="display:flex;align-items:flex-start;gap:9px;padding:12px;border-radius:10px;border:1px solid var(--color-accent);background:rgba(145,132,217,.10)">
+            <span style="font-size:11px;color:var(--color-accent);margin-top:2px">⠿</span>
+            <div style="flex:1;min-width:0;display:flex;flex-direction:column;gap:4px">
+              <span style="font:500 10px ui-monospace,Menlo,monospace;color:var(--color-accent-300)">PP-142</span>
+              <span style="font:500 13px 'Inter';line-height:1.4;text-wrap:pretty">Migrar el gateway de pagos a la nueva API sin que se entere nadie</span>
+              <span style="font:500 11px 'Inter';color:var(--color-accent-300)">Votando ahora · ronda 2</span>
+            </div>
+          </div>
+
+          <div style="font:500 10px/1 ui-monospace,Menlo,monospace;letter-spacing:.12em;text-transform:uppercase;color:var(--pp-muted);padding:10px 4px 2px">Por estimar</div>
+          <div style="display:flex;align-items:flex-start;gap:9px;padding:11px 12px;border-radius:10px;border:1px solid var(--pp-line);cursor:grab" style-hover="border-color:var(--color-accent)">
+            <span style="font-size:11px;color:var(--pp-muted);margin-top:2px">⠿</span>
+            <div style="flex:1;min-width:0;display:flex;flex-direction:column;gap:3px">
+              <span style="font:500 10px ui-monospace,Menlo,monospace;color:var(--pp-muted)">PP-143</span>
+              <span style="font:500 13px 'Inter';line-height:1.4">Quitar el feature flag que lleva ocho meses a true</span>
+            </div>
+          </div>
+          <div style="display:flex;align-items:flex-start;gap:9px;padding:11px 12px;border-radius:10px;border:1px solid var(--color-accent-700);background:var(--color-bg);cursor:grabbing;transform:rotate(-1.2deg);box-shadow:0 10px 24px rgba(0,0,0,.45)">
+            <span style="font-size:11px;color:var(--color-accent);margin-top:2px">⠿</span>
+            <div style="flex:1;min-width:0;display:flex;flex-direction:column;gap:3px">
+              <span style="font:500 10px ui-monospace,Menlo,monospace;color:var(--pp-muted)">PP-144</span>
+              <span style="font:500 13px 'Inter';line-height:1.4">Subir la cobertura de tests del módulo de facturación</span>
+            </div>
+          </div>
+          <div style="height:2px;border-radius:999px;background:var(--color-accent);margin:1px 4px"></div>
+          <div style="display:flex;align-items:flex-start;gap:9px;padding:11px 12px;border-radius:10px;border:1px solid var(--pp-line);cursor:grab" style-hover="border-color:var(--color-accent)">
+            <span style="font-size:11px;color:var(--pp-muted);margin-top:2px">⠿</span>
+            <div style="flex:1;min-width:0;display:flex;flex-direction:column;gap:3px">
+              <span style="font:500 10px ui-monospace,Menlo,monospace;color:var(--pp-muted)">PP-145</span>
+              <span style="font:500 13px 'Inter';line-height:1.4">Investigar por qué el cron se dispara dos veces los martes</span>
+            </div>
+          </div>
+
+          <div style="font:500 10px/1 ui-monospace,Menlo,monospace;letter-spacing:.12em;text-transform:uppercase;color:var(--pp-muted);padding:10px 4px 2px">Ya estimadas</div>
+          <div style="display:flex;align-items:center;gap:9px;padding:10px 12px;border-radius:10px;border:1px solid var(--pp-line);opacity:.72">
+            <div style="flex:1;min-width:0;display:flex;flex-direction:column;gap:2px">
+              <span style="font:500 10px ui-monospace,Menlo,monospace;color:var(--pp-muted)">PP-139</span>
+              <span style="font:500 12px 'Inter';overflow:hidden;text-overflow:ellipsis;white-space:nowrap">Migrar los correos a la plantilla nueva</span>
+            </div>
+            <span style="flex:none;width:30px;height:38px;border-radius:6px;border:1px solid var(--color-accent-700);display:flex;align-items:center;justify-content:center;font:600 14px 'Inter';font-variant-numeric:tabular-nums;color:var(--color-accent-300)">3</span>
+          </div>
+          <div style="display:flex;align-items:center;gap:9px;padding:10px 12px;border-radius:10px;border:1px solid var(--pp-line);opacity:.72">
+            <div style="flex:1;min-width:0;display:flex;flex-direction:column;gap:2px">
+              <span style="font:500 10px ui-monospace,Menlo,monospace;color:var(--pp-muted)">PP-140</span>
+              <span style="font:500 12px 'Inter';overflow:hidden;text-overflow:ellipsis;white-space:nowrap">Rate limit en el endpoint de búsqueda</span>
+            </div>
+            <span style="flex:none;width:30px;height:38px;border-radius:6px;border:1px solid var(--color-accent-700);display:flex;align-items:center;justify-content:center;font:600 14px 'Inter';font-variant-numeric:tabular-nums;color:var(--color-accent-300)">8</span>
+          </div>
+        </div>
+
+        <div style="flex:none;padding:12px;border-top:1px solid var(--color-divider);display:flex;gap:7px">
+          <input placeholder="PP-146 · y ahora, ¿qué duele?" style="flex:1;min-width:0;box-sizing:border-box;padding:11px 12px;border-radius:10px;border:1px solid var(--pp-line);background:var(--color-bg);color:var(--color-text);font:500 13px 'Inter'" style-focus="outline:2px solid var(--color-accent);outline-offset:2px">
+          <button style="cursor:pointer;padding:11px 15px;border-radius:10px;border:1.5px solid var(--color-accent);background:transparent;color:var(--color-accent);font:600 13px 'Inter'" style-hover="background:rgba(145,132,217,.14)">Añadir</button>
+        </div>
+      </div>
+
+      <div data-theme="dark" style="width:340px;height:640px;border-radius:14px;background:var(--color-surface);box-shadow:0 0 0 1px #3f424d;display:flex;flex-direction:column;overflow:hidden">
+        <div style="flex:none;padding:16px 18px;border-bottom:1px solid var(--color-divider);display:flex;align-items:baseline;justify-content:space-between">
+          <span style="font:600 15px 'Inter'">Cola de tareas</span>
+          <span style="font:500 11px 'Inter';color:var(--pp-muted)">vacía</span>
+        </div>
+        <div style="flex:1;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:12px;padding:26px;text-align:center">
+          <div style="display:flex;gap:5px">
+            <div style="width:30px;height:42px;border-radius:6px;border:1px dashed var(--pp-line);transform:rotate(-9deg)"></div>
+            <div style="width:30px;height:42px;border-radius:6px;border:1px dashed var(--pp-line);transform:rotate(7deg)"></div>
+          </div>
+          <h3 style="margin:0;font-size:16px;font-weight:500">Aquí no hay nada que estimar</h3>
+          <p style="margin:0;font-size:13px;line-height:1.55;color:var(--pp-muted)">Pega los tickets del refinamiento y los vamos sacando de uno en uno.</p>
+        </div>
+        <div style="flex:none;padding:12px;border-top:1px solid var(--color-divider);display:flex;gap:7px">
+          <input placeholder="Primera tarea…" style="flex:1;min-width:0;box-sizing:border-box;padding:11px 12px;border-radius:10px;border:1px solid var(--color-accent);background:var(--color-bg);color:var(--color-text);font:500 13px 'Inter'" style-focus="outline:2px solid var(--color-accent);outline-offset:2px">
+          <button style="cursor:pointer;padding:11px 15px;border-radius:10px;border:1.5px solid var(--color-accent);background:transparent;color:var(--color-accent);font:600 13px 'Inter'" style-hover="background:rgba(145,132,217,.14)">Añadir</button>
+        </div>
+      </div>
+
+      <div data-theme="dark" style="width:340px;border-radius:14px;background:var(--color-surface);box-shadow:0 0 0 1px #3f424d;padding:18px;display:flex;flex-direction:column;gap:12px">
+        <span style="font:600 14px 'Inter'">Fila abierta</span>
+        <div style="display:flex;align-items:flex-start;gap:9px;padding:12px;border-radius:10px;border:1px solid var(--color-accent);background:var(--color-bg)">
+          <span style="font-size:11px;color:var(--color-accent);margin-top:2px">⠿</span>
+          <div style="flex:1;min-width:0;display:flex;flex-direction:column;gap:7px">
+            <input value="Quitar el feature flag que lleva ocho meses a true" style="width:100%;box-sizing:border-box;padding:9px 10px;border-radius:8px;border:1px solid var(--pp-line);background:var(--color-surface);color:var(--color-text);font:500 13px 'Inter'" style-focus="outline:2px solid var(--color-accent);outline-offset:2px">
+            <div style="display:flex;gap:6px">
+              <button style="cursor:pointer;padding:7px 12px;border-radius:8px;border:1.5px solid var(--color-accent);background:transparent;color:var(--color-accent);font:600 12px 'Inter'">Guardar</button>
+              <button style="cursor:pointer;padding:7px 12px;border-radius:8px;border:1px solid var(--pp-line);background:transparent;color:var(--pp-muted);font:500 12px 'Inter'" style-hover="color:var(--color-text);border-color:var(--color-accent)">Poner en la mesa</button>
+              <button style="cursor:pointer;margin-left:auto;padding:7px 10px;border-radius:8px;border:1px solid var(--pp-line);background:transparent;color:var(--pp-muted);font:500 12px 'Inter'" style-hover="color:var(--color-text);border-color:var(--color-accent)">🗑</button>
+            </div>
+          </div>
+        </div>
+        <span style="font-size:11px;color:var(--pp-muted);line-height:1.5">Se edita en el sitio, sin modal. Arrastra por el asa para colarla antes que las demás.</span>
+      </div>
+    </div>
+  </section>
+
+  <section style="display:flex;flex-direction:column;gap:14px">
+    <div style="font:500 11px/1 ui-monospace,Menlo,monospace;letter-spacing:.14em;text-transform:uppercase;color:#75798c">07 · Estados que siempre se olvidan</div>
+    <div style="display:flex;gap:20px;flex-wrap:wrap;align-items:flex-start">
+
+      <div data-theme="dark" style="width:420px;border-radius:14px;background:var(--color-bg);box-shadow:0 0 0 1px #3f424d;overflow:hidden">
+        <div style="display:flex;align-items:center;gap:10px;padding:11px 16px;background:rgba(145,132,217,.14);border-bottom:1px solid var(--color-accent-800)">
+          <div style="width:9px;height:9px;border-radius:999px;background:var(--color-accent);animation:ppPulse 1.2s ease-in-out infinite"></div>
+          <span style="font:500 13px 'Inter';color:var(--color-accent)">Reconectando… no toques nada.</span>
+          <span style="margin-left:auto;font:500 11px 'Inter';color:var(--pp-muted)">Tu voto está guardado</span>
+        </div>
+        <div style="padding:20px;display:flex;gap:9px;opacity:.55;pointer-events:none">
+          <div style="width:52px;height:74px;border-radius:8px;border:1px solid var(--pp-line);background:var(--color-surface);display:flex;align-items:center;justify-content:center;font:600 19px 'Inter'">3</div>
+          <div style="width:52px;height:74px;border-radius:8px;border:1px solid var(--pp-line);background:var(--color-surface);display:flex;align-items:center;justify-content:center;font:600 19px 'Inter'">5</div>
+          <div style="width:52px;height:74px;border-radius:8px;border:1px solid var(--pp-line);background:var(--color-surface);display:flex;align-items:center;justify-content:center;font:600 19px 'Inter'">8</div>
+          <div style="flex:1;display:flex;align-items:center;font-size:12px;color:var(--pp-muted)">La mesa sigue viva; solo estás tú desconectado.</div>
+        </div>
+      </div>
+
+      <div data-theme="dark" style="width:340px;border-radius:14px;background:var(--color-surface);box-shadow:0 0 0 1px #3f424d;padding:26px;display:flex;flex-direction:column;gap:12px;align-items:center;text-align:center">
+        <div style="display:flex;gap:5px"><div style="width:26px;height:36px;border-radius:5px;border:1px dashed var(--pp-line);transform:rotate(-12deg)"></div><div style="width:26px;height:36px;border-radius:5px;border:1px dashed var(--pp-line);transform:rotate(9deg)"></div></div>
+        <h3 style="margin:0;font-size:18px;font-weight:500">Esta partida ya no existe</h3>
+        <p style="margin:0;font-size:13px;line-height:1.55;color:var(--pp-muted)">Caducó, como el sprint pasado. Pide un enlace nuevo a quien te invitó.</p>
+        <button style="cursor:pointer;padding:11px 18px;border-radius:10px;border:1.5px solid var(--color-accent);background:transparent;color:var(--color-accent);font:600 14px 'Inter'" style-hover="background:rgba(145,132,217,.14)">Crear una partida nueva</button>
+      </div>
+
+      <div data-theme="dark" style="width:340px;border-radius:14px;background:var(--color-surface);box-shadow:0 0 0 1px #3f424d;padding:26px;display:flex;flex-direction:column;gap:12px;align-items:center;text-align:center">
+        <div style="width:44px;height:44px;border-radius:14px;background:oklch(0.73 0.125 289);position:relative">
+          <div style="position:absolute;top:15px;left:10px;width:8px;height:8px;border-radius:999px;background:#1b1d2c"></div>
+          <div style="position:absolute;top:15px;right:10px;width:8px;height:8px;border-radius:999px;background:#1b1d2c"></div>
+          <div style="position:absolute;bottom:9px;left:50%;margin-left:-7px;width:14px;height:3px;border-radius:2px;background:rgba(27,29,44,.55)"></div>
+        </div>
+        <h3 style="margin:0;font-size:18px;font-weight:500">Estás tú solo en la mesa</h3>
+        <p style="margin:0;font-size:13px;line-height:1.55;color:var(--pp-muted)">Puedes votar y darte la razón, pero es más divertido con gente.</p>
+        <button style="cursor:pointer;padding:11px 18px;border-radius:10px;border:1.5px solid var(--color-accent);background:transparent;color:var(--color-accent);font:600 14px 'Inter'" style-hover="background:rgba(145,132,217,.14)">Copiar enlace de la mesa</button>
+      </div>
+
+      <div data-theme="dark" style="width:340px;border-radius:14px;background:var(--color-surface);box-shadow:0 0 0 1px #3f424d;padding:26px;display:flex;flex-direction:column;gap:12px;align-items:center;text-align:center">
+        <div style="display:flex;gap:5px">
+          <div style="width:26px;height:36px;border-radius:5px;border:1px dashed var(--pp-line);transform:rotate(-8deg)"></div>
+          <div style="width:26px;height:36px;border-radius:5px;border:1px dashed var(--pp-line)"></div>
+          <div style="width:26px;height:36px;border-radius:5px;border:1px dashed var(--pp-line);transform:rotate(8deg)"></div>
+        </div>
+        <h3 style="margin:0;font-size:18px;font-weight:500">Mesa puesta, nadie sentado</h3>
+        <p style="margin:0;font-size:13px;line-height:1.55;color:var(--pp-muted)">Nadie ha entrado todavía. O el enlace no ha llegado, o están todos en otra reunión.</p>
+        <div style="width:100%;display:flex;gap:7px">
+          <div style="flex:1;padding:10px 12px;border-radius:10px;border:1px solid var(--pp-line);background:var(--color-bg);font:500 11px ui-monospace,Menlo,monospace;color:var(--pp-muted);overflow:hidden;text-overflow:ellipsis;white-space:nowrap">poker.equipo.dev/p/8k2-mesa</div>
+          <button style="cursor:pointer;padding:10px 14px;border-radius:10px;border:1.5px solid var(--color-accent);background:transparent;color:var(--color-accent);font:600 12px 'Inter'" style-hover="background:rgba(145,132,217,.14)">Copiar</button>
+        </div>
+      </div>
+
+      <div data-theme="dark" style="width:340px;border-radius:14px;background:var(--color-surface);box-shadow:0 0 0 1px #3f424d;padding:20px;display:flex;flex-direction:column;gap:12px">
+        <div style="display:flex;align-items:flex-start;gap:11px;padding:13px;border-radius:10px;border:1px solid var(--color-accent-700);background:rgba(145,132,217,.10)">
+          <span style="font-size:15px">⚠</span>
+          <div style="flex:1;display:flex;flex-direction:column;gap:3px">
+            <span style="font:600 13px 'Inter'">No hemos podido registrar tu voto</span>
+            <span style="font-size:12px;line-height:1.5;color:var(--pp-muted)">Culpa del socket, no tuya. Reintentando en 3…</span>
+          </div>
+          <button style="cursor:pointer;padding:6px 11px;border-radius:8px;border:1px solid var(--color-accent);background:transparent;color:var(--color-accent);font:600 11px 'Inter'">Reintentar</button>
+        </div>
+        <div style="display:flex;align-items:center;gap:9px;padding:11px 13px;border-radius:10px;border:1px solid var(--pp-line)">
+          <div style="width:26px;height:26px;border-radius:9px;background:oklch(0.73 0.125 250)"></div>
+          <span style="font:500 12px 'Inter';color:var(--pp-muted);flex:1;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">Maríacarmen de la Fuente-Iturbe</span>
+          <span style="font:500 11px 'Inter';color:var(--pp-muted)">esperando</span>
+        </div>
+        <span style="font-size:11px;color:var(--pp-muted)">Nombres largos: se recortan, nunca rompen la fila.</span>
+      </div>
+    </div>
+  </section>
+
+  <section style="display:flex;flex-direction:column;gap:14px">
+    <div style="font:500 11px/1 ui-monospace,Menlo,monospace;letter-spacing:.14em;text-transform:uppercase;color:#75798c">08 · Móvil — mesa compacta, mano fija abajo</div>
+    <div style="display:flex;gap:24px;flex-wrap:wrap;align-items:flex-start">
+
+      <div style="display:flex;flex-direction:column;gap:9px">
+        <div data-theme="dark" style="width:390px;height:844px;border-radius:34px;overflow:hidden;background:var(--color-bg);box-shadow:0 0 0 1px #3f424d,0 24px 60px rgba(0,0,0,.5);display:flex;flex-direction:column">
+          <div style="flex:none;height:44px;display:flex;align-items:center;justify-content:space-between;padding:0 22px;font:600 12px 'Inter';color:var(--pp-muted);font-variant-numeric:tabular-nums"><span>9:41</span><span>▮▮▮ ▾</span></div>
+          <div style="flex:none;display:flex;align-items:center;gap:9px;padding:6px 16px 12px">
+            <div style="width:18px;height:25px;flex:none;border-radius:4px;border:1.5px solid var(--color-accent);display:flex;align-items:center;justify-content:center;font:700 10px 'Inter';color:var(--color-accent);transform:rotate(-8deg)">8</div>
+            <div style="flex:1;min-width:0;display:flex;flex-direction:column;gap:1px">
+              <span style="font:600 13px 'Inter';overflow:hidden;text-overflow:ellipsis;white-space:nowrap">Refinamiento · Squad Pingüino</span>
+              <span style="font:500 10px 'Inter';color:var(--pp-muted)">Fibonacci · 9 votantes</span>
+            </div>
+            <button style="cursor:pointer;flex:none;width:34px;height:34px;border-radius:10px;border:1px solid var(--color-accent);background:transparent;color:var(--color-accent);font-size:14px">🔊</button>
+            <button style="cursor:pointer;flex:none;width:34px;height:34px;border-radius:10px;border:1px solid var(--pp-line);background:transparent;color:var(--pp-muted);font-size:14px">☰</button>
+          </div>
+
+          <div style="flex:1;min-height:0;background:var(--pp-felt);display:flex;flex-direction:column">
+            <div style="flex:none;padding:14px 18px 10px;display:flex;flex-direction:column;gap:6px;text-align:center;align-items:center">
+              <span style="font:500 10px/1 ui-monospace,Menlo,monospace;letter-spacing:.14em;text-transform:uppercase;color:var(--color-accent-300)">Estimando · PP-142</span>
+              <h2 style="margin:0;font-size:16px;font-weight:500;line-height:1.35;text-wrap:pretty;display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;overflow:hidden">Migrar el gateway de pagos a la nueva API sin que se entere nadie</h2>
+              <span style="padding:4px 10px;border-radius:999px;border:1px solid var(--color-accent-400);color:var(--color-accent-300);font:500 11px 'Inter'">Ronda 2 · 7 de 9 dentro</span>
+            </div>
+
+            <div style="flex:1;min-height:0;position:relative;margin:0 14px 10px">
+              <div style="position:absolute;inset:0;border-radius:44%/26%;background:radial-gradient(120% 100% at 50% 34%,var(--color-accent-800) 0%,var(--color-accent-900) 55%,#1b1d2c 100%);box-shadow:inset 0 0 0 1px var(--color-accent-700),inset 0 14px 40px rgba(0,0,0,.45)"></div>
+              <div style="position:absolute;inset:0;padding:16px 10px;display:grid;grid-template-columns:repeat(4,1fr);gap:8px;align-content:center">
+                <div style="display:flex;flex-direction:column;align-items:center;gap:5px">
+                  <div style="width:38px;height:52px;border-radius:6px;border:1px solid var(--color-accent-600);background:var(--color-accent-800);display:flex;align-items:center;justify-content:center"><span style="width:18px;height:18px;border-radius:999px;border:1.5px solid var(--color-accent-400);color:var(--color-accent-300);font:700 10px 'Inter';display:flex;align-items:center;justify-content:center">✓</span></div>
+                  <div style="display:flex;align-items:center;gap:4px;max-width:80px"><span style="flex:none;width:16px;height:16px;border-radius:6px;background:oklch(0.73 0.125 289)"></span><span style="font:500 10px 'Inter';color:var(--color-neutral-100);overflow:hidden;text-overflow:ellipsis;white-space:nowrap">Nuria</span></div>
+                </div>
+                <div style="display:flex;flex-direction:column;align-items:center;gap:5px">
+                  <div style="width:38px;height:52px;border-radius:6px;border:1px dashed rgba(145,132,217,.35);display:flex;align-items:center;justify-content:center;font:500 12px 'Inter';color:var(--color-neutral-300);animation:ppPulse 1.8s ease-in-out infinite">···</div>
+                  <div style="display:flex;align-items:center;gap:4px;max-width:80px"><span style="flex:none;width:16px;height:16px;border-radius:6px;background:oklch(0.73 0.125 250)"></span><span style="font:500 10px 'Inter';color:var(--color-neutral-100);overflow:hidden;text-overflow:ellipsis;white-space:nowrap">Sergio</span></div>
+                </div>
+                <div style="display:flex;flex-direction:column;align-items:center;gap:5px">
+                  <div style="width:38px;height:52px;border-radius:6px;border:1px solid var(--color-accent-600);background:var(--color-accent-800);display:flex;align-items:center;justify-content:center"><span style="width:18px;height:18px;border-radius:999px;border:1.5px solid var(--color-accent-400);color:var(--color-accent-300);font:700 10px 'Inter';display:flex;align-items:center;justify-content:center">✓</span></div>
+                  <div style="display:flex;align-items:center;gap:4px;max-width:80px"><span style="flex:none;width:16px;height:16px;border-radius:6px;background:oklch(0.73 0.125 200)"></span><span style="font:500 10px 'Inter';color:var(--color-neutral-100);overflow:hidden;text-overflow:ellipsis;white-space:nowrap">Bea</span></div>
+                </div>
+                <div style="display:flex;flex-direction:column;align-items:center;gap:5px">
+                  <div style="width:38px;height:52px;border-radius:6px;border:1px solid var(--color-accent-600);background:var(--color-accent-800);display:flex;align-items:center;justify-content:center"><span style="width:18px;height:18px;border-radius:999px;border:1.5px solid var(--color-accent-400);color:var(--color-accent-300);font:700 10px 'Inter';display:flex;align-items:center;justify-content:center">✓</span></div>
+                  <div style="display:flex;align-items:center;gap:4px;max-width:80px"><span style="flex:none;width:16px;height:16px;border-radius:6px;background:oklch(0.73 0.125 330)"></span><span style="font:500 10px 'Inter';color:var(--color-neutral-100);overflow:hidden;text-overflow:ellipsis;white-space:nowrap">Marc</span></div>
+                </div>
+                <div style="display:flex;flex-direction:column;align-items:center;gap:5px">
+                  <div style="width:38px;height:52px;border-radius:6px;border:1px solid var(--color-accent-600);background:var(--color-accent-800);display:flex;align-items:center;justify-content:center"><span style="width:18px;height:18px;border-radius:999px;border:1.5px solid var(--color-accent-400);color:var(--color-accent-300);font:700 10px 'Inter';display:flex;align-items:center;justify-content:center">✓</span></div>
+                  <div style="display:flex;align-items:center;gap:4px;max-width:80px"><span style="flex:none;width:16px;height:16px;border-radius:6px;background:oklch(0.73 0.125 150)"></span><span style="font:500 10px 'Inter';color:var(--color-neutral-100);overflow:hidden;text-overflow:ellipsis;white-space:nowrap">Lucía</span></div>
+                </div>
+                <div style="display:flex;flex-direction:column;align-items:center;gap:5px">
+                  <div style="width:38px;height:52px;border-radius:6px;border:1px dashed rgba(145,132,217,.35);display:flex;align-items:center;justify-content:center;font:500 12px 'Inter';color:var(--color-neutral-300);animation:ppPulse 1.8s ease-in-out .6s infinite">···</div>
+                  <div style="display:flex;align-items:center;gap:4px;max-width:80px"><span style="flex:none;width:16px;height:16px;border-radius:6px;background:oklch(0.73 0.125 100)"></span><span style="font:500 10px 'Inter';color:var(--color-neutral-100);overflow:hidden;text-overflow:ellipsis;white-space:nowrap">Iván</span></div>
+                </div>
+                <div style="display:flex;flex-direction:column;align-items:center;gap:5px">
+                  <div style="width:38px;height:52px;border-radius:6px;border:1px solid var(--color-accent-600);background:var(--color-accent-800);display:flex;align-items:center;justify-content:center"><span style="width:18px;height:18px;border-radius:999px;border:1.5px solid var(--color-accent-400);color:var(--color-accent-300);font:700 10px 'Inter';display:flex;align-items:center;justify-content:center">✓</span></div>
+                  <div style="display:flex;align-items:center;gap:4px;max-width:80px"><span style="flex:none;width:16px;height:16px;border-radius:6px;background:oklch(0.73 0.125 30)"></span><span style="font:500 10px 'Inter';color:var(--color-neutral-100);overflow:hidden;text-overflow:ellipsis;white-space:nowrap">Dani</span></div>
+                </div>
+                <div style="display:flex;flex-direction:column;align-items:center;gap:5px">
+                  <div style="width:38px;height:52px;border-radius:6px;border:1px solid var(--color-accent-600);background:var(--color-accent-800);display:flex;align-items:center;justify-content:center"><span style="width:18px;height:18px;border-radius:999px;border:1.5px solid var(--color-accent-400);color:var(--color-accent-300);font:700 10px 'Inter';display:flex;align-items:center;justify-content:center">✓</span></div>
+                  <div style="display:flex;align-items:center;gap:4px;max-width:80px"><span style="flex:none;width:16px;height:16px;border-radius:6px;background:oklch(0.73 0.125 350)"></span><span style="font:500 10px 'Inter';color:var(--color-neutral-100);overflow:hidden;text-overflow:ellipsis;white-space:nowrap">Aroa</span></div>
+                </div>
+              </div>
+            </div>
+
+            <div style="flex:none;display:flex;align-items:center;gap:8px;padding:0 16px 10px">
+              <span style="font:500 10px 'Inter';color:var(--pp-muted);flex:none">Tíralo tocando a alguien</span>
+              <div style="flex:1;display:flex;gap:6px;justify-content:flex-end">
+                <button style="cursor:pointer;width:34px;height:34px;border-radius:9px;border:1px solid var(--color-accent);background:rgba(145,132,217,.18);font-size:15px">👏</button>
+                <button style="cursor:pointer;width:34px;height:34px;border-radius:9px;border:1px solid var(--pp-line);background:transparent;font-size:15px">😂</button>
+                <button style="cursor:pointer;width:34px;height:34px;border-radius:9px;border:1px solid var(--pp-line);background:transparent;font-size:15px">😱</button>
+                <button style="cursor:pointer;width:34px;height:34px;border-radius:9px;border:1px solid var(--pp-line);background:transparent;font-size:15px">🐔</button>
+              </div>
+            </div>
+          </div>
+
+          <div style="flex:none;border-top:1px solid var(--color-divider);background:var(--color-bg);padding:12px 0 0;display:flex;flex-direction:column;gap:10px">
+            <div style="display:flex;align-items:center;justify-content:space-between;padding:0 16px">
+              <span style="font:500 11px 'Inter';color:var(--pp-muted)">Tu carta: 5 · cambiable hasta el reveal</span>
+              <span style="font:500 11px 'Inter';color:var(--pp-muted)">⇠ desliza</span>
+            </div>
+            <div style="display:flex;gap:8px;overflow-x:auto;padding:4px 16px 6px">
+              <div style="flex:none;width:56px;height:80px;border-radius:9px;border:1.5px solid var(--pp-line);background:var(--color-surface);display:flex;align-items:center;justify-content:center;font:600 19px 'Inter';font-variant-numeric:tabular-nums">1</div>
+              <div style="flex:none;width:56px;height:80px;border-radius:9px;border:1.5px solid var(--pp-line);background:var(--color-surface);display:flex;align-items:center;justify-content:center;font:600 19px 'Inter';font-variant-numeric:tabular-nums">2</div>
+              <div style="flex:none;width:56px;height:80px;border-radius:9px;border:1.5px solid var(--pp-line);background:var(--color-surface);display:flex;align-items:center;justify-content:center;font:600 19px 'Inter';font-variant-numeric:tabular-nums">3</div>
+              <div style="flex:none;width:56px;height:80px;border-radius:9px;border:1.5px solid var(--color-accent);background:rgba(145,132,217,.16);color:var(--color-accent);display:flex;align-items:center;justify-content:center;font:600 19px 'Inter';font-variant-numeric:tabular-nums;transform:translateY(-8px);box-shadow:0 10px 24px rgba(145,132,217,.32)">5</div>
+              <div style="flex:none;width:56px;height:80px;border-radius:9px;border:1.5px solid var(--pp-line);background:var(--color-surface);display:flex;align-items:center;justify-content:center;font:600 19px 'Inter';font-variant-numeric:tabular-nums">8</div>
+              <div style="flex:none;width:56px;height:80px;border-radius:9px;border:1.5px solid var(--pp-line);background:var(--color-surface);display:flex;align-items:center;justify-content:center;font:600 19px 'Inter';font-variant-numeric:tabular-nums">13</div>
+              <div style="flex:none;width:56px;height:80px;border-radius:9px;border:1.5px dashed var(--pp-line);color:var(--pp-muted);display:flex;align-items:center;justify-content:center;font:600 19px 'Inter'">?</div>
+            </div>
+            <div style="padding:0 16px 10px">
+              <button style="cursor:pointer;width:100%;min-height:52px;border-radius:12px;border:1.5px solid var(--color-accent);background:transparent;color:var(--color-accent);font:600 16px 'Inter'">Revelar las cartas · 7 de 9</button>
+            </div>
+            <div style="height:5px;width:134px;border-radius:999px;background:var(--pp-line);margin:0 auto 9px"></div>
+          </div>
+        </div>
+        <span style="font:500 11px 'Inter';color:#75798c">Votando · el botón de revelar no se mueve nunca</span>
+      </div>
+
+      <div style="display:flex;flex-direction:column;gap:9px">
+        <div data-theme="dark" style="width:390px;height:844px;border-radius:34px;overflow:hidden;background:var(--color-bg);box-shadow:0 0 0 1px #3f424d,0 24px 60px rgba(0,0,0,.5);display:flex;flex-direction:column;position:relative">
+          <div style="flex:none;height:44px;display:flex;align-items:center;justify-content:space-between;padding:0 22px;font:600 12px 'Inter';color:var(--pp-muted);font-variant-numeric:tabular-nums"><span>9:41</span><span>▮▮▮ ▾</span></div>
+          <div style="flex:none;display:flex;align-items:center;gap:9px;padding:6px 16px 12px">
+            <div style="width:18px;height:25px;flex:none;border-radius:4px;border:1.5px solid var(--color-accent);display:flex;align-items:center;justify-content:center;font:700 10px 'Inter';color:var(--color-accent);transform:rotate(-8deg)">8</div>
+            <span style="flex:1;font:600 13px 'Inter';overflow:hidden;text-overflow:ellipsis;white-space:nowrap">Refinamiento · Squad Pingüino</span>
+            <button style="cursor:pointer;flex:none;width:34px;height:34px;border-radius:10px;border:1px solid var(--pp-line);background:transparent;color:var(--pp-muted);font-size:14px">☰</button>
+          </div>
+
+          <div style="flex:1;min-height:0;background:var(--pp-felt);padding:14px;display:grid;grid-template-columns:repeat(4,1fr);gap:10px;align-content:start">
+            <div style="display:flex;flex-direction:column;align-items:center;gap:5px">
+              <div style="width:40px;height:56px;border-radius:7px;border:1px solid var(--color-accent);background:var(--color-surface);display:flex;align-items:center;justify-content:center;font:600 18px 'Inter';font-variant-numeric:tabular-nums;box-shadow:0 0 14px rgba(145,132,217,.28)">5</div>
+              <span style="font:500 10px 'Inter';color:var(--color-neutral-100)">Nuria</span>
+            </div>
+            <div style="position:relative;display:flex;flex-direction:column;align-items:center;gap:5px">
+              <div style="position:absolute;left:0;right:0;top:-8px;height:70px;pointer-events:none">
+                <span style="position:absolute;left:20%;top:0;width:8px;height:13px;background:var(--color-neutral-200);border-radius:60% 60% 50% 50% / 80% 80% 35% 35%;animation:ppPluma 2.6s ease-in infinite"></span>
+                <span style="position:absolute;left:62%;top:4px;width:7px;height:12px;background:var(--color-neutral-300);border-radius:60% 60% 50% 50% / 80% 80% 35% 35%;animation:ppPluma 3.1s ease-in .5s infinite"></span>
+              </div>
+              <div style="width:40px;height:56px;border-radius:7px;border:1px solid var(--color-accent);background:var(--color-surface);display:flex;align-items:center;justify-content:center;font:600 18px 'Inter';font-variant-numeric:tabular-nums">13</div>
+              <span style="font:500 10px 'Inter';color:var(--color-neutral-100)">Sergio</span>
+              <span style="padding:2px 7px;border-radius:999px;background:rgba(233,233,237,.14);border:1px solid var(--color-neutral-400);color:var(--color-neutral-100);font:500 9px 'Inter';white-space:nowrap">🐔 Cobarde</span>
+            </div>
+            <div style="display:flex;flex-direction:column;align-items:center;gap:5px">
+              <div style="width:40px;height:56px;border-radius:7px;border:1px solid var(--color-accent);background:var(--color-surface);display:flex;align-items:center;justify-content:center;font:600 18px 'Inter';font-variant-numeric:tabular-nums">5</div>
+              <span style="font:500 10px 'Inter';color:var(--color-neutral-100)">Bea</span>
+            </div>
+            <div style="position:relative;display:flex;flex-direction:column;align-items:center;gap:5px">
+              <div style="position:absolute;left:50%;top:2px;width:48px;height:56px;background:linear-gradient(180deg,var(--color-accent-600),var(--color-accent-800));clip-path:polygon(50% 0,100% 8%,86% 100%,50% 84%,14% 100%,0 8%);transform-origin:50% 8%;animation:ppCapa 2.4s ease-in-out infinite;opacity:.85;pointer-events:none"></div>
+              <div style="width:40px;height:56px;border-radius:7px;border:1px solid var(--color-accent);background:var(--color-surface);display:flex;align-items:center;justify-content:center;font:600 18px 'Inter';font-variant-numeric:tabular-nums;animation:ppAura 1.8s ease-in-out infinite">2</div>
+              <span style="font:500 10px 'Inter';color:var(--color-neutral-100)">Marc</span>
+              <span style="padding:2px 7px;border-radius:999px;background:rgba(145,132,217,.20);border:1px solid var(--color-accent-400);color:var(--color-accent-200);font:500 9px 'Inter';white-space:nowrap">🦸 Valiente</span>
+            </div>
+            <div style="display:flex;flex-direction:column;align-items:center;gap:5px">
+              <div style="width:40px;height:56px;border-radius:7px;border:1px solid var(--color-accent);background:rgba(145,132,217,.22);color:var(--color-accent);display:flex;align-items:center;justify-content:center;font:600 18px 'Inter';font-variant-numeric:tabular-nums">5</div>
+              <span style="font:500 10px 'Inter';color:var(--color-accent)">Tú</span>
+            </div>
+            <div style="display:flex;flex-direction:column;align-items:center;gap:5px">
+              <div style="width:40px;height:56px;border-radius:7px;border:1px solid var(--color-accent);background:var(--color-surface);display:flex;align-items:center;justify-content:center;font:600 18px 'Inter';font-variant-numeric:tabular-nums">5</div>
+              <span style="font:500 10px 'Inter';color:var(--color-neutral-100)">Iván</span>
+            </div>
+            <div style="display:flex;flex-direction:column;align-items:center;gap:5px">
+              <div style="width:40px;height:56px;border-radius:7px;border:1px solid var(--color-accent);background:var(--color-surface);display:flex;align-items:center;justify-content:center;font:600 18px 'Inter';font-variant-numeric:tabular-nums">8</div>
+              <span style="font:500 10px 'Inter';color:var(--color-neutral-100)">Dani</span>
+            </div>
+            <div style="display:flex;flex-direction:column;align-items:center;gap:5px">
+              <div style="width:40px;height:56px;border-radius:7px;border:1px solid var(--color-accent);background:var(--color-surface);display:flex;align-items:center;justify-content:center;font:600 18px 'Inter'">☕</div>
+              <span style="font:500 10px 'Inter';color:var(--color-neutral-100)">Aroa</span>
+            </div>
+          </div>
+
+          <div style="flex:none;border-top:1px solid var(--color-divider);background:var(--color-surface);border-radius:18px 18px 0 0;padding:10px 16px 0;display:flex;flex-direction:column;gap:12px;box-shadow:0 -12px 30px rgba(0,0,0,.4)">
+            <div style="height:4px;width:38px;border-radius:999px;background:var(--pp-line);margin:0 auto"></div>
+            <div style="display:flex;align-items:baseline;justify-content:space-between">
+              <span style="font:600 15px 'Inter'">Resultado · ronda 2</span>
+              <span style="font:500 11px 'Inter';padding:3px 9px;border-radius:999px;border:1px solid var(--color-accent);color:var(--color-accent)">Revelada</span>
+            </div>
+            <div style="display:grid;grid-template-columns:1fr 1fr;gap:9px">
+              <div style="padding:11px;border-radius:10px;background:var(--color-bg);border:1px solid var(--color-divider)"><div style="font:500 11px 'Inter';color:var(--pp-muted);margin-bottom:3px">Media</div><div style="font:600 24px 'Inter';font-variant-numeric:tabular-nums">6.1</div></div>
+              <div style="padding:11px;border-radius:10px;background:var(--color-bg);border:1px solid var(--color-divider)"><div style="font:500 11px 'Inter';color:var(--pp-muted);margin-bottom:3px">Acuerdo</div><div style="font:600 24px 'Inter';font-variant-numeric:tabular-nums">50 %</div></div>
+            </div>
+            <div style="display:flex;flex-direction:column;gap:7px">
+              <div style="display:flex;align-items:center;gap:9px"><span style="width:26px;font:600 13px 'Inter';font-variant-numeric:tabular-nums;color:var(--color-accent)">5</span><div style="flex:1;height:18px;border-radius:6px;background:var(--pp-line)"><div style="height:100%;border-radius:6px;background:var(--color-accent);width:100%"></div></div><span style="width:14px;text-align:right;font:500 11px 'Inter';color:var(--pp-muted)">4</span></div>
+              <div style="display:flex;align-items:center;gap:9px"><span style="width:26px;font:600 13px 'Inter';font-variant-numeric:tabular-nums">8</span><div style="flex:1;height:18px;border-radius:6px;background:var(--pp-line)"><div style="height:100%;border-radius:6px;background:var(--color-accent-700);width:25%"></div></div><span style="width:14px;text-align:right;font:500 11px 'Inter';color:var(--pp-muted)">1</span></div>
+            </div>
+            <div style="display:flex;flex-direction:column;gap:8px;padding-bottom:10px">
+              <button style="cursor:pointer;width:100%;min-height:52px;border-radius:12px;border:1.5px solid var(--color-accent);background:transparent;color:var(--color-accent);font:600 16px 'Inter'">Aceptar 5 y pasar página</button>
+              <div style="display:flex;gap:8px">
+                <button style="cursor:pointer;flex:1;min-height:46px;border-radius:12px;border:1px solid var(--pp-line);background:transparent;color:var(--pp-muted);font:500 14px 'Inter'">Volver a votar</button>
+                <button style="cursor:pointer;flex:1;min-height:46px;border-radius:12px;border:1px solid var(--pp-line);background:transparent;color:var(--pp-muted);font:500 14px 'Inter'">Siguiente</button>
+              </div>
+            </div>
+            <div style="height:5px;width:134px;border-radius:999px;background:var(--pp-line);margin:0 auto 9px"></div>
+          </div>
+        </div>
+        <span style="font:500 11px 'Inter';color:#75798c">Revelada · el resultado sube como hoja, la mesa se queda arriba</span>
+      </div>
+
+      <div style="display:flex;flex-direction:column;gap:9px">
+        <div data-theme="dark" style="width:390px;height:844px;border-radius:34px;overflow:hidden;background:var(--color-bg);box-shadow:0 0 0 1px #3f424d,0 24px 60px rgba(0,0,0,.5);display:flex;flex-direction:column">
+          <div style="flex:none;height:44px;display:flex;align-items:center;justify-content:space-between;padding:0 22px;font:600 12px 'Inter';color:var(--pp-muted);font-variant-numeric:tabular-nums"><span>9:41</span><span>▮▮▮ ▾</span></div>
+          <div style="flex:none;display:flex;align-items:center;gap:10px;padding:6px 16px 14px">
+            <button style="cursor:pointer;width:34px;height:34px;border-radius:10px;border:1px solid var(--pp-line);background:transparent;color:var(--pp-muted);font-size:15px">✕</button>
+            <span style="flex:1;font:600 15px 'Inter'">Cola de tareas</span>
+            <span style="font:500 11px 'Inter';color:var(--pp-muted);font-variant-numeric:tabular-nums">2 de 6</span>
+          </div>
+          <div style="flex:1;min-height:0;overflow-y:auto;padding:0 14px;display:flex;flex-direction:column;gap:8px">
+            <div style="font:500 10px/1 ui-monospace,Menlo,monospace;letter-spacing:.12em;text-transform:uppercase;color:var(--pp-muted);padding:2px 4px">En la mesa</div>
+            <div style="padding:13px;border-radius:12px;border:1px solid var(--color-accent);background:rgba(145,132,217,.10);display:flex;flex-direction:column;gap:4px">
+              <span style="font:500 10px ui-monospace,Menlo,monospace;color:var(--color-accent-300)">PP-142</span>
+              <span style="font:500 14px 'Inter';line-height:1.4;text-wrap:pretty">Migrar el gateway de pagos a la nueva API sin que se entere nadie</span>
+              <span style="font:500 11px 'Inter';color:var(--color-accent-300)">Votando ahora · ronda 2</span>
+            </div>
+            <div style="font:500 10px/1 ui-monospace,Menlo,monospace;letter-spacing:.12em;text-transform:uppercase;color:var(--pp-muted);padding:8px 4px 2px">Por estimar</div>
+            <div style="min-height:56px;padding:13px;border-radius:12px;border:1px solid var(--pp-line);display:flex;flex-direction:column;gap:3px"><span style="font:500 10px ui-monospace,Menlo,monospace;color:var(--pp-muted)">PP-143</span><span style="font:500 14px 'Inter';line-height:1.4">Quitar el feature flag que lleva ocho meses a true</span></div>
+            <div style="min-height:56px;padding:13px;border-radius:12px;border:1px solid var(--pp-line);display:flex;flex-direction:column;gap:3px"><span style="font:500 10px ui-monospace,Menlo,monospace;color:var(--pp-muted)">PP-144</span><span style="font:500 14px 'Inter';line-height:1.4">Subir la cobertura de tests del módulo de facturación</span></div>
+            <div style="min-height:56px;padding:13px;border-radius:12px;border:1px solid var(--pp-line);display:flex;flex-direction:column;gap:3px"><span style="font:500 10px ui-monospace,Menlo,monospace;color:var(--pp-muted)">PP-145</span><span style="font:500 14px 'Inter';line-height:1.4">Investigar por qué el cron se dispara dos veces los martes</span></div>
+            <div style="font:500 10px/1 ui-monospace,Menlo,monospace;letter-spacing:.12em;text-transform:uppercase;color:var(--pp-muted);padding:8px 4px 2px">Ya estimadas</div>
+            <div style="display:flex;align-items:center;gap:10px;padding:11px 13px;border-radius:12px;border:1px solid var(--pp-line);opacity:.72"><span style="flex:1;min-width:0;font:500 13px 'Inter';overflow:hidden;text-overflow:ellipsis;white-space:nowrap">Migrar los correos a la plantilla nueva</span><span style="flex:none;width:28px;height:34px;border-radius:6px;border:1px solid var(--color-accent-700);display:flex;align-items:center;justify-content:center;font:600 13px 'Inter';color:var(--color-accent-300)">3</span></div>
+            <div style="display:flex;align-items:center;gap:10px;padding:11px 13px;border-radius:12px;border:1px solid var(--pp-line);opacity:.72"><span style="flex:1;min-width:0;font:500 13px 'Inter';overflow:hidden;text-overflow:ellipsis;white-space:nowrap">Rate limit en el endpoint de búsqueda</span><span style="flex:none;width:28px;height:34px;border-radius:6px;border:1px solid var(--color-accent-700);display:flex;align-items:center;justify-content:center;font:600 13px 'Inter';color:var(--color-accent-300)">8</span></div>
+          </div>
+          <div style="flex:none;border-top:1px solid var(--color-divider);padding:12px 14px;display:flex;gap:8px">
+            <input placeholder="PP-146 · y ahora, ¿qué duele?" style="flex:1;min-width:0;box-sizing:border-box;min-height:48px;padding:12px;border-radius:12px;border:1px solid var(--pp-line);background:var(--color-surface);color:var(--color-text);font:500 14px 'Inter'" style-focus="outline:2px solid var(--color-accent);outline-offset:2px">
+            <button style="cursor:pointer;min-height:48px;padding:0 18px;border-radius:12px;border:1.5px solid var(--color-accent);background:transparent;color:var(--color-accent);font:600 14px 'Inter'">Añadir</button>
+          </div>
+          <div style="height:5px;width:134px;border-radius:999px;background:var(--pp-line);margin:0 auto 9px"></div>
+        </div>
+        <span style="font:500 11px 'Inter';color:#75798c">La cola vive tras el ☰, a pantalla completa</span>
+      </div>
+    </div>
+  </section>
+
+  <section style="display:flex;flex-direction:column;gap:14px">
+    <div style="font:500 11px/1 ui-monospace,Menlo,monospace;letter-spacing:.14em;text-transform:uppercase;color:#75798c">09 · Ajustes de partida — desplegados</div>
+    <div style="display:flex;gap:20px;flex-wrap:wrap;align-items:flex-start">
+
+      <div data-theme="dark" style="width:460px;border-radius:14px;background:var(--color-surface);box-shadow:0 0 0 1px #3f424d;padding:24px;display:flex;flex-direction:column;gap:18px">
+        <div style="display:flex;align-items:center;justify-content:space-between;gap:12px;padding-bottom:14px;border-bottom:1px solid var(--color-divider)">
+          <div style="display:flex;flex-direction:column;gap:3px">
+            <span style="font:600 15px 'Inter'">Ajustes finos</span>
+            <span style="font:500 12px 'Inter';color:var(--pp-muted)">Se aplican a la ronda siguiente</span>
+          </div>
+          <span style="font:500 14px 'Inter';color:var(--color-accent)">▴</span>
+        </div>
+
+        <div style="display:flex;flex-direction:column;gap:9px">
+          <div style="display:flex;align-items:center;justify-content:space-between;gap:14px">
+            <div style="display:flex;flex-direction:column;gap:2px"><span style="font:600 13px 'Inter'">Auto-revelar</span><span style="font:500 11px 'Inter';color:var(--pp-muted);line-height:1.5">En cuanto vote la última persona, cartas arriba.</span></div>
+            <div style="flex:none;width:44px;height:26px;border-radius:999px;background:rgba(145,132,217,.22);border:1px solid var(--color-accent);position:relative;cursor:pointer"><span style="position:absolute;top:2px;right:2px;width:20px;height:20px;border-radius:999px;background:var(--color-accent)"></span></div>
+          </div>
+          <div style="display:flex;align-items:center;justify-content:space-between;gap:14px">
+            <div style="display:flex;flex-direction:column;gap:2px"><span style="font:600 13px 'Inter'">Cambiar el voto tras votar</span><span style="font:500 11px 'Inter';color:var(--pp-muted);line-height:1.5">Permite rectificar hasta el reveal.</span></div>
+            <div style="flex:none;width:44px;height:26px;border-radius:999px;background:rgba(145,132,217,.22);border:1px solid var(--color-accent);position:relative;cursor:pointer"><span style="position:absolute;top:2px;right:2px;width:20px;height:20px;border-radius:999px;background:var(--color-accent)"></span></div>
+          </div>
+          <div style="display:flex;align-items:center;justify-content:space-between;gap:14px">
+            <div style="display:flex;flex-direction:column;gap:2px"><span style="font:600 13px 'Inter'">Fiesta al haber unanimidad</span><span style="font:500 11px 'Inter';color:var(--pp-muted);line-height:1.5">Confeti, plumas y capas. Se puede apagar.</span></div>
+            <div style="flex:none;width:44px;height:26px;border-radius:999px;background:rgba(145,132,217,.22);border:1px solid var(--color-accent);position:relative;cursor:pointer"><span style="position:absolute;top:2px;right:2px;width:20px;height:20px;border-radius:999px;background:var(--color-accent)"></span></div>
+          </div>
+          <div style="display:flex;align-items:center;justify-content:space-between;gap:14px">
+            <div style="display:flex;flex-direction:column;gap:2px"><span style="font:600 13px 'Inter'">Emojis lanzados</span><span style="font:500 11px 'Inter';color:var(--pp-muted);line-height:1.5">Para reuniones con clientes delante.</span></div>
+            <div style="flex:none;width:44px;height:26px;border-radius:999px;background:var(--color-bg);border:1px solid var(--pp-line);position:relative;cursor:pointer"><span style="position:absolute;top:2px;left:2px;width:20px;height:20px;border-radius:999px;background:var(--pp-line)"></span></div>
+          </div>
+        </div>
+
+        <div style="display:flex;flex-direction:column;gap:8px">
+          <span style="font:500 12px 'Inter';color:var(--pp-muted)">¿Quién puede revelar?</span>
+          <div style="display:flex;gap:5px;padding:4px;border-radius:12px;background:var(--color-bg);border:1px solid var(--pp-line)">
+            <div style="flex:1;text-align:center;padding:9px;border-radius:9px;background:rgba(145,132,217,.16);border:1px solid var(--color-accent);color:var(--color-accent);font:600 12px 'Inter'">Cualquiera</div>
+            <div style="flex:1;text-align:center;padding:9px;border-radius:9px;color:var(--pp-muted);font:500 12px 'Inter'">Solo el dealer</div>
+            <div style="flex:1;text-align:center;padding:9px;border-radius:9px;color:var(--pp-muted);font:500 12px 'Inter'">Quien creó</div>
+          </div>
+          <span style="font:500 11px 'Inter';color:var(--pp-muted);line-height:1.5">El dealer rota en cada tarea. La ficha D va pasando por la mesa.</span>
+        </div>
+
+        <div style="display:flex;flex-direction:column;gap:8px">
+          <div style="display:flex;align-items:baseline;justify-content:space-between">
+            <span style="font:500 12px 'Inter';color:var(--pp-muted)">Cuenta atrás por tarea</span>
+            <span style="font:600 13px 'Inter';color:var(--color-accent);font-variant-numeric:tabular-nums">01:30</span>
+          </div>
+          <div style="display:flex;gap:6px">
+            <div style="flex:1;text-align:center;padding:9px;border-radius:9px;border:1px solid var(--pp-line);color:var(--pp-muted);font:500 12px 'Inter'">Sin límite</div>
+            <div style="flex:1;text-align:center;padding:9px;border-radius:9px;border:1px solid var(--pp-line);color:var(--pp-muted);font:500 12px 'Inter';font-variant-numeric:tabular-nums">0:45</div>
+            <div style="flex:1;text-align:center;padding:9px;border-radius:9px;border:1px solid var(--color-accent);background:rgba(145,132,217,.14);color:var(--color-accent);font:600 12px 'Inter';font-variant-numeric:tabular-nums">1:30</div>
+            <div style="flex:1;text-align:center;padding:9px;border-radius:9px;border:1px solid var(--pp-line);color:var(--pp-muted);font:500 12px 'Inter';font-variant-numeric:tabular-nums">3:00</div>
+          </div>
+          <div style="display:flex;align-items:center;justify-content:space-between;gap:14px;padding:11px 13px;border-radius:10px;border:1px dashed var(--pp-line)">
+            <span style="font:500 12px 'Inter';color:var(--pp-muted);line-height:1.5">Al llegar a cero, revelar igualmente</span>
+            <div style="flex:none;width:44px;height:26px;border-radius:999px;background:rgba(145,132,217,.22);border:1px solid var(--color-accent);position:relative;cursor:pointer"><span style="position:absolute;top:2px;right:2px;width:20px;height:20px;border-radius:999px;background:var(--color-accent)"></span></div>
+          </div>
+        </div>
+
+        <div style="display:flex;gap:8px;padding-top:4px">
+          <button style="cursor:pointer;padding:12px 18px;border-radius:10px;border:1.5px solid var(--color-accent);background:transparent;color:var(--color-accent);font:600 14px 'Inter'" style-hover="background:rgba(145,132,217,.14)">Guardar ajustes</button>
+          <button style="cursor:pointer;padding:12px 18px;border-radius:10px;border:1px solid var(--pp-line);background:transparent;color:var(--pp-muted);font:500 14px 'Inter'" style-hover="color:var(--color-text);border-color:var(--color-accent)">Volver a los de serie</button>
+        </div>
+      </div>
+
+      <div data-theme="dark" style="width:390px;border-radius:34px;overflow:hidden;background:var(--color-bg);box-shadow:0 0 0 1px #3f424d;display:flex;flex-direction:column">
+        <div style="flex:none;height:120px;background:var(--pp-felt);opacity:.5"></div>
+        <div style="background:var(--color-surface);border-radius:18px 18px 0 0;padding:10px 16px 0;display:flex;flex-direction:column;gap:14px;box-shadow:0 -12px 30px rgba(0,0,0,.4)">
+          <div style="height:4px;width:38px;border-radius:999px;background:var(--pp-line);margin:0 auto"></div>
+          <span style="font:600 16px 'Inter'">Ajustes de la partida</span>
+          <div style="display:flex;align-items:center;justify-content:space-between;gap:14px;min-height:48px">
+            <span style="font:500 14px 'Inter'">Auto-revelar</span>
+            <div style="flex:none;width:48px;height:29px;border-radius:999px;background:rgba(145,132,217,.22);border:1px solid var(--color-accent);position:relative"><span style="position:absolute;top:2px;right:2px;width:23px;height:23px;border-radius:999px;background:var(--color-accent)"></span></div>
+          </div>
+          <div style="display:flex;align-items:center;justify-content:space-between;gap:14px;min-height:48px">
+            <span style="font:500 14px 'Inter'">Emojis lanzados</span>
+            <div style="flex:none;width:48px;height:29px;border-radius:999px;background:var(--color-bg);border:1px solid var(--pp-line);position:relative"><span style="position:absolute;top:2px;left:2px;width:23px;height:23px;border-radius:999px;background:var(--pp-line)"></span></div>
+          </div>
+          <div style="display:flex;flex-direction:column;gap:7px">
+            <span style="font:500 12px 'Inter';color:var(--pp-muted)">¿Quién revela?</span>
+            <div style="display:flex;gap:5px;padding:4px;border-radius:12px;background:var(--color-bg);border:1px solid var(--pp-line)">
+              <div style="flex:1;text-align:center;min-height:40px;display:flex;align-items:center;justify-content:center;border-radius:9px;background:rgba(145,132,217,.16);border:1px solid var(--color-accent);color:var(--color-accent);font:600 13px 'Inter'">Cualquiera</div>
+              <div style="flex:1;text-align:center;min-height:40px;display:flex;align-items:center;justify-content:center;border-radius:9px;color:var(--pp-muted);font:500 13px 'Inter'">Dealer</div>
+            </div>
+          </div>
+          <div style="display:flex;flex-direction:column;gap:7px">
+            <span style="font:500 12px 'Inter';color:var(--pp-muted)">Cuenta atrás</span>
+            <div style="display:flex;gap:6px">
+              <div style="flex:1;text-align:center;min-height:44px;display:flex;align-items:center;justify-content:center;border-radius:10px;border:1px solid var(--pp-line);color:var(--pp-muted);font:500 13px 'Inter'">Sin</div>
+              <div style="flex:1;text-align:center;min-height:44px;display:flex;align-items:center;justify-content:center;border-radius:10px;border:1px solid var(--pp-line);color:var(--pp-muted);font:500 13px 'Inter';font-variant-numeric:tabular-nums">0:45</div>
+              <div style="flex:1;text-align:center;min-height:44px;display:flex;align-items:center;justify-content:center;border-radius:10px;border:1px solid var(--color-accent);background:rgba(145,132,217,.14);color:var(--color-accent);font:600 13px 'Inter';font-variant-numeric:tabular-nums">1:30</div>
+              <div style="flex:1;text-align:center;min-height:44px;display:flex;align-items:center;justify-content:center;border-radius:10px;border:1px solid var(--pp-line);color:var(--pp-muted);font:500 13px 'Inter';font-variant-numeric:tabular-nums">3:00</div>
+            </div>
+          </div>
+          <button style="cursor:pointer;width:100%;min-height:52px;border-radius:12px;border:1.5px solid var(--color-accent);background:transparent;color:var(--color-accent);font:600 16px 'Inter';margin-top:2px">Guardar</button>
+          <div style="height:5px;width:134px;border-radius:999px;background:var(--pp-line);margin:6px auto 9px"></div>
+        </div>
+      </div>
+    </div>
+  </section>
+
+</div>
+
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props="{&quot;$preview&quot;:{&quot;width&quot;:1560,&quot;height&quot;:1100}}">
+const HUES = [289, 250, 200, 330, 30, 150, 100, 350, 60];
+const PEOPLE = [
+  { name: 'Nuria', v: 5, voted: true },
+  { name: 'Sergio', v: 8, voted: false },
+  { name: 'Bea', v: 5, voted: false },
+  { name: 'Marc', v: 3, voted: true },
+  { name: 'Iván', v: 5, voted: true },
+  { name: 'Lucía', v: 5, voted: true },
+  { name: 'Dani', v: 8, voted: true },
+  { name: 'Aroa', v: '☕', voted: true }
+];
+const FIB = ['0.5', '1', '2', '3', '5', '8', '13', '?', '☕'];
+
+class Component extends DCLogic {
+  state = { theme: 'dark', sel: '5', revealed: false, crowd: 9, longTitle: false, sound: true, reacts: [], armed: null, flying: [], mode: 'throw' };
+
+  beep(notes) {
+    if (!this.state.sound) return;
+    try {
+      if (!this.ac) this.ac = new (window.AudioContext || window.webkitAudioContext)();
+      const ac = this.ac;
+      if (ac.state === 'suspended') ac.resume();
+      notes.forEach(([freq, at, dur, type, vol]) => {
+        const o = ac.createOscillator();
+        const g = ac.createGain();
+        o.type = type || 'sine';
+        o.frequency.value = freq;
+        const t0 = ac.currentTime + at;
+        g.gain.setValueAtTime(0.0001, t0);
+        g.gain.exponentialRampToValueAtTime(vol || 0.12, t0 + 0.015);
+        g.gain.exponentialRampToValueAtTime(0.0001, t0 + dur);
+        o.connect(g);
+        g.connect(ac.destination);
+        o.start(t0);
+        o.stop(t0 + dur + 0.02);
+      });
+    } catch (e) { /* sin audio, sin drama */ }
+  }
+
+  seatPos(i, n) {
+    const a = ((90 + ((i - 4) * 360) / n) * Math.PI) / 180;
+    return { x: (50 + 44 * Math.cos(a)).toFixed(2) + '%', y: (50 + 46 * Math.sin(a)).toFixed(2) + '%' };
+  }
+
+  throwAt(target) {
+    const emoji = this.state.armed;
+    if (!emoji) return;
+    const n = this.seatsData().length;
+    const from = this.seatPos(4, n);
+    const to = this.seatPos(target, n);
+    const id = 'f' + Date.now() + Math.random();
+    this.beep([[720, 0, 0.18, 'sine', 0.06], [420, 0.16, 0.12, 'sine', 0.05]]);
+    this.setState((s) => ({
+      armed: null,
+      flying: s.flying.concat([{ id, emoji, x: from.x, y: from.y, scale: '0.7', rot: '0deg', op: 1 }])
+    }));
+    setTimeout(() => this.setState((s) => ({
+      flying: s.flying.map((f) => (f.id === id ? Object.assign({}, f, { x: to.x, y: to.y, scale: '1.5', rot: '520deg' }) : f))
+    })), 30);
+    setTimeout(() => {
+      this.beep([[180, 0, 0.09, 'square', 0.07]]);
+      this.pushReact(target, emoji, 1);
+      this.setState((s) => ({ flying: s.flying.map((f) => (f.id === id ? Object.assign({}, f, { op: 0, scale: '2.1' }) : f)) }));
+    }, 680);
+    setTimeout(() => this.setState((s) => ({ flying: s.flying.filter((f) => f.id !== id) })), 1100);
+  }
+
+  pushReact(seat, emoji, depth) {
+    const id = 'r' + Date.now() + Math.random();
+    this.setState((s) => ({ reacts: s.reacts.concat([{ id, seat, emoji }]) }));
+    this.beep([[880, 0, 0.09, 'triangle', 0.07]]);
+    setTimeout(() => this.setState((s) => ({ reacts: s.reacts.filter((r) => r.id !== id) })), 2300);
+    if (!depth && Math.random() < 0.6) {
+      const others = [0, 1, 2, 3, 5, 6, 7, 8].filter((i) => i !== seat);
+      const who = others[Math.floor(Math.random() * others.length)];
+      setTimeout(() => this.pushReact(who, emoji, 1), 700 + Math.random() * 600);
+    }
+  }
+
+  seatsData() {
+    const me = { name: 'Tú', v: this.state.sel, voted: this.state.sel !== null, isMe: true };
+    const extra = [
+      { name: 'Maríacarmen de la Fuente-Iturbe', v: 13, voted: true },
+      { name: 'Jean-Baptiste Etxeberria', v: 3, voted: false },
+      { name: 'Wenceslao Ruiz-Villanueva', v: 8, voted: true }
+    ];
+    const base = PEOPLE.slice(0, 4).concat([me]).concat(PEOPLE.slice(4));
+    return this.state.crowd === 12 ? base.concat(extra) : base;
+  }
+
+  renderVals() {
+    const rev = this.state.revealed;
+    const all = this.seatsData();
+    const voted = all.filter((p) => p.voted).length;
+    const numeric = all.filter((p) => p.voted && p.v !== '?' && p.v !== '☕').map((p) => parseFloat(p.v));
+    const media = numeric.length ? (numeric.reduce((a, b) => a + b, 0) / numeric.length).toFixed(1) : '—';
+
+    const hi = numeric.length ? Math.max.apply(null, numeric) : null;
+    const lo = numeric.length ? Math.min.apply(null, numeric) : null;
+    const spread = hi !== null && hi > lo;
+
+    const counts = {};
+    all.forEach((p) => { if (p.voted) counts[p.v] = (counts[p.v] || 0) + 1; });
+    const entries = Object.entries(counts).sort((a, b) => b[1] - a[1]);
+    const top = entries[0] || ['—', 0];
+    const acuerdo = voted ? Math.round((top[1] / voted) * 100) + ' %' : '—';
+    const maxc = top[1] || 1;
+
+    return {
+      theme: this.state.theme,
+      themeLabel: this.state.theme === 'dark' ? '☀ Ver en claro' : '🌙 Ver en oscuro',
+      toggleTheme: () => this.setState((s) => ({ theme: s.theme === 'dark' ? 'light' : 'dark' })),
+
+      revealed: rev,
+      hidden: !rev,
+      roundBadge: rev ? 'Ronda 2 · revelada' : 'Ronda 2 · votos ocultos',
+      reveal: () => {
+        const uni = entries.length === 1;
+        this.beep(uni
+          ? [[523, 0, 0.12, 'triangle', 0.1], [659, 0.1, 0.12, 'triangle', 0.1], [784, 0.2, 0.14, 'triangle', 0.1], [1047, 0.32, 0.3, 'triangle', 0.1]]
+          : [[392, 0, 0.1, 'sine', 0.09], [294, 0.09, 0.16, 'sine', 0.09]]);
+        this.setState({ revealed: true });
+      },
+      revote: () => { this.beep([[330, 0, 0.08, 'sine', 0.07], [440, 0.07, 0.1, 'sine', 0.07]]); this.setState({ revealed: false, sel: null }); },
+
+      soundLabel: this.state.sound ? '🔊 Sonido' : '🔇 En silencio',
+      soundFg: this.state.sound ? 'var(--color-accent)' : 'var(--pp-muted)',
+      soundBorder: this.state.sound ? 'var(--color-accent)' : 'var(--pp-line)',
+      toggleSound: () => this.setState((s) => ({ sound: !s.sound })),
+      flying: this.state.flying,
+      reactHint: this.state.mode === 'react'
+        ? 'Tu reacción sale sobre tu asiento'
+        : this.state.armed ? 'Ahora dale a quien se lo merece' : 'Coge un emoji y tíraselo a alguien',
+      reactHintFg: this.state.armed ? 'var(--color-accent)' : 'var(--pp-muted)',
+      setThrow: () => this.setState({ mode: 'throw' }),
+      setReact: () => this.setState({ mode: 'react', armed: null }),
+      throwBg: this.state.mode !== 'react' ? 'rgba(145,132,217,.18)' : 'transparent',
+      throwFg: this.state.mode !== 'react' ? 'var(--color-accent)' : 'var(--pp-muted)',
+      reactBg: this.state.mode === 'react' ? 'rgba(145,132,217,.18)' : 'transparent',
+      reactFg: this.state.mode === 'react' ? 'var(--color-accent)' : 'var(--pp-muted)',
+      reactionBar: ['👏', '😂', '😱', '🤔', '🐔'].map((emoji) => ({
+        emoji,
+        arm: () => {
+          if (this.state.mode === 'react') { this.pushReact(4, emoji, 1); return; }
+          this.setState((s) => ({ armed: s.armed === emoji ? null : emoji }));
+        },
+        border: this.state.armed === emoji ? 'var(--color-accent)' : 'var(--pp-line)',
+        bg: this.state.armed === emoji ? 'rgba(145,132,217,.18)' : 'transparent',
+        lift: this.state.armed === emoji ? 'translateY(-3px) scale(1.08)' : 'none'
+      })),
+      revealDisabled: voted === 0,
+      revealNote: voted === 0 ? 'Nadie ha votado todavía. Ni tú.' : 'Se giran todas a la vez, sin trampas.',
+
+      progressTitle: 'Quién ha votado',
+      progressCount: voted + ' de ' + all.length,
+      progressPct: Math.round((voted / all.length) * 100) + '%',
+      progressNote: voted >= all.length ? 'Todos dentro. Dale al botón antes de que alguien se arrepienta.' : 'Faltan ' + all.filter((p) => !p.voted).map((p) => p.name.split(' ')[0]).join(', ') + '. Los de siempre.',
+
+      media,
+      acuerdo,
+      verdict: rev ? 'Gana el ' + top[0] + ' con ' + top[1] + ' votos. El resto que argumente rápido.' : '',
+      dist: entries.map(([label, count]) => ({
+        label,
+        count,
+        w: Math.round((count / maxc) * 100) + '%',
+        fill: label === top[0] ? 'var(--color-accent)' : 'var(--color-accent-700)',
+        fg: label === top[0] ? 'var(--color-accent)' : 'var(--color-text)'
+      })),
+
+      handHint: (this.state.sel ? 'Tu carta: ' + this.state.sel + '. Puedes cambiarla hasta el reveal.' : 'Elige una carta. Nadie verá cuál hasta el final.') + ' · ? y ☕ no cuentan para la media',
+      hand: FIB.map((label) => {
+        const mine = this.state.sel === label;
+        const special = label === '?' || label === '☕';
+        return {
+          label,
+          pick: () => {
+            if (this.state.revealed) return;
+            this.beep([[520, 0, 0.05, 'square', 0.05], [780, 0.04, 0.07, 'square', 0.045]]);
+            this.setState({ sel: label });
+          },
+          border: mine ? 'var(--color-accent)' : special ? 'var(--pp-line)' : 'var(--pp-line)',
+          bg: mine ? 'rgba(145,132,217,.16)' : special ? 'transparent' : 'var(--color-surface)',
+          fg: mine ? 'var(--color-accent)' : special ? 'var(--pp-muted)' : 'var(--color-text)',
+          lift: mine ? 'translateY(-14px)' : 'translateY(0)',
+          glow: mine ? '0 10px 26px rgba(145,132,217,.32)' : 'none'
+        };
+      }),
+
+      potLabel: voted + ' fichas en el bote',
+      tableMeta: 'Fibonacci · ' + all.length + ' votantes · 2 mirones',
+      crowdLabel: this.state.crowd === 12 ? '← Volver a 9 en la mesa' : 'Probar con 12 y nombres largos',
+      toggleCrowd: () => this.setState((s) => ({ crowd: s.crowd === 12 ? 9 : 12 })),
+      titleLabel: this.state.longTitle ? '← Título normal' : 'Probar título kilométrico',
+      toggleLongTitle: () => this.setState((s) => ({ longTitle: !s.longTitle })),
+      taskTitle: this.state.longTitle
+        ? 'Refactorizar el adaptador de Postgres para que deje de abrir una conexión por petición y, ya de paso, revisar los índices de la tabla de auditoría que llevan sin tocarse desde la migración del año pasado'
+        : 'Migrar el gateway de pagos a la nueva API sin que se entere nadie',
+
+      seats: all.map((p, i) => {
+        const a = ((90 + ((i - 4) * 360) / all.length) * Math.PI) / 180;
+        return {
+        x: (50 + 44 * Math.cos(a)).toFixed(2) + '%',
+        y: (50 + 46 * Math.sin(a)).toFixed(2) + '%',
+        dealer: i === 0,
+        onClick: () => this.throwAt(i),
+        cursor: this.state.armed ? 'crosshair' : 'default',
+        reacts: this.state.reacts.filter((r) => r.seat === i),
+        isGallina: rev && spread && p.voted && parseFloat(p.v) === hi,
+        isHeroe: rev && spread && p.voted && parseFloat(p.v) === lo,
+        aura: rev && spread && p.voted && parseFloat(p.v) === lo ? 'ppAura 1.8s ease-in-out infinite' : 'none',
+        faceBack: p.voted && (rev || p.isMe) ? 'none' : 'flex',
+        faceFront: p.voted && (rev || p.isMe) ? 'flex' : 'none',
+        seatRing: this.state.armed ? 'inset 0 0 0 1.5px var(--color-accent-400)' : p.isMe ? 'inset 0 0 0 1px var(--color-accent)' : 'none',
+        name: p.isMe ? 'Tú' : p.name,
+        color: 'oklch(0.73 0.125 ' + HUES[i % HUES.length] + ')',
+        vote: p.voted ? String(p.v) : '',
+        hasVoted: p.voted,
+        pending: !p.voted,
+        flip: p.voted && (rev || p.isMe) ? 'rotateY(180deg)' : 'rotateY(0deg)',
+        seatBg: p.isMe ? 'rgba(145,132,217,.14)' : 'rgba(22,24,38,.42)',
+        backBg: p.isMe && p.voted ? 'rgba(145,132,217,.22)' : p.voted ? 'var(--color-accent-800)' : 'transparent',
+        backBorder: p.voted ? 'var(--color-accent-600)' : 'rgba(145,132,217,.35)'
+        };
+      })
+    };
+  }
+}
+
+</script>
+</body>
+</html>

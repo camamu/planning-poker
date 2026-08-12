@@ -13,6 +13,8 @@ export interface SeedGameOverrides {
   readonly deckPreset?: DeckPreset;
   readonly autoReveal?: boolean;
   readonly whoCanReveal?: WhoCanReveal;
+  readonly allowVoteChange?: boolean;
+  readonly countdownSeconds?: number | null;
 }
 
 export interface SeededGame extends CreateGameResult {
@@ -33,6 +35,12 @@ export async function seedGame(overrides: SeedGameOverrides = {}): Promise<Seede
     settings: {
       autoReveal: overrides.autoReveal ?? false,
       whoCanReveal: overrides.whoCanReveal ?? 'FACILITATOR_ONLY',
+      ...(overrides.allowVoteChange !== undefined
+        ? { allowVoteChange: overrides.allowVoteChange }
+        : {}),
+      ...(overrides.countdownSeconds !== undefined
+        ? { countdownSeconds: overrides.countdownSeconds }
+        : {}),
     },
     facilitatorName: 'Facilitador',
   });

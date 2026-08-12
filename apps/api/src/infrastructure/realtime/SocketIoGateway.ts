@@ -1,4 +1,6 @@
 import {
+  wsDiscussionTimerControlCommandSchema,
+  wsEmojiThrownCommandSchema,
   wsJoinCommandSchema,
   wsRevealCommandSchema,
   wsStartRoundCommandSchema,
@@ -11,8 +13,12 @@ import type { GetGameState } from '../../application/use-cases/GetGameState.js';
 import { GameNotFoundError } from '../../application/use-cases/GameNotFoundError.js';
 import type { RevealRound } from '../../application/use-cases/RevealRound.js';
 import type { StartVotingRound } from '../../application/use-cases/StartVotingRound.js';
+import type { TimeoutReveal } from '../../application/use-cases/TimeoutReveal.js';
+import type { GameRepository } from '../../application/ports/GameRepository.js';
 import { DomainError } from '../../domain/shared/DomainError.js';
+import type { Clock } from '../../domain/shared/Clock.js';
 import { GameId } from '../../domain/game/ids.js';
+import type { DiscussionTimerTracker } from './DiscussionTimerTracker.js';
 import { gameRoom } from './gameRoom.js';
 import type { GameVersionTracker } from './GameVersionTracker.js';
 
@@ -21,13 +27,21 @@ export interface SocketGatewayDependencies {
   readonly castVote: CastVote;
   readonly startVotingRound: StartVotingRound;
   readonly revealRound: RevealRound;
+  readonly timeoutReveal: TimeoutReveal;
   readonly versions: GameVersionTracker;
+  /** Solo lectura, para comprobar `settings.throwEmojis` antes de reenviar un emoji. */
+  readonly games: GameRepository;
+  readonly discussionTimer: DiscussionTimerTracker;
+  readonly clock: Clock;
 }
 
 /**
  * `join` no pasa por `WsEventPublisher`: es una respuesta directa a quien pregunta, no un hecho
- * de negocio que haya que repartir a toda la room. `vote`/`start_round`/`reveal` sí — invocan el
- * mismo caso de uso que usaría REST, y es `WsEventPublisher` quien reparte lo que resulte.
+ * de negocio que haya que repartir a toda la room. `vote`/`start_round`/`reveal`/`timeout_reveal`
+ * sí — invocan el mismo caso de uso que usaría REST, y es `WsEventPublisher` quien reparte lo que
+ * resulte. `emoji_thrown` y `discussion_timer_control` tampoco pasan por ningún caso de uso: no
+ * son un hecho de negocio del agregado `Game` (docs/adr/0005-extension-de-alcance-bloque-6.md) —
+ * la gateway los reenvía directamente, igual que hace `join` con `state_sync`.
  */
 export function registerSocketGateway(io: Server, deps: SocketGatewayDependencies): void {
   io.on('connection', (socket) => {
@@ -45,6 +59,17 @@ export function registerSocketGateway(io: Server, deps: SocketGatewayDependencie
           version: deps.versions.current(gameId),
           state,
         });
+
+        const roundId = state.currentRound?.id;
+        const timer = roundId ? deps.discussionTimer.current(roundId, deps.clock.now()) : null;
+        if (roundId && timer) {
+          socket.emit('discussion_timer_sync', {
+            type: 'discussion_timer_sync',
+            roundId,
+            running: timer.running,
+            remainingMs: timer.remainingMs,
+          });
+        }
       });
     });
 
@@ -65,10 +90,52 @@ export function registerSocketGateway(io: Server, deps: SocketGatewayDependencie
         await deps.revealRound.execute(wsRevealCommandSchema.parse(payload));
       });
     });
+
+    socket.on('timeout_reveal', (payload: unknown) => {
+      void handle(socket, async () => {
+        await deps.timeoutReveal.execute(wsRevealCommandSchema.parse(payload));
+      });
+    });
+
+    socket.on('emoji_thrown', (payload: unknown) => {
+      void handle(socket, async () => {
+        const command = wsEmojiThrownCommandSchema.parse(payload);
+        const gameId = GameId.of(command.gameId);
+        const game = await deps.games.findById(gameId);
+        if (!game?.currentSettings().throwEmojis) return;
+
+        io.to(gameRoom(gameId)).emit('emoji_thrown', {
+          type: 'emoji_thrown',
+          fromParticipantId: command.participantId,
+          toParticipantId: command.toParticipantId,
+          emoji: command.emoji,
+        });
+      });
+    });
+
+    socket.on('discussion_timer_control', (payload: unknown) => {
+      void handle(socket, () => {
+        const command = wsDiscussionTimerControlCommandSchema.parse(payload);
+        const gameId = GameId.of(command.gameId);
+        const snapshot = deps.discussionTimer.apply(
+          command.roundId,
+          command.action,
+          command.seconds,
+          deps.clock.now(),
+        );
+
+        io.to(gameRoom(gameId)).emit('discussion_timer_sync', {
+          type: 'discussion_timer_sync',
+          roundId: command.roundId,
+          running: snapshot.running,
+          remainingMs: snapshot.remainingMs,
+        });
+      });
+    });
   });
 }
 
-async function handle(socket: Socket, action: () => Promise<void>): Promise<void> {
+async function handle(socket: Socket, action: () => Promise<void> | void): Promise<void> {
   try {
     await action();
   } catch (error) {
