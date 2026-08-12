@@ -23,11 +23,24 @@ export type GameSettingsCommandInput = z.infer<typeof gameSettingsSchema>;
 /** REST — `POST /api/games` */
 export const createGameCommandSchema = z.object({
   name: z.string().trim().min(1),
-  deckPreset: z.enum(['fibonacci', 'tshirt']),
+  deckId: z.string().trim().min(1),
   facilitatorName: z.string().trim().min(1),
   settings: gameSettingsSchema,
 });
 export type CreateGameCommandInput = z.infer<typeof createGameCommandSchema>;
+
+/** REST — `POST /api/teams` */
+export const createTeamCommandSchema = z.object({
+  name: z.string().trim().min(1),
+});
+export type CreateTeamCommandInput = z.infer<typeof createTeamCommandSchema>;
+
+/** REST — `POST /api/teams/:slug/decks` y `PATCH /api/teams/:slug/decks/:deckId` */
+export const saveCustomDeckCommandSchema = z.object({
+  name: z.string().trim().min(1),
+  cards: z.array(z.string().trim().min(1)).min(1),
+});
+export type SaveCustomDeckCommandInput = z.infer<typeof saveCustomDeckCommandSchema>;
 
 /** REST — `PATCH /api/games/:id/settings` */
 export const updateGameSettingsCommandSchema = z.object({

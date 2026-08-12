@@ -11,7 +11,7 @@ The numbered docs in `docs/` are the source of truth and are not summarized here
 
 **Before starting a new block of the plan:** read `docs/02-decisiones-y-plan.md` §5 and whichever doc(s) that block references.
 
-The project is built in ordered blocks (see `docs/02-decisiones-y-plan.md` §5). As of now **blocks 1 through 6** are done: monorepo/tooling/architectural barrier/Docker from block 1, the `Game` aggregate with the 10 business invariants under test from block 2 (`docs/adr/0001-modelo-de-dominio-de-estimacion.md`), the use cases (`CreateGame`, `JoinGame`, `AddIssue`, `StartVotingRound`, `CastVote`, `RevealRound`) backed by `InMemoryGameRepository` from block 3 (`docs/adr/0002-casos-de-uso-y-repositorio-in-memory.md`), Postgres persistence via Kysely from block 4, the Fastify + Socket.IO transport from block 5, and the full `@pp/web` frontend from block 6 — built from the Nocturne design handoff and deliberately extended beyond the plan's original block 6/7/8 split (dealer rotation, discussion timer, emoji throw, live settings) per `docs/adr/0005-extension-de-alcance-bloque-6.md`. Still pending: block 7's team/deck-selector and functional custom-deck editor, and block 9's production hardening.
+The project is built in ordered blocks (see `docs/02-decisiones-y-plan.md` §5). As of now **blocks 1 through 7** are done: monorepo/tooling/architectural barrier/Docker from block 1, the `Game` aggregate with the 10 business invariants under test from block 2 (`docs/adr/0001-modelo-de-dominio-de-estimacion.md`), the use cases (`CreateGame`, `JoinGame`, `AddIssue`, `StartVotingRound`, `CastVote`, `RevealRound`) backed by `InMemoryGameRepository` from block 3 (`docs/adr/0002-casos-de-uso-y-repositorio-in-memory.md`), Postgres persistence via Kysely from block 4, the Fastify + Socket.IO transport from block 5, the full `@pp/web` frontend from block 6 — built from the Nocturne design handoff and deliberately extended beyond the plan's original block 6/7/8 split (dealer rotation, discussion timer, emoji throw, live settings) per `docs/adr/0005-extension-de-alcance-bloque-6.md` — and `Team` + persisted `Deck`/`SavedDeck` (system and custom), a real deck selector on game creation, and a functional custom-deck editor at `/t/:slug?k=token` from block 7 (`docs/adr/0006-equipos-y-barajas.md`). Still pending: block 9's production hardening.
 
 ## Commands
 
@@ -84,7 +84,7 @@ The `pg.Pool` in `main.ts` has a `.on('error', ...)` handler — without it, an 
 
 ## Estado
 
-Bloque actual del plan: 6 (frontend de la mesa) cerrado, ampliado con partes de los bloques 7 y 8 del handoff Nocturne (dealer, temporizador de discusión, emojis — `docs/adr/0005-extension-de-alcance-bloque-6.md`). Siguiente: terminar el bloque 7 (equipos, editor de barajas funcional) y el bloque 9 (producción). Actualiza esta línea al cerrar cada bloque.
+Bloque actual del plan: 7 (equipos y barajas) cerrado — `docs/adr/0006-equipos-y-barajas.md`. Bloque 6 ya había adelantado partes de los bloques 7 y 8 del handoff Nocturne (dealer, temporizador de discusión, emojis — `docs/adr/0005-extension-de-alcance-bloque-6.md`). Siguiente: el bloque 9 (producción). Actualiza esta línea al cerrar cada bloque.
 
 ## Known local-environment gotchas
 

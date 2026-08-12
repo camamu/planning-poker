@@ -2,6 +2,7 @@ import type { EphemeralEvent } from '@pp/contracts';
 import { io as connectClient } from 'socket.io-client';
 import type { Socket } from 'socket.io-client';
 import { afterEach, beforeEach, describe, expect, it } from 'vitest';
+import { SYSTEM_DECK_IDS } from '../../src/domain/deck/SavedDeck.js';
 import { createGameOverHttp, joinGameOverHttp } from './support/httpClient.js';
 import { once } from './support/socketEvents.js';
 import { startTestServer } from './support/testServer.js';
@@ -36,7 +37,7 @@ describe('lanzar/reaccionar con emoji (flair transitorio, fuera del agregado)', 
   it('reenvía un emoji lanzado a toda la room cuando throwEmojis está activado', async () => {
     const created = await createGameOverHttp(server.baseUrl, {
       name: 'Sprint 42',
-      deckPreset: 'fibonacci',
+      deckId: SYSTEM_DECK_IDS.fibonacci.value,
       facilitatorName: 'Ada',
       settings: { autoReveal: false, whoCanReveal: 'ANYONE', throwEmojis: true },
     });
@@ -73,7 +74,7 @@ describe('lanzar/reaccionar con emoji (flair transitorio, fuera del agregado)', 
   it('no reenvía un emoji si el ajuste throwEmojis está desactivado', async () => {
     const created = await createGameOverHttp(server.baseUrl, {
       name: 'Sprint 42',
-      deckPreset: 'fibonacci',
+      deckId: SYSTEM_DECK_IDS.fibonacci.value,
       facilitatorName: 'Ada',
       settings: { autoReveal: false, whoCanReveal: 'ANYONE', throwEmojis: false },
     });

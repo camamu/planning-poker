@@ -1,16 +1,14 @@
 import { AddIssue } from '../../../src/application/use-cases/AddIssue.js';
 import { CreateGame } from '../../../src/application/use-cases/CreateGame.js';
-import type {
-  CreateGameResult,
-  DeckPreset,
-} from '../../../src/application/use-cases/CreateGame.js';
+import type { CreateGameResult } from '../../../src/application/use-cases/CreateGame.js';
 import { StartVotingRound } from '../../../src/application/use-cases/StartVotingRound.js';
+import { SYSTEM_DECK_IDS } from '../../../src/domain/deck/SavedDeck.js';
 import type { WhoCanReveal } from '../../../src/domain/game/GameSettings.js';
 import { makeContext } from './context.js';
 import type { UseCaseContext } from './context.js';
 
 export interface SeedGameOverrides {
-  readonly deckPreset?: DeckPreset;
+  readonly deckId?: string;
   readonly autoReveal?: boolean;
   readonly whoCanReveal?: WhoCanReveal;
   readonly allowVoteChange?: boolean;
@@ -28,10 +26,16 @@ export interface SeededOpenRound extends SeededGame {
 
 export async function seedGame(overrides: SeedGameOverrides = {}): Promise<SeededGame> {
   const context = makeContext();
-  const createGame = new CreateGame(context.games, context.events, context.clock, context.ids);
+  const createGame = new CreateGame(
+    context.games,
+    context.decks,
+    context.events,
+    context.clock,
+    context.ids,
+  );
   const result = await createGame.execute({
     name: 'Sprint 42',
-    deckPreset: overrides.deckPreset ?? 'fibonacci',
+    deckId: overrides.deckId ?? SYSTEM_DECK_IDS.fibonacci.value,
     settings: {
       autoReveal: overrides.autoReveal ?? false,
       whoCanReveal: overrides.whoCanReveal ?? 'FACILITATOR_ONLY',

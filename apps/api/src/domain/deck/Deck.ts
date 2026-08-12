@@ -42,6 +42,15 @@ export class Deck {
     return Deck.of(['XS', 'S', 'M', 'L', 'XL', 'XXL', '?', '☕'].map((raw) => CardValue.of(raw)));
   }
 
+  /**
+   * Barajas personalizadas (docs/02-decisiones-y-plan.md §2.1): "?" y "☕" se añaden siempre, al
+   * final, sin que el usuario tenga que pedirlas — si ya las incluyó, no se duplican.
+   */
+  static custom(rawCards: ReadonlyArray<string>): Deck {
+    const own = rawCards.map((raw) => CardValue.of(raw)).filter((card) => !card.special);
+    return Deck.of([...own, CardValue.of('?'), CardValue.of('☕')]);
+  }
+
   contains(card: CardValue): boolean {
     return this.cards.some((c) => c.equals(card));
   }

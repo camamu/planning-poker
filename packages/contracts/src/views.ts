@@ -69,3 +69,17 @@ export interface GameView {
   readonly issues: ReadonlyArray<IssueView>;
   readonly currentRound: RoundView | null;
 }
+
+export interface TeamView {
+  readonly id: string;
+  readonly slug: string;
+  readonly name: string;
+}
+
+/** `teamId: null` = baraja de sistema (visible para todos, no editable). */
+export interface DeckSummaryView {
+  readonly id: string;
+  readonly name: string;
+  readonly cards: ReadonlyArray<string>;
+  readonly teamId: string | null;
+}

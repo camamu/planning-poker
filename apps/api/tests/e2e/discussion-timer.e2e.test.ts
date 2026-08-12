@@ -2,6 +2,7 @@ import type { EphemeralEvent, ServerEvent } from '@pp/contracts';
 import { io as connectClient } from 'socket.io-client';
 import type { Socket } from 'socket.io-client';
 import { afterEach, beforeEach, describe, expect, it } from 'vitest';
+import { SYSTEM_DECK_IDS } from '../../src/domain/deck/SavedDeck.js';
 import { addIssueOverHttp, createGameOverHttp } from './support/httpClient.js';
 import { once } from './support/socketEvents.js';
 import { startTestServer } from './support/testServer.js';
@@ -37,7 +38,7 @@ describe('temporizador de discusión (F8, efímero)', () => {
   it('start reparte el estado del temporizador a toda la room', async () => {
     const created = await createGameOverHttp(server.baseUrl, {
       name: 'Sprint 42',
-      deckPreset: 'fibonacci',
+      deckId: SYSTEM_DECK_IDS.fibonacci.value,
       facilitatorName: 'Ada',
       settings: { autoReveal: false, whoCanReveal: 'ANYONE' },
     });
@@ -81,7 +82,7 @@ describe('temporizador de discusión (F8, efímero)', () => {
   it('un participante que se une después recibe el estado vigente del temporizador en el join', async () => {
     const created = await createGameOverHttp(server.baseUrl, {
       name: 'Sprint 42',
-      deckPreset: 'fibonacci',
+      deckId: SYSTEM_DECK_IDS.fibonacci.value,
       facilitatorName: 'Ada',
       settings: { autoReveal: false, whoCanReveal: 'ANYONE' },
     });
