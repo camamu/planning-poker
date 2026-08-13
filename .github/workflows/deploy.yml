@@ -1,0 +1,21 @@
+name: Deploy
+on:
+  workflow_dispatch:
+    inputs:
+      tag: { description: 'Versión a desplegar (ej. v0.3.0)', required: true }
+permissions:
+  contents: read
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+    environment: production # exige aprobación manual si la configuras así
+    steps:
+      - name: Disparar despliegue en Dokploy
+        run: |
+          curl -fsSL -X POST "${{ secrets.DOKPLOY_WEBHOOK_URL }}" \
+            -H 'Content-Type: application/json' \
+            -d '{"tag":"${{ inputs.tag }}"}'
+      - name: Verificar versión desplegada
+        run: |
+          sleep 30
+          curl -sf https://${{ vars.APP_HOST }}/health | grep -q "${{ inputs.tag }}"

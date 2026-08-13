@@ -7,6 +7,7 @@ const envSchema = z.object({
   CORS_ORIGIN: z.string().min(1),
   LOG_LEVEL: z.enum(['fatal', 'error', 'warn', 'info', 'debug', 'trace']).default('info'),
   SESSION_SECRET: z.string().min(1),
+  APP_VERSION: z.string().default('dev'),
 });
 
 export type Env = z.infer<typeof envSchema>;

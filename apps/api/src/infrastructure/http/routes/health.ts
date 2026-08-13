@@ -1,8 +1,8 @@
 import type { FastifyInstance } from 'fastify';
 import type { Pool } from 'pg';
 
-export function registerHealthRoutes(app: FastifyInstance, db: Pool): void {
-  app.get('/health', () => ({ status: 'ok' }));
+export function registerHealthRoutes(app: FastifyInstance, db: Pool, version: string): void {
+  app.get('/health', () => ({ status: 'ok', version }));
 
   app.get('/ready', async (_request, reply) => {
     try {
