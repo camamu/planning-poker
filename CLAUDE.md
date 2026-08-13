@@ -84,7 +84,7 @@ The `pg.Pool` in `main.ts` has a `.on('error', ...)` handler — without it, an 
 
 ## Estado
 
-Bloque actual del plan: 7 (equipos y barajas) cerrado — `docs/adr/0006-equipos-y-barajas.md`. Bloque 6 ya había adelantado partes de los bloques 7 y 8 del handoff Nocturne (dealer, temporizador de discusión, emojis — `docs/adr/0005-extension-de-alcance-bloque-6.md`). Siguiente: el bloque 9 (producción). Actualiza esta línea al cerrar cada bloque.
+Bloque actual del plan: 9 (producción) cerrado — `docs/adr/0007-produccion-ci-cd.md`. Bloque 6 ya había adelantado partes de los bloques 7 y 8 del handoff Nocturne (dealer, temporizador de discusión, emojis, espectadores — `docs/adr/0005-extension-de-alcance-bloque-6.md`), y el bloque 7 cerró el resto de equipos y barajas (`docs/adr/0006-equipos-y-barajas.md`), así que el 8 no necesitó una PR propia. El bloque 9 entrega los cinco workflows de CI/CD (`.github/workflows/`) que `docs/00-setup-entorno.md` situaba en el bloque 1 y no se hicieron entonces, más `docker-compose.prod.yml` para Dokploy — dominio y SSL quedan en el panel de Dokploy, fuera del repo. El Ruleset de GitHub, el aprovisionamiento del VPS y los secretos de despliegue son pasos manuales pendientes de un humano (ver el ADR). No queda ningún bloque más en la tabla de `docs/02-decisiones-y-plan.md` §5. Actualiza esta línea al cerrar cada bloque.
 
 ## Known local-environment gotchas
 
