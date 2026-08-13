@@ -30,4 +30,14 @@ describe('Deck', () => {
     expect(deck.contains(CardValue.of('5'))).toBe(true);
     expect(deck.contains(CardValue.of('20'))).toBe(false);
   });
+
+  it('Deck.custom() añade "?" y "☕" siempre, aunque el usuario no las pida', () => {
+    const deck = Deck.custom(['1', '2', '3']);
+    expect(deck.values().map((card) => card.raw)).toEqual(['1', '2', '3', '?', '☕']);
+  });
+
+  it('Deck.custom() no duplica "?"/"☕" si el usuario ya las incluyó', () => {
+    const deck = Deck.custom(['☕', '1', '?', '2']);
+    expect(deck.values().map((card) => card.raw)).toEqual(['1', '2', '?', '☕']);
+  });
 });

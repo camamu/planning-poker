@@ -11,9 +11,9 @@ const SYSTEM_DECKS = [
 ];
 
 /**
- * Solo lectura: las barajas personalizadas necesitan `Team`/`Deck.custom`, que es bloque 7
- * (docs/adr/0005-extension-de-alcance-bloque-6.md). Esta pantalla completa el handoff
- * visualmente sin prometer una edición que todavía no persiste en ningún sitio.
+ * Solo lectura: la partida no sabe a qué equipo pertenece (deliberadamente, ver ADR 0006 del
+ * bloque 7 — nada más lo necesita todavía), así que desde aquí dentro no hay token de equipo con
+ * el que editar. El editor funcional vive en la página del equipo (`/t/:slug?k=token`).
  */
 export function DeckEditorPanel({ onClose }: DeckEditorPanelProps): JSX.Element {
   return (
@@ -57,7 +57,7 @@ export function DeckEditorPanel({ onClose }: DeckEditorPanelProps): JSX.Element 
           </div>
         ))}
 
-        <Tooltip label="Las barajas personalizadas llegan en un bloque futuro">
+        <Tooltip label="Añade y edita barajas personalizadas desde la página de tu equipo (/t/tu-equipo)">
           <button
             type="button"
             className="flex w-full items-center justify-center rounded-[10px] border border-dashed py-3 text-sm"

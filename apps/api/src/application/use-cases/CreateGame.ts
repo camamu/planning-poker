@@ -1,20 +1,20 @@
 import type { Clock } from '../../domain/shared/Clock.js';
-import { Deck } from '../../domain/deck/Deck.js';
+import { DeckId } from '../../domain/deck/DeckId.js';
 import { DisplayName } from '../../domain/game/DisplayName.js';
 import { Game } from '../../domain/game/Game.js';
 import { GameName } from '../../domain/game/GameName.js';
 import { GameSettings } from '../../domain/game/GameSettings.js';
 import type { WhoCanReveal } from '../../domain/game/GameSettings.js';
 import { GameId, ParticipantId } from '../../domain/game/ids.js';
+import type { DeckRepository } from '../ports/DeckRepository.js';
 import type { EventPublisher } from '../ports/EventPublisher.js';
 import type { GameRepository } from '../ports/GameRepository.js';
 import type { IdGenerator } from '../ports/IdGenerator.js';
-
-export type DeckPreset = 'fibonacci' | 'tshirt';
+import { DeckNotFoundError } from './DeckNotFoundError.js';
 
 export interface CreateGameCommand {
   readonly name: string;
-  readonly deckPreset: DeckPreset;
+  readonly deckId: string;
   readonly settings: {
     readonly autoReveal: boolean;
     readonly whoCanReveal: WhoCanReveal;
@@ -33,30 +33,26 @@ export interface CreateGameResult {
   readonly facilitatorId: string;
 }
 
-function deckFromPreset(preset: DeckPreset): Deck {
-  switch (preset) {
-    case 'fibonacci':
-      return Deck.fibonacci();
-    case 'tshirt':
-      return Deck.tshirt();
-  }
-}
-
 export class CreateGame {
   constructor(
     private readonly games: GameRepository,
+    private readonly decks: DeckRepository,
     private readonly events: EventPublisher,
     private readonly clock: Clock,
     private readonly ids: IdGenerator,
   ) {}
 
   async execute(command: CreateGameCommand): Promise<CreateGameResult> {
+    const deckId = DeckId.of(command.deckId);
+    const savedDeck = await this.decks.findById(deckId);
+    if (!savedDeck) throw new DeckNotFoundError(deckId);
+
     const facilitatorId = ParticipantId.of(this.ids.generate());
     const game = Game.create(
       {
         id: GameId.of(this.ids.generate()),
         name: GameName.of(command.name),
-        deck: deckFromPreset(command.deckPreset),
+        deck: savedDeck.currentDeck(),
         settings: GameSettings.of({
           autoReveal: command.settings.autoReveal,
           whoCanReveal: command.settings.whoCanReveal,

@@ -37,7 +37,7 @@ export function registerGameRoutes(app: FastifyInstance, deps: GameRoutesDepende
       const command = createGameCommandSchema.parse(request.body);
       const result = await deps.createGame.execute({
         name: command.name,
-        deckPreset: command.deckPreset,
+        deckId: command.deckId,
         facilitatorName: command.facilitatorName,
         settings: {
           autoReveal: command.settings.autoReveal,

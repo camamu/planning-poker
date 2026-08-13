@@ -2,6 +2,7 @@ import type { ServerEvent } from '@pp/contracts';
 import { io as connectClient } from 'socket.io-client';
 import type { Socket } from 'socket.io-client';
 import { afterEach, beforeEach, describe, expect, it } from 'vitest';
+import { SYSTEM_DECK_IDS } from '../../src/domain/deck/SavedDeck.js';
 import {
   addIssueOverHttp,
   createGameOverHttp,
@@ -36,7 +37,7 @@ describe('partida en vivo (HTTP + WebSocket, dos clientes reales)', () => {
   it('crea, une, vota y revela sin filtrar el voto ajeno antes del reveal (invariante 7)', async () => {
     const created = await createGameOverHttp(server.baseUrl, {
       name: 'Sprint 42',
-      deckPreset: 'fibonacci',
+      deckId: SYSTEM_DECK_IDS.fibonacci.value,
       facilitatorName: 'Ada',
       settings: { autoReveal: false, whoCanReveal: 'ANYONE' },
     });

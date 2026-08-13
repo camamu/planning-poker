@@ -57,10 +57,30 @@ export interface VoteTable {
   card_raw: string;
 }
 
+export interface TeamTable {
+  id: string;
+  slug: string;
+  name: string;
+  token_hash: string;
+  created_at: Generated<Date>;
+}
+
+export interface DeckTable {
+  id: string;
+  /** `null` = baraja de sistema. */
+  team_id: string | null;
+  name: string;
+  /** Array de `CardValue.raw` en orden de presentación, serializado a JSON al escribir. */
+  cards: ColumnType<ReadonlyArray<string>, string, string>;
+  created_at: Generated<Date>;
+}
+
 export interface Database {
   games: GameTable;
   participants: ParticipantTable;
   issues: IssueTable;
   rounds: RoundTable;
   votes: VoteTable;
+  teams: TeamTable;
+  decks: DeckTable;
 }
