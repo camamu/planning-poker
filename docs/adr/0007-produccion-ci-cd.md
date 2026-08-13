@@ -13,6 +13,23 @@ SSL).
 
 ## Decisiones
 
+- **`docker-build` sacó a la luz dos bugs preexistentes que nadie había ejecutado nunca en CI**,
+  porque nada en `pnpm verify` construye realmente las imágenes de producción:
+  - `pr-title.yml` tal como lo escribe `docs/03-ci-cd.md` (`types: feat,fix,...` como cadena
+    separada por comas) hace que `amannn/action-semantic-pull-request` interprete la cadena
+    entera como un único tipo — cualquier título de PR lo rechaza. La sintaxis correcta de esa
+    acción es una lista YAML multilínea (`types: |` con un tipo por línea); es lo que lleva este
+    ADR, no lo que dice el documento.
+  - `apps/api/tsconfig.build.json` solo sobreescribía `include`, no `paths`: heredaba de
+    `tsconfig.json` el alias `"@pp/contracts": ["../../packages/contracts/src/index.ts"]`,
+    pensado para que `typecheck`/`test` lean el TypeScript de `contracts` sin construirlo antes.
+    En el build real (`tsc -p tsconfig.build.json`, sin el `rootDir` ampliado que sí tiene
+    `tsconfig.test.json`) eso mete los `.ts` de `packages/contracts/src` en un programa cuyo
+    `rootDir` es `apps/api/src`, y `tsc` falla con `TS6059`. La imagen `production` de la API
+    nunca había llegado a construirse antes de este bloque. Arreglo: `tsconfig.build.json` redirige
+    el alias a `packages/contracts/dist/index.d.ts` — el Dockerfile ya construye `@pp/contracts`
+    antes que `@pp/api` (`pnpm --filter @pp/contracts build && pnpm --filter @pp/api build`), así
+    que el `.d.ts` existe; al ser una declaración, no cuenta para el cómputo de `rootDir`.
 - **Los cinco workflows se implementan tal cual los especifica `docs/03-ci-cd.md`**, con un único
   ajuste deliberado: `NODE_VERSION` no es `22` como dice el documento, sino que cada job lee
   `.nvmrc` (`node-version-file: .nvmrc`, actualmente `26`). El entorno real diverge del asumido
