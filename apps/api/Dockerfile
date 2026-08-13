@@ -25,7 +25,9 @@ COPY packages/contracts/package.json packages/contracts/package.json
 RUN pnpm install --prod --frozen-lockfile
 
 FROM base AS production
+ARG APP_VERSION=dev
 ENV NODE_ENV=production
+ENV APP_VERSION=$APP_VERSION
 COPY --from=prod-deps /app/node_modules ./node_modules
 COPY --from=prod-deps /app/apps/api/package.json ./apps/api/package.json
 COPY --from=prod-deps /app/packages/contracts/package.json ./packages/contracts/package.json

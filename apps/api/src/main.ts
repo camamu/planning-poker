@@ -57,7 +57,7 @@ await app.register(cors, {
   origin: env.CORS_ORIGIN,
   methods: ['GET', 'POST', 'PATCH', 'PUT', 'DELETE'],
 });
-registerHealthRoutes(app, pool);
+registerHealthRoutes(app, pool, env.APP_VERSION);
 
 const io = new SocketIoServer(app.server, { cors: { origin: env.CORS_ORIGIN } });
 const broadcaster = new SocketIoBroadcaster(io);
