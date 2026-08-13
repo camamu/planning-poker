@@ -1,0 +1,25 @@
+version: 2
+updates:
+  - package-ecosystem: 'npm'
+    directory: '/'
+    schedule:
+      interval: 'weekly'
+    groups:
+      npm-dependencies:
+        patterns: ['*']
+
+  - package-ecosystem: 'docker'
+    directories: ['/apps/api', '/apps/web']
+    schedule:
+      interval: 'weekly'
+    groups:
+      docker-dependencies:
+        patterns: ['*']
+
+  - package-ecosystem: 'github-actions'
+    directory: '/'
+    schedule:
+      interval: 'weekly'
+    groups:
+      github-actions-dependencies:
+        patterns: ['*']

@@ -1,0 +1,8 @@
+services:
+  # La CI valida la imagen tal cual se construye, no el árbol de fuentes del runner:
+  # sin este `!reset` el bind mount de docker-compose.yml pisaría el código copiado en el build.
+  api:
+    volumes: !reset null
+
+  web:
+    volumes: !reset null
