@@ -14,6 +14,7 @@ import { ListDecks } from './application/use-cases/ListDecks.js';
 import { RevealRound } from './application/use-cases/RevealRound.js';
 import { SaveCustomDeck } from './application/use-cases/SaveCustomDeck.js';
 import { StartVotingRound } from './application/use-cases/StartVotingRound.js';
+import { SetFinalEstimate } from './application/use-cases/SetFinalEstimate.js';
 import { TimeoutReveal } from './application/use-cases/TimeoutReveal.js';
 import { UpdateCustomDeck } from './application/use-cases/UpdateCustomDeck.js';
 import { UpdateGameSettings } from './application/use-cases/UpdateGameSettings.js';
@@ -70,6 +71,7 @@ const startVotingRound = new StartVotingRound(games, events, clock, ids);
 const castVote = new CastVote(games, events, clock);
 const revealRound = new RevealRound(games, events, clock);
 const timeoutReveal = new TimeoutReveal(games, events, clock);
+const setFinalEstimate = new SetFinalEstimate(games, events, clock);
 const updateGameSettings = new UpdateGameSettings(games, events, clock);
 const getGameState = new GetGameState(games);
 
@@ -102,6 +104,7 @@ registerSocketGateway(io, {
   startVotingRound,
   revealRound,
   timeoutReveal,
+  setFinalEstimate,
   versions,
   games,
   discussionTimer,

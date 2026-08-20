@@ -19,6 +19,7 @@ export interface UseGameTableResult {
   readonly castVote: (card: string) => void;
   readonly startRound: (issueId: string) => void;
   readonly reveal: () => void;
+  readonly setFinalEstimate: (card: string) => void;
   readonly remainingMs: number | null;
   readonly theme: 'dark' | 'light';
   readonly muted: boolean;
@@ -38,6 +39,7 @@ export function useGameTable(gameId: string, participantId: string): UseGameTabl
   const castVote = useGameStore((state) => state.castVote);
   const startRound = useGameStore((state) => state.startRound);
   const reveal = useGameStore((state) => state.reveal);
+  const setFinalEstimate = useGameStore((state) => state.setFinalEstimate);
   const timeoutReveal = useGameStore((state) => state.timeoutReveal);
   const theme = useGameStore((state) => state.theme);
   const muted = useGameStore((state) => state.muted);
@@ -81,6 +83,7 @@ export function useGameTable(gameId: string, participantId: string): UseGameTabl
     castVote,
     startRound,
     reveal,
+    setFinalEstimate,
     remainingMs,
     theme,
     muted,

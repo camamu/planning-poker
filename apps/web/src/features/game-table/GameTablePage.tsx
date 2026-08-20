@@ -203,6 +203,8 @@ export function GameTablePage({ gameId, participantId }: GameTablePageProps): JS
             onRevote={() => {
               if (round) table.startRound(round.issueId);
             }}
+            canEstimate={table.canReveal}
+            onAcceptEstimate={table.setFinalEstimate}
             hasNextIssue={nextPendingIssueId !== null}
             onNextIssue={() => {
               if (nextPendingIssueId) table.startRound(nextPendingIssueId);

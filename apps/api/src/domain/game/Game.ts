@@ -327,7 +327,9 @@ export class Game {
     this.record({ type: 'GameSettingsChanged', occurredAt: now, gameId: this.id, settings });
   }
 
-  setFinalEstimate(cardValue: CardValue, now: Date): void {
+  /** Mismo permiso que revelar: cerrar la issue es el otro extremo de la misma decisión. */
+  setFinalEstimate(cardValue: CardValue, requestedBy: ParticipantId, now: Date): void {
+    if (!this.canReveal(requestedBy)) throw new RevealNotAllowedError(requestedBy);
     if (!this.deck.contains(cardValue)) throw new CardNotInDeckError(cardValue);
 
     const round = this.currentRound();

@@ -228,7 +228,7 @@ describe('invariante 10: cerrar una issue como estimada requiere una ronda revel
     game.castVote(facilitatorId, CardValue.of('5'), NOW);
 
     expect(() => {
-      game.setFinalEstimate(CardValue.of('5'), NOW);
+      game.setFinalEstimate(CardValue.of('5'), facilitatorId, NOW);
     }).toThrow(EstimateRequiresRevealedRoundError);
   });
 
@@ -237,7 +237,7 @@ describe('invariante 10: cerrar una issue como estimada requiere una ronda revel
     const { issueId } = addIssueAndOpenRound(game);
     game.castVote(facilitatorId, CardValue.of('5'), NOW);
     game.reveal(facilitatorId, NOW);
-    game.setFinalEstimate(CardValue.of('5'), NOW);
+    game.setFinalEstimate(CardValue.of('5'), facilitatorId, NOW);
 
     const issue = game.findIssue(issueId);
     expect(issue?.currentStatus()).toBe('ESTIMATED');

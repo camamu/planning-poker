@@ -16,6 +16,8 @@ export interface ResultsPanelProps {
   readonly canReveal: boolean;
   readonly onReveal: () => void;
   readonly onRevote: () => void;
+  readonly canEstimate: boolean;
+  readonly onAcceptEstimate: (card: string) => void;
   readonly hasNextIssue: boolean;
   readonly onNextIssue: () => void;
   readonly discussionTimer: DiscussionTimerState | null;
@@ -108,6 +110,9 @@ function RevealedPanel(props: ResultsPanelProps & { round: RoundView }): JSX.Ele
   }
   const total = round.votes.filter((vote) => vote.card !== null).length;
   const entries = Object.entries(result.distribution).sort(([, a], [, b]) => b - a);
+  // La media puede no ser una carta de la baraja (0.5 y 1 promedian 0.75): se cierra con la más
+  // votada, que siempre lo es. El dominio rechazaría cualquier otra cosa (CardNotInDeckError).
+  const acceptedCard = result.mostVoted;
 
   return (
     <div className="relative flex h-full flex-col gap-4">
@@ -156,11 +161,11 @@ function RevealedPanel(props: ResultsPanelProps & { round: RoundView }): JSX.Ele
           onResume={props.onResumeDiscussionTimer}
           onAddSeconds={props.onAddDiscussionSeconds}
         />
-        <Tooltip label="Marcar la estimación final llega en un bloque futuro">
-          <Button variant="primary" block disabled>
-            Aceptar {result.average ?? result.mostVoted} y pasar página
-          </Button>
-        </Tooltip>
+        <AcceptEstimateButton
+          card={acceptedCard}
+          canEstimate={props.canEstimate}
+          onAccept={props.onAcceptEstimate}
+        />
         <div className="flex gap-2">
           <Button variant="secondary" block onClick={props.onRevote}>
             Volver a votar
@@ -176,6 +181,39 @@ function RevealedPanel(props: ResultsPanelProps & { round: RoundView }): JSX.Ele
         </div>
       </div>
     </div>
+  );
+}
+
+function AcceptEstimateButton({
+  card,
+  canEstimate,
+  onAccept,
+}: {
+  readonly card: string | null;
+  readonly canEstimate: boolean;
+  readonly onAccept: (card: string) => void;
+}): JSX.Element {
+  if (!canEstimate) {
+    return (
+      <Tooltip label="Solo quien puede revelar cierra la estimación">
+        <Button variant="primary" block disabled>
+          Aceptar {card ?? '—'} y pasar página
+        </Button>
+      </Tooltip>
+    );
+  }
+
+  return (
+    <Button
+      variant="primary"
+      block
+      disabled={card === null}
+      onClick={() => {
+        if (card !== null) onAccept(card);
+      }}
+    >
+      Aceptar {card ?? '—'} y pasar página
+    </Button>
   );
 }
 

@@ -6,6 +6,7 @@ import {
   IssueNotFoundError,
   ParticipantAlreadyJoinedError,
   ParticipantNotFoundError,
+  RevealNotAllowedError,
 } from '../../src/domain/game/Game.js';
 import { GameSettings } from '../../src/domain/game/GameSettings.js';
 import { IssueId, ParticipantId, RoundId } from '../../src/domain/game/ids.js';
@@ -95,8 +96,21 @@ describe('Game.setFinalEstimate', () => {
     game.reveal(facilitatorId, NOW);
 
     expect(() => {
-      game.setFinalEstimate(CardValue.of('100'), NOW);
+      game.setFinalEstimate(CardValue.of('100'), facilitatorId, NOW);
     }).toThrow(CardNotInDeckError);
+  });
+
+  it('no deja cerrar la estimación a quien no tiene permiso para revelar', () => {
+    const { game, facilitatorId } = createGame();
+    const otherId = ParticipantId.of('participant-otro');
+    game.addParticipant(otherId, DisplayName.of('Bob'), 'VOTER', NOW);
+    addIssueAndOpenRound(game);
+    game.castVote(facilitatorId, CardValue.of('5'), NOW);
+    game.reveal(facilitatorId, NOW);
+
+    expect(() => {
+      game.setFinalEstimate(CardValue.of('5'), otherId, NOW);
+    }).toThrow(RevealNotAllowedError);
   });
 });
 

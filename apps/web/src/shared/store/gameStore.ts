@@ -46,6 +46,7 @@ interface GameStoreState {
   startRound: (issueId: string) => void;
   reveal: () => void;
   timeoutReveal: () => void;
+  setFinalEstimate: (card: string) => void;
   toggleTheme: () => void;
   toggleMuted: () => void;
   setEmojiMode: (mode: 'throw' | 'react') => void;
@@ -120,6 +121,12 @@ export const useGameStore = create<GameStoreState>((set, get) => ({
     const { gameId, participantId } = get();
     if (!gameId || !participantId) return;
     getSocket().emit('timeout_reveal', { gameId, participantId });
+  },
+
+  setFinalEstimate(card) {
+    const { gameId, participantId } = get();
+    if (!gameId || !participantId) return;
+    getSocket().emit('set_estimate', { gameId, participantId, card });
   },
 
   toggleTheme() {

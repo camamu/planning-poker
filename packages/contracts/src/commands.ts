@@ -94,6 +94,14 @@ export const wsRevealCommandSchema = z.object({
 });
 export type WsRevealCommandInput = z.infer<typeof wsRevealCommandSchema>;
 
+/** WS cliente→servidor — `set_estimate` (invariante 10: cierra la issue con la carta acordada) */
+export const wsSetEstimateCommandSchema = z.object({
+  gameId: z.string().trim().min(1),
+  participantId: z.string().trim().min(1),
+  card: z.string().trim().min(1),
+});
+export type WsSetEstimateCommandInput = z.infer<typeof wsSetEstimateCommandSchema>;
+
 /**
  * WS cliente→servidor — `emoji_thrown`. No pasa por ningún caso de uso (docs/adr/
  * 0005-extension-de-alcance-bloque-6.md): la gateway solo comprueba `settings.throwEmojis` y
