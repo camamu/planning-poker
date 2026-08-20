@@ -17,7 +17,7 @@ export interface HandProps {
 export function Hand(props: HandProps): JSX.Element {
   return (
     <div
-      className="flex flex-none flex-col gap-2.5 px-7 pb-5 pt-4"
+      className="flex flex-none flex-col gap-2.5 px-7 pb-2 pt-1"
       style={{ borderTop: '1px solid var(--color-divider)', background: 'var(--color-bg)' }}
     >
       <div className="flex items-center justify-between gap-4">

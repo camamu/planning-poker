@@ -18,7 +18,9 @@ export function VotingCardGrid({
   onSelect,
 }: VotingCardGridProps): JSX.Element {
   return (
-    <div className="flex gap-2.5 overflow-x-auto">
+    // El scroll horizontal obliga al navegador a recortar también en vertical: sin este hueco
+    // arriba, la carta seleccionada (que sube 14px) se corta por la mitad.
+    <div className="flex gap-2.5 overflow-x-auto pb-3 pt-4">
       {cards.map((card) => (
         <Card
           key={card}
