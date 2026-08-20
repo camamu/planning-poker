@@ -10,6 +10,7 @@ import {
   saveCustomDeck,
   updateCustomDeck,
 } from '../../shared/api/teamsClient.js';
+import { rememberTeam } from '../../shared/team/rememberedTeams.js';
 import { CustomDeckForm } from './components/CustomDeckForm.js';
 import type { CustomDeckFormValue } from './components/CustomDeckForm.js';
 
@@ -38,6 +39,9 @@ export function TeamPage(): JSX.Element {
       .then(async (resolved) => {
         if (cancelled) return;
         setTeam(resolved);
+        // Entrar por el enlace es lo que da acceso: se recuerda aquí para que quien lo reciba por
+        // Slack no dependa de no perder el mensaje.
+        rememberTeam({ slug, name: resolved.name, token });
         await reloadDecks(slug);
       })
       .catch((cause: unknown) => {

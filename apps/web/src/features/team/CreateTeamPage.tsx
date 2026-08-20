@@ -3,6 +3,7 @@ import type { JSX, SubmitEvent } from 'react';
 import { Link } from 'react-router-dom';
 import { Button, Input } from '../../design-system/index.js';
 import { createTeam } from '../../shared/api/teamsClient.js';
+import { rememberTeam } from '../../shared/team/rememberedTeams.js';
 
 interface CreatedTeam {
   readonly slug: string;
@@ -21,6 +22,7 @@ export function CreateTeamPage(): JSX.Element {
     setSubmitting(true);
     try {
       const result = await createTeam({ name });
+      rememberTeam({ slug: result.slug, name: result.name, token: result.token });
       setCreated({ slug: result.slug, token: result.token });
     } catch (cause) {
       setError(cause instanceof Error ? cause.message : 'No se pudo crear el equipo.');
