@@ -2,7 +2,7 @@ import type { DeckSummaryView } from '@pp/contracts';
 import { useEffect, useState } from 'react';
 import type { JSX, SubmitEvent } from 'react';
 import { Link, useNavigate, useSearchParams } from 'react-router-dom';
-import { Button, Input } from '../../design-system/index.js';
+import { Button, Input, QrCode } from '../../design-system/index.js';
 import { createGame } from '../../shared/api/gamesClient.js';
 import { listDecks } from '../../shared/api/teamsClient.js';
 import { saveParticipantIdentity } from '../../shared/viewer/ParticipantIdProvider.js';
@@ -181,14 +181,7 @@ function LinkReadyPanel({
 
   return (
     <div className="mx-auto flex w-[340px] max-w-full flex-col items-center gap-4 py-16 text-center">
-      <div
-        className="h-[150px] w-[150px] rounded-[10px]"
-        style={{
-          background:
-            'repeating-linear-gradient(45deg, var(--pp-line) 0 6px, transparent 6px 12px)',
-        }}
-        aria-hidden="true"
-      />
+      <QrCode value={link} size={150} aria-label="Código QR para entrar a la partida" />
       <h2 className="text-lg">Partida lista</h2>
       <div className="pp-input flex items-center justify-between gap-2 font-mono text-xs">
         <span className="truncate">{link}</span>
