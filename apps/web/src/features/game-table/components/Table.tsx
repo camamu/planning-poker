@@ -112,7 +112,7 @@ export function Table({
               vote
                 ? {
                     hasVoted: true,
-                    value: seat.id === viewerId ? (vote.card ?? selectedCard) : vote.card,
+                    value: seat.id === viewerId ? (selectedCard ?? vote.card) : vote.card,
                   }
                 : null
             }
