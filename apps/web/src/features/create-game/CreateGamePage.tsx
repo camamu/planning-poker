@@ -65,6 +65,7 @@ export function CreateGamePage(): JSX.Element {
         deckId,
         facilitatorName,
         settings,
+        ...(teamSlug ? { teamSlug } : {}),
       });
       saveParticipantIdentity(result.gameId, {
         participantId: result.facilitatorId,

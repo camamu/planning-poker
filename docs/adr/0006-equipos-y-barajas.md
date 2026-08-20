@@ -70,6 +70,14 @@ real se aparta de ese esquema y las decisiones de implementación que no estaban
   resuelve, `DeckNotFoundError` (404, mismo tratamiento que `GameNotFoundError`/
   `TeamNotFoundError` en `infrastructure/http/errors.ts`).
 
+> **Añadido después (bloque 10):** `games.team_id` sí entró finalmente, en la migración
+> `0004_games_team_id.ts`. Dejarlo fuera hacía que una partida creada desde `/?team=slug` copiara
+> la baraja y perdiera el rastro del equipo, que es justo el vínculo que `docs/02` §2 preveía.
+> `CreateGame` acepta un `teamSlug` opcional y **no exige token** para resolverlo, por coherencia
+> con `ListDecks`: si leer las barajas de un equipo no lo pide, usarlas tampoco. El token sigue
+> siendo lo único que permite _editar_ barajas. La FK es `on delete set null`, no `cascade`:
+> borrar un equipo no puede llevarse por delante partidas ya jugadas.
+
 ## Fuera de alcance de este bloque (deliberado)
 
 - `games.team_id` — ver más arriba.

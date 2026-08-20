@@ -15,6 +15,8 @@ export interface GameTable {
   /** F5 — segundos de cuenta atrás por ronda, o `null` si está desactivada. */
   countdown_seconds: number | null;
   reveal_on_timeout: boolean;
+  /** Equipo del que salió la baraja, o `null` si la partida se creó fuera de un equipo. */
+  team_id: string | null;
   created_at: Generated<Date>;
 }
 

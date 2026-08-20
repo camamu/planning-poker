@@ -26,6 +26,8 @@ export const createGameCommandSchema = z.object({
   deckId: z.string().trim().min(1),
   facilitatorName: z.string().trim().min(1),
   settings: gameSettingsSchema,
+  /** Equipo del que sale la baraja. Sin token, igual que listar barajas — ver ADR 0006. */
+  teamSlug: z.string().trim().min(1).optional(),
 });
 export type CreateGameCommandInput = z.infer<typeof createGameCommandSchema>;
 

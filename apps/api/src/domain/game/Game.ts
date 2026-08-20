@@ -10,6 +10,7 @@ import { Issue } from './Issue.js';
 import { Participant } from './Participant.js';
 import type { ParticipantRole } from './Participant.js';
 import { Round } from './Round.js';
+import type { TeamId } from '../team/TeamId.js';
 
 export class ParticipantAlreadyJoinedError extends DomainError {
   constructor(readonly participantId: ParticipantId) {
@@ -86,6 +87,8 @@ export interface CreateGameProps {
   readonly settings: GameSettings;
   readonly facilitatorId: ParticipantId;
   readonly facilitatorName: DisplayName;
+  /** El equipo del que salió la baraja, si la partida se creó dentro de uno. */
+  readonly teamId?: TeamId | undefined;
 }
 
 export interface ReconstituteGameProps {
@@ -96,6 +99,7 @@ export interface ReconstituteGameProps {
   readonly participants: ReadonlyArray<Participant>;
   readonly issues: ReadonlyArray<Issue>;
   readonly rounds: ReadonlyArray<Round>;
+  readonly teamId?: TeamId | undefined;
 }
 
 export class Game {
@@ -109,10 +113,11 @@ export class Game {
     private readonly name: GameName,
     private readonly deck: Deck,
     private settings: GameSettings,
+    private readonly teamId: TeamId | null,
   ) {}
 
   static create(props: CreateGameProps, now: Date): Game {
-    const game = new Game(props.id, props.name, props.deck, props.settings);
+    const game = new Game(props.id, props.name, props.deck, props.settings, props.teamId ?? null);
     const facilitator = Participant.join(
       props.facilitatorId,
       props.facilitatorName,
@@ -131,7 +136,7 @@ export class Game {
    * publicarlo otra vez inundaría a los suscriptores con eventos que ya ocurrieron.
    */
   static reconstitute(props: ReconstituteGameProps): Game {
-    const game = new Game(props.id, props.name, props.deck, props.settings);
+    const game = new Game(props.id, props.name, props.deck, props.settings, props.teamId ?? null);
     for (const participant of props.participants) {
       game.participants.set(participant.id.value, participant);
     }
@@ -146,6 +151,11 @@ export class Game {
 
   currentDeck(): Deck {
     return this.deck;
+  }
+
+  /** La baraja se copia al crear la partida; esto solo recuerda de qué equipo vino. */
+  currentTeamId(): TeamId | null {
+    return this.teamId;
   }
 
   currentSettings(): GameSettings {

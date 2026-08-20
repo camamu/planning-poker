@@ -57,7 +57,7 @@ export async function startTestServer(): Promise<TestServer> {
   const broadcaster = new SocketIoBroadcaster(io);
   const events = new WsEventPublisher(games, broadcaster, versions);
 
-  const createGame = new CreateGame(games, decks, events, clock, ids);
+  const createGame = new CreateGame(games, decks, teams, events, clock, ids);
   const joinGame = new JoinGame(games, events, clock, ids);
   const addIssue = new AddIssue(games, events, clock, ids);
   const startVotingRound = new StartVotingRound(games, events, clock, ids);
