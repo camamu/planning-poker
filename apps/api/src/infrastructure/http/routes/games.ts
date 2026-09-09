@@ -39,6 +39,7 @@ export function registerGameRoutes(app: FastifyInstance, deps: GameRoutesDepende
         name: command.name,
         deckId: command.deckId,
         facilitatorName: command.facilitatorName,
+        ...(command.teamSlug ? { teamSlug: command.teamSlug } : {}),
         settings: {
           autoReveal: command.settings.autoReveal,
           whoCanReveal: command.settings.whoCanReveal,

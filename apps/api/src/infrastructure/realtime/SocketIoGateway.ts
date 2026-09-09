@@ -3,6 +3,7 @@ import {
   wsEmojiThrownCommandSchema,
   wsJoinCommandSchema,
   wsRevealCommandSchema,
+  wsSetEstimateCommandSchema,
   wsStartRoundCommandSchema,
   wsVoteCommandSchema,
 } from '@pp/contracts';
@@ -13,6 +14,7 @@ import type { GetGameState } from '../../application/use-cases/GetGameState.js';
 import { GameNotFoundError } from '../../application/use-cases/GameNotFoundError.js';
 import type { RevealRound } from '../../application/use-cases/RevealRound.js';
 import type { StartVotingRound } from '../../application/use-cases/StartVotingRound.js';
+import type { SetFinalEstimate } from '../../application/use-cases/SetFinalEstimate.js';
 import type { TimeoutReveal } from '../../application/use-cases/TimeoutReveal.js';
 import type { GameRepository } from '../../application/ports/GameRepository.js';
 import { DomainError } from '../../domain/shared/DomainError.js';
@@ -28,6 +30,7 @@ export interface SocketGatewayDependencies {
   readonly startVotingRound: StartVotingRound;
   readonly revealRound: RevealRound;
   readonly timeoutReveal: TimeoutReveal;
+  readonly setFinalEstimate: SetFinalEstimate;
   readonly versions: GameVersionTracker;
   /** Solo lectura, para comprobar `settings.throwEmojis` antes de reenviar un emoji. */
   readonly games: GameRepository;
@@ -94,6 +97,12 @@ export function registerSocketGateway(io: Server, deps: SocketGatewayDependencie
     socket.on('timeout_reveal', (payload: unknown) => {
       void handle(socket, async () => {
         await deps.timeoutReveal.execute(wsRevealCommandSchema.parse(payload));
+      });
+    });
+
+    socket.on('set_estimate', (payload: unknown) => {
+      void handle(socket, async () => {
+        await deps.setFinalEstimate.execute(wsSetEstimateCommandSchema.parse(payload));
       });
     });
 

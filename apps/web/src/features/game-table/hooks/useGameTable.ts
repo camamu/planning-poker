@@ -19,6 +19,7 @@ export interface UseGameTableResult {
   readonly castVote: (card: string) => void;
   readonly startRound: (issueId: string) => void;
   readonly reveal: () => void;
+  readonly setFinalEstimate: (card: string) => void;
   readonly remainingMs: number | null;
   readonly theme: 'dark' | 'light';
   readonly muted: boolean;
@@ -34,10 +35,11 @@ export function useGameTable(gameId: string, participantId: string): UseGameTabl
   const status = useGameStore((state) => state.status);
   const errorMessage = useGameStore((state) => state.errorMessage);
   const clearError = useGameStore((state) => state.clearError);
-  const selectedCard = useGameStore((state) => state.selectedCard);
+  const optimisticCard = useGameStore((state) => state.selectedCard);
   const castVote = useGameStore((state) => state.castVote);
   const startRound = useGameStore((state) => state.startRound);
   const reveal = useGameStore((state) => state.reveal);
+  const setFinalEstimate = useGameStore((state) => state.setFinalEstimate);
   const timeoutReveal = useGameStore((state) => state.timeoutReveal);
   const theme = useGameStore((state) => state.theme);
   const muted = useGameStore((state) => state.muted);
@@ -62,6 +64,11 @@ export function useGameTable(gameId: string, participantId: string): UseGameTabl
     game?.participants.filter((participant) => participant.role === 'SPECTATOR') ?? [];
   const seats = orderSeatsWithViewerAt(voters, participantId);
   const votedCount = round?.votes.length ?? 0;
+  // La proyección devuelve la carta del propio viewer en claro, así que al recargar la página se
+  // recupera el voto. Manda el valor optimista mientras exista: es más reciente que la última
+  // confirmación, y `participant_voted` no reenvía la carta al cambiar de voto.
+  const confirmedCard =
+    round?.votes.find((vote) => vote.participantId === participantId)?.card ?? null;
 
   return {
     game,
@@ -72,10 +79,11 @@ export function useGameTable(gameId: string, participantId: string): UseGameTabl
     spectators,
     votedCount,
     totalVoters: voters.length,
-    selectedCard,
+    selectedCard: optimisticCard ?? confirmedCard,
     castVote,
     startRound,
     reveal,
+    setFinalEstimate,
     remainingMs,
     theme,
     muted,

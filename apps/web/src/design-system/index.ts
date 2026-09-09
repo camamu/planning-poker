@@ -10,6 +10,8 @@ export { Input } from './components/Input/Input.js';
 export type { InputProps } from './components/Input/Input.js';
 export { Modal } from './components/Modal/Modal.js';
 export type { ModalProps } from './components/Modal/Modal.js';
+export { QrCode } from './components/QrCode/QrCode.js';
+export type { QrCodeProps } from './components/QrCode/QrCode.js';
 export { SegmentedControl } from './components/SegmentedControl/SegmentedControl.js';
 export type {
   SegmentedControlProps,

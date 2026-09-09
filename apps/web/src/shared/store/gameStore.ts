@@ -29,8 +29,9 @@ interface GameStoreState {
   readonly gameId: string | null;
   readonly participantId: string | null;
   readonly errorMessage: string | null;
-  /** Última carta que YO he votado — el servidor nunca la re-envía por invariante 7 (docs/02
-   *  §4.3); esto es lo único que hace que mi propia carta se vea boca arriba antes del reveal. */
+  /** Voto propio pintado de forma optimista, antes de que el servidor confirme. La verdad es
+   *  `currentRound.votes`, donde la proyección sí devuelve la carta del propio viewer (invariante
+   *  7, docs/02 §4.3); esto solo cubre el hueco hasta que llega esa confirmación. */
   readonly selectedCard: string | null;
   readonly theme: 'dark' | 'light';
   readonly muted: boolean;
@@ -45,6 +46,7 @@ interface GameStoreState {
   startRound: (issueId: string) => void;
   reveal: () => void;
   timeoutReveal: () => void;
+  setFinalEstimate: (card: string) => void;
   toggleTheme: () => void;
   toggleMuted: () => void;
   setEmojiMode: (mode: 'throw' | 'react') => void;
@@ -121,6 +123,12 @@ export const useGameStore = create<GameStoreState>((set, get) => ({
     getSocket().emit('timeout_reveal', { gameId, participantId });
   },
 
+  setFinalEstimate(card) {
+    const { gameId, participantId } = get();
+    if (!gameId || !participantId) return;
+    getSocket().emit('set_estimate', { gameId, participantId, card });
+  },
+
   toggleTheme() {
     set((state) => ({ theme: state.theme === 'dark' ? 'light' : 'dark' }));
   },
@@ -161,10 +169,21 @@ export const useGameStore = create<GameStoreState>((set, get) => ({
   },
 }));
 
+function currentRoundId(game: GameView | null): string | null {
+  return game?.currentRound?.id ?? null;
+}
+
 function applyEvent(event: ServerEvent): void {
   const { game, gameId, participantId } = useGameStore.getState();
   const next = gameEventsReducer(game, event);
-  useGameStore.setState({ game: next, version: event.version });
+  // Abrir ronda nueva invalida el voto optimista en TODOS los clientes, no solo en el que pulsó
+  // "volver a votar": el resto solo se entera de la ronda nueva por este evento.
+  const roundChanged = currentRoundId(next) !== currentRoundId(game);
+  useGameStore.setState({
+    game: next,
+    version: event.version,
+    ...(roundChanged ? { selectedCard: null } : {}),
+  });
 
   if (needsResync(event.type) && gameId && participantId) {
     getSocket().emit('join', { gameId, participantId });

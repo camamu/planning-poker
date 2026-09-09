@@ -29,6 +29,7 @@ export async function seedGame(overrides: SeedGameOverrides = {}): Promise<Seede
   const createGame = new CreateGame(
     context.games,
     context.decks,
+    context.teams,
     context.events,
     context.clock,
     context.ids,

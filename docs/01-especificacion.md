@@ -4,6 +4,8 @@
 **Fecha:** agosto 2026
 **Referencia analizada:** planningpokeronline.com (web app + plugin Jira)
 
+> **Nota posterior sobre el §10 (dónde alojarlo):** la comparativa de hosting de ahí abajo se queda como referencia de las alternativas consideradas, pero la decisión final no es esa. Tras priorizar maximizar las opciones de despliegue gratuito, se optó por Render (API) + Cloudflare Pages (front) + Supabase (BD) — desarrollado en `06-despliegue.md`, que es el documento vigente para desplegar.
+
 ---
 
 ## 1. Análisis del producto de referencia
@@ -498,7 +500,7 @@ Requisitos que condicionan la elección: **conexiones WebSocket largas** (descar
 | Alcance MVP   | Votación en vivo + barajas personalizadas. Async, histórico e importación quedan para v1.5 |
 | Tiempo real   | Socket.IO propio                                                                           |
 | Autenticación | Anónima por link, sin cuentas                                                              |
-| Persistencia  | Postgres en el propio `docker-compose` (Supabase descartado por encaje, no por calidad)    |
-| Despliegue    | VPS Hetzner + Dokploy, una instancia                                                       |
+| Persistencia  | Postgres gestionado en Supabase (en local, el del `docker-compose`)                        |
+| Despliegue    | API en Render · front en Cloudflare Pages · BD en Supabase, una instancia                  |
 
 El detalle de cada una, junto con el plan de construcción por bloques, está en **`02-decisiones-y-plan.md`**.

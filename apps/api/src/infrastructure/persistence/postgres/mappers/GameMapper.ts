@@ -13,6 +13,7 @@ import { Participant } from '../../../../domain/game/Participant.js';
 import type { ParticipantRole } from '../../../../domain/game/Participant.js';
 import { Round } from '../../../../domain/game/Round.js';
 import type { RoundStatus, RoundVote } from '../../../../domain/game/Round.js';
+import { TeamId } from '../../../../domain/team/TeamId.js';
 import type { GameTable, IssueTable, ParticipantTable, RoundTable, VoteTable } from '../schema.js';
 
 export interface GameRowSet {
@@ -42,6 +43,7 @@ export function toGameRow(game: Game): Insertable<GameTable> {
     throw_emojis: settings.throwEmojis,
     countdown_seconds: settings.countdownSeconds,
     reveal_on_timeout: settings.revealOnTimeout,
+    team_id: game.currentTeamId()?.value ?? null,
   };
 }
 
@@ -117,6 +119,7 @@ export function toDomainGame(rows: GameRowSet): Game {
       countdownSeconds: rows.game.countdown_seconds,
       revealOnTimeout: rows.game.reveal_on_timeout,
     }),
+    ...(rows.game.team_id ? { teamId: TeamId.of(rows.game.team_id) } : {}),
     // El orden importa (Game.currentDealer() lo usa) y lo garantiza la consulta con
     // `orderBy('position', 'asc')` en PostgresGameRepository, no este mapper.
     participants: rows.participants.map((row) =>

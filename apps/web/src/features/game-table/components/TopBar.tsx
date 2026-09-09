@@ -2,6 +2,7 @@ import { useState } from 'react';
 import type { JSX } from 'react';
 import { Avatar } from '../../../design-system/index.js';
 import { formatCountdown } from '../hooks/useCountdown.js';
+import { InviteDialog } from './InviteDialog.js';
 
 export interface TopBarProps {
   readonly gameName: string;
@@ -15,7 +16,7 @@ export interface TopBarProps {
 }
 
 export function TopBar(props: TopBarProps): JSX.Element {
-  const [copied, setCopied] = useState(false);
+  const [inviteOpen, setInviteOpen] = useState(false);
 
   return (
     <nav
@@ -69,18 +70,20 @@ export function TopBar(props: TopBarProps): JSX.Element {
           type="button"
           className="btn btn-secondary"
           onClick={() => {
-            void navigator.clipboard.writeText(window.location.href).then(() => {
-              setCopied(true);
-              setTimeout(() => {
-                setCopied(false);
-              }, 2000);
-            });
+            setInviteOpen(true);
           }}
         >
-          {copied ? 'Copiado ✓' : 'Copiar enlace'}
+          🔗 Invitar
         </button>
         <Avatar seed={props.viewerId} variant="initials" initials="TÚ" size={32} />
       </div>
+      <InviteDialog
+        open={inviteOpen}
+        link={window.location.href}
+        onClose={() => {
+          setInviteOpen(false);
+        }}
+      />
     </nav>
   );
 }

@@ -2,9 +2,11 @@ import type { DeckSummaryView } from '@pp/contracts';
 import { useEffect, useState } from 'react';
 import type { JSX, SubmitEvent } from 'react';
 import { Link, useNavigate, useSearchParams } from 'react-router-dom';
-import { Button, Input } from '../../design-system/index.js';
+import { Button, Input, QrCode } from '../../design-system/index.js';
 import { createGame } from '../../shared/api/gamesClient.js';
 import { listDecks } from '../../shared/api/teamsClient.js';
+import type { RememberedTeam } from '../../shared/team/rememberedTeams.js';
+import { rememberedTeams } from '../../shared/team/rememberedTeams.js';
 import { saveParticipantIdentity } from '../../shared/viewer/ParticipantIdProvider.js';
 import {
   DEFAULT_SETTINGS,
@@ -31,6 +33,7 @@ export function CreateGamePage(): JSX.Element {
   const [error, setError] = useState<string | null>(null);
   const [submitting, setSubmitting] = useState(false);
   const [created, setCreated] = useState<CreatedGame | null>(null);
+  const [teams] = useState<ReadonlyArray<RememberedTeam>>(rememberedTeams);
 
   useEffect(() => {
     let cancelled = false;
@@ -62,6 +65,7 @@ export function CreateGamePage(): JSX.Element {
         deckId,
         facilitatorName,
         settings,
+        ...(teamSlug ? { teamSlug } : {}),
       });
       saveParticipantIdentity(result.gameId, {
         participantId: result.facilitatorId,
@@ -89,6 +93,13 @@ export function CreateGamePage(): JSX.Element {
   return (
     <div className="mx-auto flex w-[420px] max-w-full flex-col gap-4 py-16">
       <h1 className="text-[22px]">Crear partida</h1>
+      {teamSlug ? (
+        <p className="text-xs" style={{ color: 'var(--pp-muted)' }}>
+          Con las barajas de{' '}
+          <strong>{teams.find((t) => t.slug === teamSlug)?.name ?? teamSlug}</strong> ·{' '}
+          <Link to="/">salir del equipo</Link>
+        </p>
+      ) : null}
       <form
         className="flex flex-col gap-4"
         onSubmit={(event) => {
@@ -160,11 +171,43 @@ export function CreateGamePage(): JSX.Element {
         </Button>
       </form>
 
-      {!teamSlug ? (
-        <Link to="/teams/new" className="text-center text-xs" style={{ color: 'var(--pp-muted)' }}>
-          ¿Quieres guardar barajas personalizadas? Crea un equipo →
-        </Link>
-      ) : null}
+      {teamSlug ? null : <TeamShortcuts teams={teams} />}
+    </div>
+  );
+}
+
+function TeamShortcuts({ teams }: { readonly teams: ReadonlyArray<RememberedTeam> }): JSX.Element {
+  if (teams.length === 0) {
+    return (
+      <Link to="/teams/new" className="text-center text-xs" style={{ color: 'var(--pp-muted)' }}>
+        ¿Quieres guardar barajas personalizadas? Crea un equipo →
+      </Link>
+    );
+  }
+
+  return (
+    <div className="flex flex-col gap-2">
+      <span className="pp-kicker">Tus equipos</span>
+      {teams.map((team) => (
+        <div
+          key={team.slug}
+          className="flex items-center justify-between gap-2 rounded-[10px] px-3 py-2"
+          style={{ border: '1px solid var(--pp-line)' }}
+        >
+          <span className="truncate text-sm">{team.name}</span>
+          <div className="flex flex-none gap-2">
+            <Link to={`/?team=${team.slug}`}>
+              <Button variant="secondary">Usar sus barajas</Button>
+            </Link>
+            <Link to={`/t/${team.slug}?k=${team.token}`}>
+              <Button variant="ghost">Abrir</Button>
+            </Link>
+          </div>
+        </div>
+      ))}
+      <Link to="/teams/new" className="text-center text-xs" style={{ color: 'var(--pp-muted)' }}>
+        Crear otro equipo →
+      </Link>
     </div>
   );
 }
@@ -181,14 +224,7 @@ function LinkReadyPanel({
 
   return (
     <div className="mx-auto flex w-[340px] max-w-full flex-col items-center gap-4 py-16 text-center">
-      <div
-        className="h-[150px] w-[150px] rounded-[10px]"
-        style={{
-          background:
-            'repeating-linear-gradient(45deg, var(--pp-line) 0 6px, transparent 6px 12px)',
-        }}
-        aria-hidden="true"
-      />
+      <QrCode value={link} size={150} aria-label="Código QR para entrar a la partida" />
       <h2 className="text-lg">Partida lista</h2>
       <div className="pp-input flex items-center justify-between gap-2 font-mono text-xs">
         <span className="truncate">{link}</span>

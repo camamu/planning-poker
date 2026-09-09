@@ -4,12 +4,14 @@ import { CardValue } from '../../src/domain/deck/CardValue.js';
 import { SYSTEM_DECK_IDS } from '../../src/domain/deck/SavedDeck.js';
 import { CardNotInDeckError, NoOpenRoundError } from '../../src/domain/game/Game.js';
 import { GameId, ParticipantId } from '../../src/domain/game/ids.js';
+import { CreateTeam } from '../../src/application/use-cases/CreateTeam.js';
+import { TeamNotFoundError } from '../../src/application/use-cases/TeamNotFoundError.js';
 import { makeContext } from './support/context.js';
 
 describe('CreateGame', () => {
   it('crea la partida y la persiste en el repositorio', async () => {
     const ctx = makeContext();
-    const useCase = new CreateGame(ctx.games, ctx.decks, ctx.events, ctx.clock, ctx.ids);
+    const useCase = new CreateGame(ctx.games, ctx.decks, ctx.teams, ctx.events, ctx.clock, ctx.ids);
 
     const { gameId } = await useCase.execute({
       name: 'Sprint 42',
@@ -24,7 +26,7 @@ describe('CreateGame', () => {
 
   it('registra al facilitador con permiso para revelar bajo FACILITATOR_ONLY', async () => {
     const ctx = makeContext();
-    const useCase = new CreateGame(ctx.games, ctx.decks, ctx.events, ctx.clock, ctx.ids);
+    const useCase = new CreateGame(ctx.games, ctx.decks, ctx.teams, ctx.events, ctx.clock, ctx.ids);
 
     const { gameId, facilitatorId } = await useCase.execute({
       name: 'Sprint 42',
@@ -39,7 +41,7 @@ describe('CreateGame', () => {
 
   it('usa la baraja de tallas cuando se elige ese deckId', async () => {
     const ctx = makeContext();
-    const useCase = new CreateGame(ctx.games, ctx.decks, ctx.events, ctx.clock, ctx.ids);
+    const useCase = new CreateGame(ctx.games, ctx.decks, ctx.teams, ctx.events, ctx.clock, ctx.ids);
 
     const { gameId, facilitatorId } = await useCase.execute({
       name: 'Sprint 42',
@@ -58,7 +60,7 @@ describe('CreateGame', () => {
 
   it('la baraja de tallas rechaza cartas de fibonacci', async () => {
     const ctx = makeContext();
-    const useCase = new CreateGame(ctx.games, ctx.decks, ctx.events, ctx.clock, ctx.ids);
+    const useCase = new CreateGame(ctx.games, ctx.decks, ctx.teams, ctx.events, ctx.clock, ctx.ids);
 
     const { gameId, facilitatorId } = await useCase.execute({
       name: 'Sprint 42',
@@ -75,7 +77,7 @@ describe('CreateGame', () => {
 
   it('mapea namedRevealers a ParticipantId al construir la partida', async () => {
     const ctx = makeContext();
-    const useCase = new CreateGame(ctx.games, ctx.decks, ctx.events, ctx.clock, ctx.ids);
+    const useCase = new CreateGame(ctx.games, ctx.decks, ctx.teams, ctx.events, ctx.clock, ctx.ids);
 
     // SequentialIdGenerator es determinista: CreateGame pide el id del facilitador antes que
     // el de la partida, así que el primer id generado ('id-1') será el del facilitador.
@@ -99,7 +101,7 @@ describe('CreateGame', () => {
 
   it('publica GameCreated', async () => {
     const ctx = makeContext();
-    const useCase = new CreateGame(ctx.games, ctx.decks, ctx.events, ctx.clock, ctx.ids);
+    const useCase = new CreateGame(ctx.games, ctx.decks, ctx.teams, ctx.events, ctx.clock, ctx.ids);
 
     await useCase.execute({
       name: 'Sprint 42',
@@ -113,7 +115,7 @@ describe('CreateGame', () => {
 
   it('lanza DeckNotFoundError si el deckId no existe', async () => {
     const ctx = makeContext();
-    const useCase = new CreateGame(ctx.games, ctx.decks, ctx.events, ctx.clock, ctx.ids);
+    const useCase = new CreateGame(ctx.games, ctx.decks, ctx.teams, ctx.events, ctx.clock, ctx.ids);
 
     await expect(
       useCase.execute({
@@ -123,5 +125,52 @@ describe('CreateGame', () => {
         facilitatorName: 'Ada',
       }),
     ).rejects.toThrow('No existe la baraja inexistente.');
+  });
+
+  it('la partida creada dentro de un equipo recuerda de qué equipo salió', async () => {
+    const ctx = makeContext();
+    const team = await new CreateTeam(ctx.teams, ctx.hasher, ctx.ids).execute({ name: 'Backend' });
+    const useCase = new CreateGame(ctx.games, ctx.decks, ctx.teams, ctx.events, ctx.clock, ctx.ids);
+
+    const { gameId } = await useCase.execute({
+      name: 'Sprint 42',
+      deckId: SYSTEM_DECK_IDS.fibonacci.value,
+      settings: { autoReveal: false, whoCanReveal: 'FACILITATOR_ONLY' },
+      facilitatorName: 'Ada',
+      teamSlug: team.slug,
+    });
+
+    const stored = await ctx.games.findById(GameId.of(gameId));
+    expect(stored?.currentTeamId()?.value).toBe(team.teamId);
+  });
+
+  it('una partida creada fuera de un equipo no queda asociada a ninguno', async () => {
+    const ctx = makeContext();
+    const useCase = new CreateGame(ctx.games, ctx.decks, ctx.teams, ctx.events, ctx.clock, ctx.ids);
+
+    const { gameId } = await useCase.execute({
+      name: 'Sprint 42',
+      deckId: SYSTEM_DECK_IDS.fibonacci.value,
+      settings: { autoReveal: false, whoCanReveal: 'FACILITATOR_ONLY' },
+      facilitatorName: 'Ada',
+    });
+
+    const stored = await ctx.games.findById(GameId.of(gameId));
+    expect(stored?.currentTeamId()).toBeNull();
+  });
+
+  it('no crea la partida si el equipo indicado no existe', async () => {
+    const ctx = makeContext();
+    const useCase = new CreateGame(ctx.games, ctx.decks, ctx.teams, ctx.events, ctx.clock, ctx.ids);
+
+    await expect(
+      useCase.execute({
+        name: 'Sprint 42',
+        deckId: SYSTEM_DECK_IDS.fibonacci.value,
+        settings: { autoReveal: false, whoCanReveal: 'FACILITATOR_ONLY' },
+        facilitatorName: 'Ada',
+        teamSlug: 'equipo-que-no-existe',
+      }),
+    ).rejects.toBeInstanceOf(TeamNotFoundError);
   });
 });

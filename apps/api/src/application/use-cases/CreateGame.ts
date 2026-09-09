@@ -10,7 +10,10 @@ import type { DeckRepository } from '../ports/DeckRepository.js';
 import type { EventPublisher } from '../ports/EventPublisher.js';
 import type { GameRepository } from '../ports/GameRepository.js';
 import type { IdGenerator } from '../ports/IdGenerator.js';
+import { TeamSlug } from '../../domain/team/TeamSlug.js';
+import type { TeamRepository } from '../ports/TeamRepository.js';
 import { DeckNotFoundError } from './DeckNotFoundError.js';
+import { TeamNotFoundError } from './TeamNotFoundError.js';
 
 export interface CreateGameCommand {
   readonly name: string;
@@ -26,6 +29,8 @@ export interface CreateGameCommand {
     readonly revealOnTimeout?: boolean;
   };
   readonly facilitatorName: string;
+  /** Sin token, igual que `ListDecks`: leer y usar la baraja de un equipo no lo exige (ADR 0006). */
+  readonly teamSlug?: string | undefined;
 }
 
 export interface CreateGameResult {
@@ -37,6 +42,7 @@ export class CreateGame {
   constructor(
     private readonly games: GameRepository,
     private readonly decks: DeckRepository,
+    private readonly teams: TeamRepository,
     private readonly events: EventPublisher,
     private readonly clock: Clock,
     private readonly ids: IdGenerator,
@@ -46,6 +52,11 @@ export class CreateGame {
     const deckId = DeckId.of(command.deckId);
     const savedDeck = await this.decks.findById(deckId);
     if (!savedDeck) throw new DeckNotFoundError(deckId);
+
+    const team = command.teamSlug
+      ? await this.teams.findBySlug(TeamSlug.of(command.teamSlug))
+      : null;
+    if (command.teamSlug && !team) throw new TeamNotFoundError(command.teamSlug);
 
     const facilitatorId = ParticipantId.of(this.ids.generate());
     const game = Game.create(
@@ -77,6 +88,7 @@ export class CreateGame {
         }),
         facilitatorId,
         facilitatorName: DisplayName.of(command.facilitatorName),
+        ...(team ? { teamId: team.id } : {}),
       },
       this.clock.now(),
     );

@@ -7,17 +7,20 @@
 
 ## 1. Qué resuelve cada workflow
 
-| Fichero        | Dispara                                    | Responsabilidad                                                                           |
-| -------------- | ------------------------------------------ | ----------------------------------------------------------------------------------------- |
-| `ci.yml`       | `pull_request` y `push` a `develop`/`main` | Validar el código: lint, tipos, arquitectura, tests, build de imágenes                    |
-| `pr-title.yml` | `pull_request` (título editado)            | Que el título de la PR sea convencional — es lo que acaba en el changelog al hacer squash |
-| `release.yml`  | `push` a `main`                            | Calcular versión, generar changelog, crear tag y release                                  |
-| `publish.yml`  | `release: published`                       | Construir y publicar imágenes Docker en GHCR con la versión                               |
-| `deploy.yml`   | manual o tras `publish`                    | Avisar al VPS para que despliegue la nueva versión                                        |
+| Fichero         | Dispara                                    | Responsabilidad                                                                                            |
+| --------------- | ------------------------------------------ | ---------------------------------------------------------------------------------------------------------- |
+| `ci.yml`        | `pull_request` y `push` a `develop`/`main` | Validar el código: lint, tipos, arquitectura, tests, build de imágenes                                     |
+| `pr-title.yml`  | `pull_request` (título editado)            | Que el título de la PR sea convencional — es lo que acaba en el changelog al hacer squash                  |
+| `release.yml`   | `push` a `main`                            | Calcular versión, generar changelog, crear tag y release                                                   |
+| `publish.yml`   | `release: published`                       | Construir y publicar imágenes Docker en GHCR con la versión                                                |
+| `deploy.yml`    | manual, elige un tag                       | Migrar la BD y decirle a Render qué imagen desplegar; el front en Cloudflare Pages va en el mismo workflow |
+| `heartbeat.yml` | `schedule` diario + manual                 | Hacer una consulta trivial a Supabase para que no pause el proyecto por inactividad                        |
 
 Separar release de publish importa: la versión se decide una vez y las imágenes se construyen a partir de un tag inmutable, no de "lo que hubiera en main en ese momento".
 
 `release.yml` solo dispara con `push` a `main`, y a `main` solo llega código por el merge de `develop` (ver §7): cada release es, literalmente, "lo que hay acumulado en `develop`" en el momento de mergear.
+
+> **Nota:** este documento asumía originalmente un VPS con Dokploy. Tras el cambio a Render + Cloudflare Pages + Supabase (ver `06-despliegue.md`), solo cambia el §6 (`deploy.yml`) y se añade el §6.2 (`heartbeat.yml`); el resto — `ci.yml`, `pr-title.yml`, `release.yml`, `publish.yml` — sigue exactamente igual, porque siguen sin saber nada de dónde se despliega.
 
 ---
 
@@ -272,33 +275,155 @@ Inyecta `APP_VERSION` en la imagen y expónla en `/health`. Cuando alguien diga 
 
 ---
 
-## 6. `deploy.yml` — despliegue al VPS
+## 6. Despliegue: `deploy.yml` y `heartbeat.yml`
 
-Dokploy expone un webhook por aplicación. Mantenlo **manual al principio** (`workflow_dispatch` con input de tag): un despliegue automático en cada release, con el equipo en mitad de una sesión de estimación, corta la partida.
+Detalle completo de la arquitectura de hosting (Render + Cloudflare Pages + Supabase) en `06-despliegue.md`. Aquí solo los workflows.
+
+### 6.1 `deploy.yml` — migraciones, API en Render, front en Cloudflare Pages
+
+Sigue **manual** (`workflow_dispatch` con input de tag): un despliegue automático en cada release, con el equipo en mitad de una sesión de estimación, corta la partida.
+
+Render, para servicios que despliegan una imagen ya construida, expone un **deploy hook** por servicio: una URL secreta a la que le añades `?imgURL=<imagen>:<tag>` para decirle exactamente qué versión pulear, sin necesidad de API key. Es casi el mismo mecanismo que teníamos con el webhook de Dokploy.
+
+Tres jobs encadenados, porque el orden importa: migrar → desplegar la API → publicar el front.
 
 ```yaml
 name: Deploy
+
 on:
   workflow_dispatch:
     inputs:
-      tag: { description: 'Versión a desplegar (ej. v0.3.0)', required: true }
+      tag:
+        description: 'Versión a desplegar (ej. v0.3.0)'
+        required: true
+
+permissions:
+  contents: read
+
+env:
+  PNPM_VERSION: '10'
+
 jobs:
-  deploy:
+  migrate:
+    name: Migraciones contra Supabase
     runs-on: ubuntu-latest
+    environment: production
+    steps:
+      - uses: actions/checkout@v4
+        with: { ref: '${{ inputs.tag }}' }
+      - uses: pnpm/action-setup@v4
+        with:
+          version: ${{ env.PNPM_VERSION }}
+      - uses: actions/setup-node@v4
+        with:
+          node-version-file: .nvmrc
+          cache: pnpm
+      - run: pnpm install --frozen-lockfile
+      # Render solo arranca una imagen: si las migraciones no se aplican aquí, nadie lo hace.
+      - name: Aplicar migraciones pendientes
+        env:
+          DATABASE_URL: ${{ secrets.SUPABASE_DATABASE_URL }}
+        run: pnpm --filter @pp/api migrate:up
+
+  deploy-api:
+    name: API en Render
+    runs-on: ubuntu-latest
+    needs: migrate
     environment: production # exige aprobación manual si la configuras así
     steps:
-      - name: Disparar despliegue en Dokploy
+      - name: Disparar despliegue en Render con la imagen versionada
+        env:
+          TAG: ${{ inputs.tag }}
+          HOOK_URL: ${{ secrets.RENDER_DEPLOY_HOOK_URL }}
         run: |
-          curl -fsSL -X POST "${{ secrets.DOKPLOY_WEBHOOK_URL }}" \
-            -H 'Content-Type: application/json' \
-            -d '{"tag":"${{ inputs.tag }}"}'
+          # publish.yml etiqueta con `{{version}}` de docker/metadata-action, que quita la `v` inicial:
+          # el tag de entrada es v0.3.0 y la imagen publicada es :0.3.0.
+          image_tag="${TAG#v}"
+          curl -fsSL -G "$HOOK_URL" \
+            --data-urlencode "imgURL=ghcr.io/${{ github.repository }}/api:${image_tag}"
+      # Sin esta verificación, un despliegue fallido queda en verde. `APP_VERSION` se inyecta en
+      # publish.yml con el tag de la release, así que /health devuelve el tag con la `v`.
       - name: Verificar versión desplegada
+        env:
+          TAG: ${{ inputs.tag }}
+          API_HOST: ${{ vars.API_HOST }}
         run: |
-          sleep 30
-          curl -sf https://${{ vars.APP_HOST }}/health | grep -q "${{ inputs.tag }}"
+          # El plan gratuito de Render arranca en frío: se espera a que responda, no un rato fijo.
+          timeout 300 bash -c 'until curl -sf "https://$API_HOST/health" | grep -q "$TAG"; do sleep 10; done'
+
+  deploy-web:
+    name: Front en Cloudflare Pages
+    runs-on: ubuntu-latest
+    # A propósito: si la API falla, no publiques un front que hablaría con una versión vieja del contrato.
+    needs: deploy-api
+    environment: production
+    steps:
+      - uses: actions/checkout@v4
+        with: { ref: '${{ inputs.tag }}' }
+      - uses: pnpm/action-setup@v4
+        with:
+          version: ${{ env.PNPM_VERSION }}
+      - uses: actions/setup-node@v4
+        with:
+          node-version-file: .nvmrc
+          cache: pnpm
+      - run: pnpm install --frozen-lockfile
+      # Vite congela las VITE_* en el bundle: definirlas en el dashboard de Cloudflare no tendría
+      # efecto, porque allí llega `dist/` ya construido.
+      - name: Construir el front contra la API de producción
+        env:
+          VITE_API_URL: https://${{ vars.API_HOST }}
+          VITE_WS_URL: https://${{ vars.API_HOST }}
+        run: pnpm --filter @pp/web build
+      - name: Publicar en Cloudflare Pages
+        uses: cloudflare/wrangler-action@v3
+        with:
+          apiToken: ${{ secrets.CLOUDFLARE_API_TOKEN }}
+          accountId: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
+          command: pages deploy apps/web/dist --project-name=planning-poker
 ```
 
-El paso de verificación no es adorno: sin él, un despliegue fallido queda en verde.
+Cuatro detalles que no son adorno:
+
+- **El tag de la imagen pierde la `v`.** `publish.yml` etiqueta con `type=semver,pattern={{version}}`, que publica `…/api:0.3.0`; pedirle a Render `…/api:v0.3.0` sería pedirle una imagen que no existe. El `/health`, en cambio, sí devuelve el tag con `v`: `APP_VERSION` se inyecta con `github.event.release.tag_name` tal cual.
+- **La verificación espera en bucle, no `sleep 40`.** El plan gratuito de Render arranca en frío y un tiempo fijo deja en rojo despliegues que solo eran lentos. Lo que no puede pasar es que no haya verificación: sin ella un despliegue fallido queda en verde.
+- **`VITE_API_URL`/`VITE_WS_URL` se definen en el paso de build**, no en el dashboard de Cloudflare: Vite las congela en el bundle y a Cloudflare llega `dist/` ya construido.
+- **`deploy-web` depende de `deploy-api`** (`needs:`) a propósito: si la API falla, no publiques un front que hablaría con una versión vieja del contrato.
+
+Si el repositorio de imágenes es privado (lo normal en GHCR), Render necesita credenciales de ese registro configuradas una vez en el dashboard del servicio — no en este workflow.
+
+### 6.2 `heartbeat.yml` — que Supabase no pause el proyecto
+
+El free tier de Supabase pausa un proyecto tras 7 días sin peticiones a la API. El equipo se reúne cada dos semanas, así que sin esto la base de datos estaría dormida en cada sprint. Basta una consulta trivial diaria:
+
+```yaml
+name: Supabase heartbeat
+
+on:
+  schedule:
+    # Diario, a una hora suelta y no en punto, para no competir con el resto de crons de GitHub.
+    - cron: '17 6 * * *'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  ping:
+    name: Consulta trivial contra Supabase
+    runs-on: ubuntu-latest
+    steps:
+      - name: Instalar psql si el runner no lo trae
+        run: command -v psql || (sudo apt-get update && sudo apt-get install -y postgresql-client)
+      # El free tier de Supabase pausa el proyecto tras 7 días sin peticiones y el equipo se reúne
+      # cada dos semanas: sin esto, la BD estaría dormida en cada sprint.
+      - name: Resetear el contador de inactividad
+        env:
+          DATABASE_URL: ${{ secrets.SUPABASE_DATABASE_URL }}
+        run: psql "$DATABASE_URL" -c 'select 1;'
+```
+
+`SUPABASE_DATABASE_URL` puede ser el mismo connection string que usa la API en producción; no hace falta un usuario aparte para esto en un proyecto interno.
 
 ---
 
@@ -379,8 +504,8 @@ Bloque N — <nombre>
 - **Dependabot** (`.github/dependabot.yml`) semanal para `npm`, `docker` y `github-actions`, agrupando parches en una sola PR.
 - **Fija las actions por versión mayor** (`@v4`); para las de terceros que tocan secretos, considera fijar por SHA.
 - `permissions` **explícitos y mínimos** en cada workflow. Por defecto, `contents: read`.
-- `GITHUB_TOKEN` es suficiente para todo lo anterior; no crees PATs salvo que aparezca una necesidad concreta.
-- Los secretos (`DOKPLOY_WEBHOOK_URL`) van en Secrets del repositorio, nunca en el YAML.
+- `GITHUB_TOKEN` es suficiente para `ci.yml`, `pr-title.yml`, `release.yml` y `publish.yml`; no crees PATs salvo que aparezca una necesidad concreta.
+- Secretos de despliegue, todos en Settings → Secrets del repositorio, nunca en el YAML: `RENDER_DEPLOY_HOOK_URL`, `CLOUDFLARE_API_TOKEN`, `CLOUDFLARE_ACCOUNT_ID`, `SUPABASE_DATABASE_URL`. Variables no sensibles (`API_HOST`, el dominio de Render sin esquema) van en Settings → Variables, no en Secrets.
 
 ---
 
@@ -396,3 +521,5 @@ Bloque N — <nombre>
 - [ ] Puedes mergear tu propia PR sin que GitHub pida una aprobación ajena
 - [ ] Un push directo a `develop` es rechazado
 - [ ] Un push directo a `main` es rechazado salvo el merge `develop` → `main` de una release
+- [ ] `heartbeat.yml` lanzado a mano (`workflow_dispatch`) termina en verde
+- [ ] Un `deploy.yml` a un tag real aplica las migraciones, y `/health` de la API y el front en Cloudflare Pages coinciden en versión

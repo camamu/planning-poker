@@ -165,7 +165,7 @@ h4 {
 }
 .seg-opt:has(input:checked) {
   color: var(--color-accent);
-  box-shadow: inset 0 0 0 1px var(--color-accent);
+  background: color-mix(in srgb, var(--color-accent) 14%, transparent);
 }
 .seg-opt:not(:has(input:checked)):hover {
   background: color-mix(in srgb, var(--color-text) 7%, transparent);

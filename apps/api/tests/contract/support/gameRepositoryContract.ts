@@ -124,7 +124,7 @@ export function defineGameRepositoryContractTests(
       game.startVotingRound(RoundId.of('round-1'), IssueId.of('issue-1'), NOW);
       game.castVote(facilitatorId, CardValue.of('8'), NOW);
       game.reveal(facilitatorId, NOW);
-      game.setFinalEstimate(CardValue.of('8'), NOW);
+      game.setFinalEstimate(CardValue.of('8'), facilitatorId, NOW);
       await repository.save(game);
 
       const reloaded = await repository.findById(GameId.of('game-6'));
