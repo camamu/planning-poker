@@ -7,6 +7,11 @@ updates:
     groups:
       npm-dependencies:
         patterns: ['*']
+    ignore:
+      # Fijado a 6.0.3 en devDependencies: typescript-eslint no soporta aún el rango de peers de TS 7
+      # (ver CLAUDE.md "Known local-environment gotchas"). Sin esto, dependabot agrupa el bump de
+      # mayor con otras 22 dependencias inofensivas y rompe `pnpm lint` en el mismo PR.
+      - dependency-name: 'typescript'
 
   - package-ecosystem: 'docker'
     directories: ['/apps/api', '/apps/web']
