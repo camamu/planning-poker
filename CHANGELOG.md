@@ -1,5 +1,16 @@
 # Changelog
 
+## [1.0.1](https://github.com/camamu/planning-poker/compare/v1.0.0...v1.0.1) (2026-09-09)
+
+
+### Bug Fixes
+
+* **ci:** excluye typescript de dependabot y corrige el título de release-please ([4b5f136](https://github.com/camamu/planning-poker/commit/4b5f136e5550a68231c0f6dcb1d27e27383140fe))
+* **ci:** publica las imágenes desde release.yml en vez de depender de un segundo evento ([a481273](https://github.com/camamu/planning-poker/commit/a481273cbaaa3e28f04a38e2eef50d22da59cf69))
+* **ci:** publica las imágenes desde release.yml en vez de un segundo evento ([2441d08](https://github.com/camamu/planning-poker/commit/2441d08f76db76246d89ce5075cd9ec01fa7f28b))
+* **docker:** copia node_modules por paquete en la imagen de producción de la API ([61a5e2f](https://github.com/camamu/planning-poker/commit/61a5e2fb7d7f942e78e9d3023410b52ab3b765e0))
+* **docker:** copia node_modules por paquete en la imagen de producción de la API ([2c83e7c](https://github.com/camamu/planning-poker/commit/2c83e7c10f6fae91e31656e29eb05463f20130a0))
+
 ## 1.0.0 (2026-09-09)
 
 
