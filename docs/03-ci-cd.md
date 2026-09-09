@@ -145,6 +145,84 @@ jobs:
 
 **Test e2e obligatorio en esta suite:** el que verifica la invariante 7. Conecta dos clientes WebSocket, uno vota, y el segundo comprueba que en el payload **crudo** que recibe no aparece el valor de la carta ajena antes del reveal. Es la única regla del sistema cuyo fallo es invisible en la UI y grave.
 
+### 2.1 `smoke-test-api` / `smoke-test-web` — arrancar la imagen `production` de verdad
+
+`docker-build` solo comprueba que la imagen **compila**; `e2e` sí ejecuta contenedores reales, pero contra `docker-compose.yml`, cuyo `target` es `development` (monta el código fuente con volúmenes, no reproduce el layout de `node_modules` de un workspace pnpm). El primer despliegue real a Render descubrió esto de la peor forma: la etapa `production` de `apps/api/Dockerfile` no copiaba el `node_modules` de `apps/api` ni de `packages/contracts` desde `prod-deps`, así que Node no podía resolver `@fastify/cors` en runtime — y ningún check de la CI lo había ejecutado nunca para detectarlo.
+
+Estos dos jobs cierran ese hueco: construyen la imagen `production` real (con `load: true` en vez de `push: false`, reutilizando la cache de `docker-build` por `scope`), la arrancan con `docker run` y esperan a que el endpoint de salud responda `200` antes de dar el check por bueno.
+
+```yaml
+smoke-test-api:
+  name: Smoke test (imagen production API)
+  runs-on: ubuntu-latest
+  services:
+    postgres:
+      image: postgres:16-alpine
+      env:
+        POSTGRES_PASSWORD: postgres
+        POSTGRES_DB: planningpoker_smoke
+      ports: ['5432:5432']
+      options: >-
+        --health-cmd "pg_isready -U postgres"
+        --health-interval 5s --health-timeout 5s --health-retries 10
+  steps:
+    - uses: actions/checkout@v4
+    - uses: docker/setup-buildx-action@v3
+    - uses: docker/build-push-action@v6
+      with:
+        context: .
+        file: apps/api/Dockerfile
+        target: production
+        load: true
+        tags: pp-api:smoke
+        cache-from: type=gha,scope=api
+        cache-to: type=gha,mode=max,scope=api
+    - name: Arrancar el contenedor de producción
+      run: |
+        docker run -d --name pp-api-smoke --network host \
+          -e DATABASE_URL=postgres://postgres:postgres@localhost:5432/planningpoker_smoke \
+          -e PORT=3000 \
+          -e CORS_ORIGIN=http://localhost:5173 \
+          -e SESSION_SECRET=smoke-test-secret \
+          pp-api:smoke
+    - name: Esperar a que /health responda
+      run: timeout 30s bash -c 'until curl -sf localhost:3000/health; do sleep 1; done'
+    - name: Logs si falla
+      if: failure()
+      run: docker logs pp-api-smoke
+    - if: always()
+      run: docker rm -f pp-api-smoke
+
+smoke-test-web:
+  name: Smoke test (imagen production front)
+  runs-on: ubuntu-latest
+  steps:
+    - uses: actions/checkout@v4
+    - uses: docker/setup-buildx-action@v3
+    - uses: docker/build-push-action@v6
+      with:
+        context: .
+        file: apps/web/Dockerfile
+        target: production
+        load: true
+        tags: pp-web:smoke
+        cache-from: type=gha,scope=web
+        cache-to: type=gha,mode=max,scope=web
+    - name: Arrancar el contenedor de producción
+      run: docker run -d --name pp-web-smoke -p 5173:5173 pp-web:smoke
+    - name: Esperar a que la home responda
+      run: timeout 30s bash -c 'until curl -sf localhost:5173/; do sleep 1; done'
+    - name: Logs si falla
+      if: failure()
+      run: docker logs pp-web-smoke
+    - if: always()
+      run: docker rm -f pp-web-smoke
+```
+
+`smoke-test-api` usa `--network host` porque el contenedor necesita alcanzar el Postgres de servicio, publicado en el `localhost` del runner — no hay red docker compartida con un contenedor arrancado a mano fuera de docker-compose. `smoke-test-web` no depende de ningún servicio, así que le basta un `-p` normal.
+
+El front no tiene la misma clase de bug: `sirv-cli` sirve un `dist/` estático, sin resolución de paquetes del workspace en runtime. Aun así, arrancar su imagen `production` de verdad es barato (sin Postgres, sin variables de entorno) y cierra el mismo hueco de "esta imagen nunca se había ejecutado" por simetría con la API.
+
 ---
 
 ## 3. `pr-title.yml`
@@ -442,7 +520,7 @@ Configúralo con un **Ruleset** (Settings → Rules → Rulesets; sustituye a la
 
 - Prohibido el push directo a `develop` y a `main`, incluidos administradores (la única excepción real es el merge `develop` → `main` para cortar una release, que también pasa por PR).
 - **PR obligatoria, con 0 aprobaciones requeridas.**
-- Checks requeridos: `quality`, `unit`, `contract`, `e2e`, `docker-build`, `pr-title`.
+- Checks requeridos: `quality`, `unit`, `contract`, `e2e`, `docker-build`, `smoke-test-api`, `smoke-test-web`, `pr-title`.
 - Ramas actualizadas antes de mergear.
 - Solo squash merge en las PRs de bloque contra `develop`, con el título de la PR como mensaje.
 - Conversaciones resueltas antes del merge.

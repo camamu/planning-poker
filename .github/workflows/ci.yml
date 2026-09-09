@@ -114,3 +114,71 @@ jobs:
           push: false
           cache-from: type=gha,scope=${{ matrix.app }}
           cache-to: type=gha,mode=max,scope=${{ matrix.app }}
+
+  smoke-test-api:
+    name: Smoke test (imagen production API)
+    runs-on: ubuntu-latest
+    services:
+      postgres:
+        image: postgres:16-alpine
+        env:
+          POSTGRES_PASSWORD: postgres
+          POSTGRES_DB: planningpoker_smoke
+        ports: ['5432:5432']
+        options: >-
+          --health-cmd "pg_isready -U postgres"
+          --health-interval 5s --health-timeout 5s --health-retries 10
+    steps:
+      - uses: actions/checkout@v4
+      - uses: docker/setup-buildx-action@v3
+      - uses: docker/build-push-action@v6
+        with:
+          context: .
+          file: apps/api/Dockerfile
+          target: production
+          load: true
+          tags: pp-api:smoke
+          cache-from: type=gha,scope=api
+          cache-to: type=gha,mode=max,scope=api
+      - name: Arrancar el contenedor de producción
+        # --network host: el contenedor necesita alcanzar el Postgres de servicio,
+        # publicado en localhost del runner, no en una red docker propia.
+        run: |
+          docker run -d --name pp-api-smoke --network host \
+            -e DATABASE_URL=postgres://postgres:postgres@localhost:5432/planningpoker_smoke \
+            -e PORT=3000 \
+            -e CORS_ORIGIN=http://localhost:5173 \
+            -e SESSION_SECRET=smoke-test-secret \
+            pp-api:smoke
+      - name: Esperar a que /health responda
+        run: timeout 30s bash -c 'until curl -sf localhost:3000/health; do sleep 1; done'
+      - name: Logs si falla
+        if: failure()
+        run: docker logs pp-api-smoke
+      - if: always()
+        run: docker rm -f pp-api-smoke
+
+  smoke-test-web:
+    name: Smoke test (imagen production front)
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: docker/setup-buildx-action@v3
+      - uses: docker/build-push-action@v6
+        with:
+          context: .
+          file: apps/web/Dockerfile
+          target: production
+          load: true
+          tags: pp-web:smoke
+          cache-from: type=gha,scope=web
+          cache-to: type=gha,mode=max,scope=web
+      - name: Arrancar el contenedor de producción
+        run: docker run -d --name pp-web-smoke -p 5173:5173 pp-web:smoke
+      - name: Esperar a que la home responda
+        run: timeout 30s bash -c 'until curl -sf localhost:5173/; do sleep 1; done'
+      - name: Logs si falla
+        if: failure()
+        run: docker logs pp-web-smoke
+      - if: always()
+        run: docker rm -f pp-web-smoke
