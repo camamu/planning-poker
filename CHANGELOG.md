@@ -1,5 +1,17 @@
 # Changelog
 
+## [1.1.0](https://github.com/camamu/planning-poker/compare/v1.0.1...v1.1.0) (2026-09-09)
+
+
+### Features
+
+* **ci:** smoke test de las imágenes production de API y front ([b2bcce7](https://github.com/camamu/planning-poker/commit/b2bcce7509da2144d60aadf1a09ba499fc85eb2b))
+
+
+### Bug Fixes
+
+* **contracts:** resuelve @pp/contracts a dist/ en runtime de producción ([3483a90](https://github.com/camamu/planning-poker/commit/3483a90025d21d9e6c22b8d91536e7e0409e8421))
+
 ## [1.0.1](https://github.com/camamu/planning-poker/compare/v1.0.0...v1.0.1) (2026-09-09)
 
 
