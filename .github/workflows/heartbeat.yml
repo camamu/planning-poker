@@ -1,0 +1,24 @@
+name: Supabase heartbeat
+
+on:
+  schedule:
+    # Diario, a una hora suelta y no en punto, para no competir con el resto de crons de GitHub.
+    - cron: '17 6 * * *'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  ping:
+    name: Consulta trivial contra Supabase
+    runs-on: ubuntu-latest
+    steps:
+      - name: Instalar psql si el runner no lo trae
+        run: command -v psql || (sudo apt-get update && sudo apt-get install -y postgresql-client)
+      # El free tier de Supabase pausa el proyecto tras 7 días sin peticiones y el equipo se reúne
+      # cada dos semanas: sin esto, la BD estaría dormida en cada sprint.
+      - name: Resetear el contador de inactividad
+        env:
+          DATABASE_URL: ${{ secrets.SUPABASE_DATABASE_URL }}
+        run: psql "$DATABASE_URL" -c 'select 1;'

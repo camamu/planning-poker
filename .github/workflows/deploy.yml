@@ -1,0 +1,93 @@
+name: Deploy
+
+on:
+  workflow_dispatch:
+    inputs:
+      tag:
+        description: 'Versión a desplegar (ej. v0.3.0)'
+        required: true
+
+permissions:
+  contents: read
+
+env:
+  PNPM_VERSION: '10'
+
+jobs:
+  migrate:
+    name: Migraciones contra Supabase
+    runs-on: ubuntu-latest
+    environment: production
+    steps:
+      - uses: actions/checkout@v4
+        with: { ref: '${{ inputs.tag }}' }
+      - uses: pnpm/action-setup@v4
+        with:
+          version: ${{ env.PNPM_VERSION }}
+      - uses: actions/setup-node@v4
+        with:
+          node-version-file: .nvmrc
+          cache: pnpm
+      - run: pnpm install --frozen-lockfile
+      # Render solo arranca una imagen: si las migraciones no se aplican aquí, nadie lo hace.
+      - name: Aplicar migraciones pendientes
+        env:
+          DATABASE_URL: ${{ secrets.SUPABASE_DATABASE_URL }}
+        run: pnpm --filter @pp/api migrate:up
+
+  deploy-api:
+    name: API en Render
+    runs-on: ubuntu-latest
+    needs: migrate
+    environment: production # exige aprobación manual si la configuras así
+    steps:
+      - name: Disparar despliegue en Render con la imagen versionada
+        env:
+          TAG: ${{ inputs.tag }}
+          HOOK_URL: ${{ secrets.RENDER_DEPLOY_HOOK_URL }}
+        run: |
+          # publish.yml etiqueta con `{{version}}` de docker/metadata-action, que quita la `v` inicial:
+          # el tag de entrada es v0.3.0 y la imagen publicada es :0.3.0.
+          image_tag="${TAG#v}"
+          curl -fsSL -G "$HOOK_URL" \
+            --data-urlencode "imgURL=ghcr.io/${{ github.repository }}/api:${image_tag}"
+      # Sin esta verificación, un despliegue fallido queda en verde. `APP_VERSION` se inyecta en
+      # publish.yml con el tag de la release, así que /health devuelve el tag con la `v`.
+      - name: Verificar versión desplegada
+        env:
+          TAG: ${{ inputs.tag }}
+          API_HOST: ${{ vars.API_HOST }}
+        run: |
+          # El plan gratuito de Render arranca en frío: se espera a que responda, no un rato fijo.
+          timeout 300 bash -c 'until curl -sf "https://$API_HOST/health" | grep -q "$TAG"; do sleep 10; done'
+
+  deploy-web:
+    name: Front en Cloudflare Pages
+    runs-on: ubuntu-latest
+    # A propósito: si la API falla, no publiques un front que hablaría con una versión vieja del contrato.
+    needs: deploy-api
+    environment: production
+    steps:
+      - uses: actions/checkout@v4
+        with: { ref: '${{ inputs.tag }}' }
+      - uses: pnpm/action-setup@v4
+        with:
+          version: ${{ env.PNPM_VERSION }}
+      - uses: actions/setup-node@v4
+        with:
+          node-version-file: .nvmrc
+          cache: pnpm
+      - run: pnpm install --frozen-lockfile
+      # Vite congela las VITE_* en el bundle: definirlas en el dashboard de Cloudflare no tendría
+      # efecto, porque allí llega `dist/` ya construido.
+      - name: Construir el front contra la API de producción
+        env:
+          VITE_API_URL: https://${{ vars.API_HOST }}
+          VITE_WS_URL: https://${{ vars.API_HOST }}
+        run: pnpm --filter @pp/web build
+      - name: Publicar en Cloudflare Pages
+        uses: cloudflare/wrangler-action@v3
+        with:
+          apiToken: ${{ secrets.CLOUDFLARE_API_TOKEN }}
+          accountId: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
+          command: pages deploy apps/web/dist --project-name=planning-poker

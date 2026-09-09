@@ -1,0 +1,9 @@
+{
+  "extends": "./tsconfig.json",
+  "compilerOptions": {
+    "paths": {
+      "@pp/contracts": ["../../packages/contracts/dist/index.d.ts"]
+    }
+  },
+  "include": ["src"]
+}

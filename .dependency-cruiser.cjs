@@ -23,7 +23,9 @@ module.exports = {
       severity: 'error',
       comment: 'Solo el composition root conoce las implementaciones concretas.',
       from: { pathNot: '^apps/api/src/main\\.ts$' },
-      to: { path: '^apps/api/src/infrastructure/(persistence|realtime)/.+Repository|Broadcaster' },
+      to: {
+        path: '^apps/api/src/infrastructure/(persistence|realtime)/.+(Repository|Broadcaster)',
+      },
     },
     {
       name: 'design-system-no-depende-de-features',

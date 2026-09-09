@@ -7,11 +7,11 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 Planning Poker — an internal, no-account estimation tool for a team (live voting, custom decks, spectators, discussion timer). TypeScript/Node monorepo, hexagonal architecture, dockerized.
 
 The numbered docs in `docs/` are the source of truth and are not summarized here — read them, don't rely on this file for their content:
-`00` entorno · `01` especificación funcional · `02` decisiones técnicas y plan por bloques · `03` CI/CD · `04` brief de diseño (material para Claude Design, not for Claude Code) · `05` estructura y fronteras de `apps/web`.
+`00` entorno · `01` especificación funcional · `02` decisiones técnicas y plan por bloques · `03` CI/CD · `04` brief de diseño (material para Claude Design, not for Claude Code) · `05` estructura y fronteras de `apps/web` · `06-despliegue` producción en Render + Cloudflare Pages + Supabase · `06-handoff-diseno` el handoff Nocturne del bloque 6.
 
 **Before starting a new block of the plan:** read `docs/02-decisiones-y-plan.md` §5 and whichever doc(s) that block references.
 
-The project is built in ordered blocks (see `docs/02-decisiones-y-plan.md` §5). As of now only **block 1 (skeleton)** is done: monorepo, tooling, architectural barrier, Docker skeleton, health/readiness endpoints. No domain model, use cases, HTTP routes beyond health, or frontend exist yet.
+The project is built in ordered blocks (see `docs/02-decisiones-y-plan.md` §5). As of now **blocks 1 through 7** are done: monorepo/tooling/architectural barrier/Docker from block 1, the `Game` aggregate with the 10 business invariants under test from block 2 (`docs/adr/0001-modelo-de-dominio-de-estimacion.md`), the use cases (`CreateGame`, `JoinGame`, `AddIssue`, `StartVotingRound`, `CastVote`, `RevealRound`) backed by `InMemoryGameRepository` from block 3 (`docs/adr/0002-casos-de-uso-y-repositorio-in-memory.md`), Postgres persistence via Kysely from block 4, the Fastify + Socket.IO transport from block 5, the full `@pp/web` frontend from block 6 — built from the Nocturne design handoff and deliberately extended beyond the plan's original block 6/7/8 split (dealer rotation, discussion timer, emoji throw, live settings) per `docs/adr/0005-extension-de-alcance-bloque-6.md` — and `Team` + persisted `Deck`/`SavedDeck` (system and custom), a real deck selector on game creation, and a functional custom-deck editor at `/t/:slug?k=token` from block 7 (`docs/adr/0006-equipos-y-barajas.md`), the CI/CD workflows and automatic versioning from block 9 (`docs/adr/0007-produccion-ci-cd.md`), and the managed deployment — Render + Cloudflare Pages + Supabase — from block 10 (`docs/adr/0008-despliegue-gestionado.md`). No blocks left in the plan's table.
 
 ## Commands
 
@@ -48,7 +48,7 @@ Domain aggregate shape (target, not yet built) is fully specified in `docs/01-es
 
 ### Monorepo layout
 
-pnpm workspace, 3 packages: `@pp/api` (Fastify backend), `@pp/web` (folder skeleton only — no `package.json`, no Vite/React/Tailwind yet; those land in block 6), `@pp/contracts` (shared zod schemas/types between api and web — currently just a placeholder export). `packages/contracts` is meant to hold `events.ts`/`commands.ts`/`views.ts` once the WS contract is implemented.
+pnpm workspace, 3 packages: `@pp/api` (Fastify backend), `@pp/web` (React + Vite + Tailwind frontend, built in block 6), `@pp/contracts` (shared zod schemas/types between api and web — `events.ts`/`commands.ts`/`views.ts`).
 
 `apps/web/src/` mirrors the backend's hexagonal split with different names: `design-system/` (pure, no business knowledge — the equivalent of `domain/`), `features/` (equivalent of `application/`), `shared/` (equivalent of `infrastructure/` — API client, socket, store). Rules and rationale in `apps/web/CLAUDE.md` and `docs/05-estructura-frontend.md`.
 
@@ -58,7 +58,7 @@ pnpm workspace, 3 packages: `@pp/api` (Fastify backend), `@pp/web` (folder skele
 
 ## Stack decisions (locked, see `docs/02-decisiones-y-plan.md` §1)
 
-Fastify · Socket.IO · Postgres via `pg` + Kysely (query builder, not an ORM — mappers stay explicit) · Zod for edge validation in `packages/contracts` · Vitest · React + Vite + Tailwind + Zustand for the frontend (not built yet) · manual composition root in `main.ts` (no DI container) · no accounts, URL-based auth with a facilitator token.
+Fastify · Socket.IO · Postgres via `pg` + Kysely (query builder, not an ORM — mappers stay explicit) · Zod for edge validation in `packages/contracts` · Vitest · React + Vite + Tailwind + Zustand for the frontend · manual composition root in `main.ts` (no DI container) · no accounts, URL-based auth with a facilitator token.
 
 ## Environment / config
 
@@ -75,16 +75,16 @@ The `pg.Pool` in `main.ts` has a `.on('error', ...)` handler — without it, an 
 5. No comments explaining _what_ code does — only _why_, for non-obvious decisions.
 6. Domain names stay in English in code; ubiquitous language (`revelar`/`reveal`, `facilitador`, `ronda`) is documented in `docs/adr`.
 7. Every structural decision gets an ADR in `docs/adr/NNNN-titulo.md` (context, decision, consequences — half a page).
-8. **Never push directly to `main`.** One branch + PR per plan block, named `feat/NN-nombre-del-bloque`, CI green before merge. **Never merge the PR yourself** — leave it ready (or in draft while still working) and stop there; the merge belongs to the human. (`docs/03-ci-cd.md` specifies the intended GitHub Actions workflows and branch protection — not yet implemented; `.github/workflows/` currently only exists as an empty placeholder directory.)
+8. **Git-flow, two long-lived branches: `develop` and `main`.** Branch every plan block from `develop` updated, named `feat/NN-nombre-del-bloque`, PR against `develop`, CI green before merge. **Never push directly to `develop` or `main`**, and never branch from `main`. `main` only moves via merging `develop` into it to cut a release — that merge is a human decision, never Claude Code's. **Never merge any PR yourself** — leave it ready (or in draft while still working) and stop there. (`docs/03-ci-cd.md` §7 specifies the workflows and the branch protection; the six workflows live in `.github/workflows/`, but the Ruleset itself is still a pending manual step for a human.)
 9. Conventional commits: `feat(scope): ...`. Valid scopes: `domain`, `app`, `infra`, `web`, `contracts`, `ci`, `docker`, `deps` (enforced by commitlint, see `commitlint.config.js`).
 
 ## Frontend
 
-`apps/web/CLAUDE.md` holds that folder's own dependency rules and loads automatically when working on files inside it — don't duplicate its content here. Design work itself (Claude Design handoff, actual components) is block 6; only the folder skeleton and its architectural barrier exist so far.
+`apps/web/CLAUDE.md` holds that folder's own dependency rules and loads automatically when working on files inside it — don't duplicate its content here. The Nocturne design handoff (`docs/design/`, `docs/06-handoff-diseno.md`) landed in block 6: `design-system/` has the ported tokens and components, `features/` and `shared/` wire them to the real backend.
 
 ## Estado
 
-Bloque actual del plan: 1 (esqueleto + CI). Actualiza esta línea al cerrar cada bloque.
+Bloque actual del plan: 10 (despliegue gestionado) cerrado — `docs/adr/0008-despliegue-gestionado.md`. Bloque 6 ya había adelantado partes de los bloques 7 y 8 del handoff Nocturne (dealer, temporizador de discusión, emojis, espectadores — `docs/adr/0005-extension-de-alcance-bloque-6.md`), y el bloque 7 cerró el resto de equipos y barajas (`docs/adr/0006-equipos-y-barajas.md`), así que el 8 no necesitó una PR propia. El bloque 9 entregó los cinco workflows de CI/CD (`.github/workflows/`) que `docs/00-setup-entorno.md` situaba en el bloque 1 (`docs/adr/0007-produccion-ci-cd.md`). El bloque 10 cambia el destino del despliegue: de VPS + Dokploy a **Render (API) + Cloudflare Pages (front) + Supabase (BD)**, con `deploy.yml` reescrito en tres jobs (migraciones → API → front), `heartbeat.yml` nuevo y `docker-compose.prod.yml` borrado; el documento vigente es `docs/06-despliegue.md`. El Ruleset de GitHub, crear las cuentas de los tres servicios y cargar sus secretos son pasos manuales pendientes de un humano (ver el ADR). No queda ningún bloque más en la tabla de `docs/02-decisiones-y-plan.md` §5. Actualiza esta línea al cerrar cada bloque.
 
 ## Known local-environment gotchas
 
