@@ -30,7 +30,9 @@ ENV NODE_ENV=production
 ENV APP_VERSION=$APP_VERSION
 COPY --from=prod-deps /app/node_modules ./node_modules
 COPY --from=prod-deps /app/apps/api/package.json ./apps/api/package.json
+COPY --from=prod-deps /app/apps/api/node_modules ./apps/api/node_modules
 COPY --from=prod-deps /app/packages/contracts/package.json ./packages/contracts/package.json
+COPY --from=prod-deps /app/packages/contracts/node_modules ./packages/contracts/node_modules
 COPY --from=build /app/apps/api/dist ./apps/api/dist
 COPY --from=build /app/packages/contracts/dist ./packages/contracts/dist
 USER node

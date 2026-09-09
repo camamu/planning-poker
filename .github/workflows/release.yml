@@ -7,6 +7,7 @@ on:
 permissions:
   contents: write
   pull-requests: write
+  packages: write
 
 jobs:
   release-please:
@@ -21,3 +22,18 @@ jobs:
     outputs:
       released: ${{ steps.release.outputs.release_created }}
       tag: ${{ steps.release.outputs.tag_name }}
+
+  publish:
+    name: Publica las imágenes de la release
+    needs: release-please
+    # release-please crea la release con el GITHUB_TOKEN del propio run, y GitHub Actions no deja
+    # que un evento generado por ese token dispare otro workflow (anti-recursión) — el `release:
+    # published` de publish.yml nunca llegaba a correr. Llamarlo aquí como workflow_call, dentro del
+    # mismo run, evita depender de ese segundo evento por completo.
+    if: needs.release-please.outputs.released == 'true'
+    permissions:
+      contents: read
+      packages: write
+    uses: ./.github/workflows/publish.yml
+    with:
+      tag: ${{ needs.release-please.outputs.tag }}
