@@ -1,5 +1,21 @@
 # Changelog
 
+## [1.3.0](https://github.com/camamu/planning-poker/compare/planning-poker-v1.2.1...planning-poker-v1.3.0) (2026-09-17)
+
+
+### Features
+
+* **app:** permite votar sin crear la tarea antes (ronda rápida) ([31763d4](https://github.com/camamu/planning-poker/commit/31763d482ea71d0526d6e9fae57b79c32554503c))
+* **app:** permite votar sin crear la tarea antes (ronda rápida) ([346c169](https://github.com/camamu/planning-poker/commit/346c16990e45c09e47ada68114b74fe3c00a1ac2))
+* **web:** animación de arco+rebote al lanzar emojis y selector de cualquier emoji ([be81917](https://github.com/camamu/planning-poker/commit/be81917ca501f86f80fbd7a3f1619a2a22aa8bbe))
+* **web:** animación de arco+rebote al lanzar emojis y selector de cualquier emoji ([994c6e7](https://github.com/camamu/planning-poker/commit/994c6e773ed05b0017532bffd383e00dd6367f1c))
+
+
+### Bug Fixes
+
+* **ci:** heartbeat.yml usa sslmode=require para psql, no no-verify ([c229c37](https://github.com/camamu/planning-poker/commit/c229c379ff11d4c7488213a25d5d66f25434e4ea))
+* **ci:** heartbeat.yml usa sslmode=require para psql, no no-verify ([d57bcdc](https://github.com/camamu/planning-poker/commit/d57bcdc7aa17f598b12f5d934026df23b5e5a042))
+
 ## [1.2.1](https://github.com/camamu/planning-poker/compare/planning-poker-v1.2.0...planning-poker-v1.2.1) (2026-09-17)
 
 
