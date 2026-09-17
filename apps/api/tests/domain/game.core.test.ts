@@ -2,6 +2,7 @@ import { describe, expect, it } from 'vitest';
 import { CardValue } from '../../src/domain/deck/CardValue.js';
 import { DisplayName } from '../../src/domain/game/DisplayName.js';
 import {
+  AnotherRoundOpenError,
   CardNotInDeckError,
   IssueNotFoundError,
   ParticipantAlreadyJoinedError,
@@ -73,6 +74,53 @@ describe('Game.addIssue / startVotingRound', () => {
     expect(() => {
       game.startVotingRound(RoundId.of('r1'), IssueId.of('inexistente'), NOW);
     }).toThrow(IssueNotFoundError);
+  });
+});
+
+describe('Game.startQuickRound', () => {
+  it('crea una issue con título por defecto y abre una ronda sobre ella', () => {
+    const { game } = createGame();
+    game.pullDomainEvents();
+
+    game.startQuickRound(IssueId.of('issue-1'), RoundId.of('round-1'), NOW);
+
+    expect(game.currentRound()?.isOpen()).toBe(true);
+    expect(game.findIssue(IssueId.of('issue-1'))?.title).toBe('Ronda rápida 1');
+    expect(game.findIssue(IssueId.of('issue-1'))?.currentStatus()).toBe('VOTING');
+  });
+
+  it('emite IssueAdded y VotingRoundStarted', () => {
+    const { game } = createGame();
+    game.pullDomainEvents();
+
+    game.startQuickRound(IssueId.of('issue-1'), RoundId.of('round-1'), NOW);
+
+    const events = game.pullDomainEvents();
+    expect(events.map((event) => event.type)).toEqual(['IssueAdded', 'VotingRoundStarted']);
+  });
+
+  it('lanza AnotherRoundOpenError si ya hay una ronda abierta, sin dejar una issue huérfana', () => {
+    const { game } = createGame();
+    addIssueAndOpenRound(game);
+    game.pullDomainEvents();
+
+    expect(() => {
+      game.startQuickRound(IssueId.of('issue-2'), RoundId.of('round-2'), NOW);
+    }).toThrow(AnotherRoundOpenError);
+    expect(game.findIssue(IssueId.of('issue-2'))).toBeUndefined();
+    expect(game.pullDomainEvents()).toHaveLength(0);
+  });
+
+  it('numera cada ronda rápida según las issues ya existentes en la partida', () => {
+    const { game, facilitatorId } = createGame();
+    addIssueAndOpenRound(game);
+    game.castVote(facilitatorId, CardValue.of('5'), NOW);
+    game.reveal(facilitatorId, NOW);
+    game.setFinalEstimate(CardValue.of('5'), facilitatorId, NOW);
+
+    game.startQuickRound(IssueId.of('issue-2'), RoundId.of('round-2'), NOW);
+
+    expect(game.findIssue(IssueId.of('issue-2'))?.title).toBe('Ronda rápida 2');
   });
 });
 

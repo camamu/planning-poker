@@ -4,6 +4,7 @@ import {
   wsJoinCommandSchema,
   wsRevealCommandSchema,
   wsSetEstimateCommandSchema,
+  wsStartQuickRoundCommandSchema,
   wsStartRoundCommandSchema,
   wsVoteCommandSchema,
 } from '@pp/contracts';
@@ -13,6 +14,7 @@ import type { CastVote } from '../../application/use-cases/CastVote.js';
 import type { GetGameState } from '../../application/use-cases/GetGameState.js';
 import { GameNotFoundError } from '../../application/use-cases/GameNotFoundError.js';
 import type { RevealRound } from '../../application/use-cases/RevealRound.js';
+import type { StartQuickRound } from '../../application/use-cases/StartQuickRound.js';
 import type { StartVotingRound } from '../../application/use-cases/StartVotingRound.js';
 import type { SetFinalEstimate } from '../../application/use-cases/SetFinalEstimate.js';
 import type { TimeoutReveal } from '../../application/use-cases/TimeoutReveal.js';
@@ -28,6 +30,7 @@ export interface SocketGatewayDependencies {
   readonly getGameState: GetGameState;
   readonly castVote: CastVote;
   readonly startVotingRound: StartVotingRound;
+  readonly startQuickRound: StartQuickRound;
   readonly revealRound: RevealRound;
   readonly timeoutReveal: TimeoutReveal;
   readonly setFinalEstimate: SetFinalEstimate;
@@ -85,6 +88,13 @@ export function registerSocketGateway(io: Server, deps: SocketGatewayDependencie
     socket.on('start_round', (payload: unknown) => {
       void handle(socket, async () => {
         await deps.startVotingRound.execute(wsStartRoundCommandSchema.parse(payload));
+      });
+    });
+
+    socket.on('start_quick_round', (payload: unknown) => {
+      void handle(socket, async () => {
+        const command = wsStartQuickRoundCommandSchema.parse(payload);
+        await deps.startQuickRound.execute({ gameId: command.gameId });
       });
     });
 

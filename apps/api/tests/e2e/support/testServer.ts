@@ -12,6 +12,7 @@ import { JoinGame } from '../../../src/application/use-cases/JoinGame.js';
 import { ListDecks } from '../../../src/application/use-cases/ListDecks.js';
 import { RevealRound } from '../../../src/application/use-cases/RevealRound.js';
 import { SaveCustomDeck } from '../../../src/application/use-cases/SaveCustomDeck.js';
+import { StartQuickRound } from '../../../src/application/use-cases/StartQuickRound.js';
 import { StartVotingRound } from '../../../src/application/use-cases/StartVotingRound.js';
 import { SetFinalEstimate } from '../../../src/application/use-cases/SetFinalEstimate.js';
 import { TimeoutReveal } from '../../../src/application/use-cases/TimeoutReveal.js';
@@ -62,6 +63,7 @@ export async function startTestServer(): Promise<TestServer> {
   const joinGame = new JoinGame(games, events, clock, ids);
   const addIssue = new AddIssue(games, events, clock, ids);
   const startVotingRound = new StartVotingRound(games, events, clock, ids);
+  const startQuickRound = new StartQuickRound(games, events, clock, ids);
   const castVote = new CastVote(games, events, clock);
   const revealRound = new RevealRound(games, events, clock);
   const timeoutReveal = new TimeoutReveal(games, events, clock);
@@ -96,6 +98,7 @@ export async function startTestServer(): Promise<TestServer> {
     getGameState,
     castVote,
     startVotingRound,
+    startQuickRound,
     revealRound,
     timeoutReveal,
     setFinalEstimate,

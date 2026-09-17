@@ -207,6 +207,20 @@ export class Game {
     this.record({ type: 'IssueAdded', occurredAt: now, gameId: this.id, issueId: id });
   }
 
+  /**
+   * Vota ya, sin pasar antes por la cola de tareas: crea una issue con título por defecto y abre
+   * la ronda sobre ella en el mismo gesto. Comprueba `AnotherRoundOpenError` antes de tocar nada
+   * para no dejar una issue añadida sin ronda si ya había una abierta. Por lo demás reutiliza
+   * `addIssue`/`startVotingRound` tal cual para heredar el resto de sus invariantes en vez de
+   * duplicarlas.
+   */
+  startQuickRound(issueId: IssueId, roundId: RoundId, now: Date): void {
+    if (this.openRound()) throw new AnotherRoundOpenError(this.id);
+    const title = `Ronda rápida ${(this.issues.length + 1).toString()}`;
+    this.addIssue(issueId, title, now);
+    this.startVotingRound(roundId, issueId, now);
+  }
+
   startVotingRound(id: RoundId, issueId: IssueId, now: Date): void {
     if (this.openRound()) throw new AnotherRoundOpenError(this.id);
     const issue = this.requireIssue(issueId);

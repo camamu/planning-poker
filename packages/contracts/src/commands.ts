@@ -87,6 +87,13 @@ export const wsStartRoundCommandSchema = z.object({
 });
 export type WsStartRoundCommandInput = z.infer<typeof wsStartRoundCommandSchema>;
 
+/** WS cliente→servidor — `start_quick_round` (vota ya, sin crear tarea: ver Game.startQuickRound) */
+export const wsStartQuickRoundCommandSchema = z.object({
+  gameId: z.string().trim().min(1),
+  participantId: z.string().trim().min(1),
+});
+export type WsStartQuickRoundCommandInput = z.infer<typeof wsStartQuickRoundCommandSchema>;
+
 /** WS cliente→servidor — `reveal` y `timeout_reveal` (mismo payload, ver Game.revealOnTimeout) */
 export const wsRevealCommandSchema = z.object({
   gameId: z.string().trim().min(1),
