@@ -13,6 +13,7 @@ import {
 import { DeckSettingsPanel } from '../deck-settings/DeckSettingsPanel.js';
 import { IssueListPanel } from '../issue-list/IssueListPanel.js';
 import { ResultsPanel } from '../results-panel/ResultsPanel.js';
+import { THROW_FLIGHT_MS } from './components/EmojiThrowLayer.js';
 import { Hand } from './components/Hand.js';
 import { Table } from './components/Table.js';
 import { TopBar } from './components/TopBar.js';
@@ -33,12 +34,27 @@ export function GameTablePage({ gameId, participantId }: GameTablePageProps): JS
   const [settingsOpen, setSettingsOpen] = useState(false);
 
   const previousEmojiCountRef = useRef(0);
+  const pendingImpactTimeoutsRef = useRef(new Set<ReturnType<typeof setTimeout>>());
+  useEffect(
+    () => () => {
+      pendingImpactTimeoutsRef.current.forEach(clearTimeout);
+    },
+    [],
+  );
   useEffect(() => {
     const latest = emoji.emojisInFlight.at(-1);
     if (emoji.emojisInFlight.length > previousEmojiCountRef.current && latest) {
+      const isSelfReaction = latest.toParticipantId === latest.fromParticipantId;
+      const isRealThrow = latest.toParticipantId !== null && !isSelfReaction;
       if (latest.fromParticipantId === participantId) playThrowSound(table.muted);
-      else playImpactSound(table.muted);
-      if (latest.toParticipantId === latest.fromParticipantId) playReactionSound(table.muted);
+      else if (isRealThrow) {
+        const timeoutId = setTimeout(() => {
+          playImpactSound(table.muted);
+          pendingImpactTimeoutsRef.current.delete(timeoutId);
+        }, THROW_FLIGHT_MS);
+        pendingImpactTimeoutsRef.current.add(timeoutId);
+      } else playImpactSound(table.muted);
+      if (isSelfReaction) playReactionSound(table.muted);
     }
     previousEmojiCountRef.current = emoji.emojisInFlight.length;
   }, [emoji.emojisInFlight, participantId, table.muted]);

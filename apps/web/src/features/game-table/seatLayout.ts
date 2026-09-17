@@ -14,6 +14,41 @@ export function seatPosition(displayIndex: number, total: number): SeatPosition 
   return { left: `${left.toString()}%`, top: `${top.toString()}%` };
 }
 
+export interface ContainerSize {
+  readonly width: number;
+  readonly height: number;
+}
+
+export interface ThrowOffset {
+  readonly dxPx: number;
+  readonly dyPx: number;
+  readonly arcHeightPx: number;
+}
+
+const MIN_ARC_HEIGHT_PX = 36;
+const MAX_ARC_HEIGHT_PX = 120;
+const ARC_HEIGHT_RATIO = 0.32;
+
+function percentToPx(value: string, size: number): number {
+  return (Number.parseFloat(value) / 100) * size;
+}
+
+/** Delta en píxeles entre dos asientos (posicionados en `%`) y la altura del arco de vuelo entre ellos. */
+export function computeThrowOffset(
+  from: SeatPosition,
+  to: SeatPosition,
+  container: ContainerSize,
+): ThrowOffset {
+  const dxPx = percentToPx(to.left, container.width) - percentToPx(from.left, container.width);
+  const dyPx = percentToPx(to.top, container.height) - percentToPx(from.top, container.height);
+  const distance = Math.hypot(dxPx, dyPx);
+  const arcHeightPx = Math.min(
+    MAX_ARC_HEIGHT_PX,
+    Math.max(MIN_ARC_HEIGHT_PX, distance * ARC_HEIGHT_RATIO),
+  );
+  return { dxPx, dyPx, arcHeightPx };
+}
+
 /** Rota la lista para que `viewerId` caiga siempre en el índice 4 ("Tú" abajo del centro). */
 export function orderSeatsWithViewerAt<T extends { readonly id: string }>(
   participants: ReadonlyArray<T>,

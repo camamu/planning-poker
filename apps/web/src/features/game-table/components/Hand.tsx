@@ -1,5 +1,6 @@
 import type { JSX } from 'react';
-import { SegmentedControl } from '../../../design-system/index.js';
+import { useState } from 'react';
+import { EmojiPicker, SegmentedControl } from '../../../design-system/index.js';
 import type { UseEmojiThrowResult } from '../hooks/useEmojiThrow.js';
 import { VotingCardGrid } from './VotingCardGrid.js';
 
@@ -15,6 +16,8 @@ export interface HandProps {
 }
 
 export function Hand(props: HandProps): JSX.Element {
+  const [pickerOpen, setPickerOpen] = useState(false);
+
   return (
     <div
       className="flex flex-none flex-col gap-2.5 px-7 pb-2 pt-1"
@@ -58,6 +61,27 @@ export function Hand(props: HandProps): JSX.Element {
                 {emojiChar}
               </button>
             ))}
+            <button
+              type="button"
+              aria-label="Elegir otro emoji"
+              className="flex h-8 w-8 items-center justify-center rounded-[9px] text-[15px]"
+              style={{ border: '1px solid var(--pp-line)' }}
+              onClick={() => {
+                setPickerOpen(true);
+              }}
+            >
+              +
+            </button>
+            <EmojiPicker
+              open={pickerOpen}
+              onSelect={(emojiChar) => {
+                props.emoji?.pick(emojiChar, props.viewerId);
+                setPickerOpen(false);
+              }}
+              onClose={() => {
+                setPickerOpen(false);
+              }}
+            />
           </div>
         ) : null}
       </div>
