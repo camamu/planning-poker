@@ -1,5 +1,13 @@
 # Changelog
 
+## [1.2.1](https://github.com/camamu/planning-poker/compare/planning-poker-v1.2.0...planning-poker-v1.2.1) (2026-09-17)
+
+
+### Bug Fixes
+
+* **web:** fija wrangler como devDependency para que wrangler-action no use npm ([2ce37f9](https://github.com/camamu/planning-poker/commit/2ce37f9b27d4c862da1d91291ebceb5648e76594))
+* **web:** fija wrangler como devDependency para que wrangler-action no use npm ([a467e34](https://github.com/camamu/planning-poker/commit/a467e34d64811384f3260435bd3ade399189c161))
+
 ## [1.2.0](https://github.com/camamu/planning-poker/compare/planning-poker-v1.1.0...planning-poker-v1.2.0) (2026-09-17)
 
 
