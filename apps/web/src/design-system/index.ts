@@ -6,6 +6,8 @@ export { Button } from './components/Button/Button.js';
 export type { ButtonProps, ButtonVariant } from './components/Button/Button.js';
 export { Card } from './components/Card/Card.js';
 export type { CardProps, CardState } from './components/Card/Card.js';
+export { EmojiPicker } from './components/EmojiPicker/EmojiPicker.js';
+export type { EmojiPickerProps } from './components/EmojiPicker/EmojiPicker.js';
 export { Input } from './components/Input/Input.js';
 export type { InputProps } from './components/Input/Input.js';
 export { Modal } from './components/Modal/Modal.js';
