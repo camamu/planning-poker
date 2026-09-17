@@ -62,7 +62,7 @@ jobs:
           timeout 300 bash -c 'until curl -sf "https://$API_HOST/health" | grep -q "$TAG"; do sleep 10; done'
 
   deploy-web:
-    name: Front en Cloudflare Pages
+    name: Front en Cloudflare Workers
     runs-on: ubuntu-latest
     # A propósito: si la API falla, no publiques un front que hablaría con una versión vieja del contrato.
     needs: deploy-api
@@ -85,9 +85,13 @@ jobs:
           VITE_API_URL: https://${{ vars.API_HOST }}
           VITE_WS_URL: https://${{ vars.API_HOST }}
         run: pnpm --filter @pp/web build
-      - name: Publicar en Cloudflare Pages
+      # docs/adr/0011-cloudflare-workers-en-vez-de-pages.md: el wizard de Pages en cuentas nuevas
+      # crea un Worker con assets, no un proyecto Pages clásico — se despliega con `wrangler deploy`
+      # contra apps/web/wrangler.toml, no con `wrangler pages deploy`.
+      - name: Publicar en Cloudflare Workers
         uses: cloudflare/wrangler-action@v3
         with:
           apiToken: ${{ secrets.CLOUDFLARE_API_TOKEN }}
           accountId: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
-          command: pages deploy apps/web/dist --project-name=planning-poker
+          workingDirectory: apps/web
+          command: deploy
