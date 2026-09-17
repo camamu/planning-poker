@@ -9,6 +9,7 @@ import { DistributionBar } from './DistributionBar.js';
 
 export interface ResultsPanelProps {
   readonly round: RoundView | null;
+  readonly onStartQuickRound: () => void;
   readonly celebrate: boolean;
   readonly votedCount: number;
   readonly totalVoters: number;
@@ -31,9 +32,17 @@ export function ResultsPanel(props: ResultsPanelProps): JSX.Element {
   const { round } = props;
   if (!round) {
     return (
-      <p className="text-sm" style={{ color: 'var(--pp-muted)' }}>
-        Todavía no hay ninguna ronda abierta.
-      </p>
+      <div className="flex h-full flex-col items-start gap-3">
+        <p className="text-sm" style={{ color: 'var(--pp-muted)' }}>
+          Todavía no hay ninguna ronda abierta.
+        </p>
+        <Button variant="primary" block onClick={props.onStartQuickRound}>
+          Votar ya
+        </Button>
+        <span className="text-[11px]" style={{ color: 'var(--pp-muted)' }}>
+          Abre una ronda al momento, sin tener que crear antes una tarea.
+        </span>
+      </div>
     );
   }
 

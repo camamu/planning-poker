@@ -44,6 +44,7 @@ interface GameStoreState {
   clearError: () => void;
   castVote: (card: string) => void;
   startRound: (issueId: string) => void;
+  startQuickRound: () => void;
   reveal: () => void;
   timeoutReveal: () => void;
   setFinalEstimate: (card: string) => void;
@@ -109,6 +110,13 @@ export const useGameStore = create<GameStoreState>((set, get) => ({
     if (!gameId || !participantId) return;
     set({ selectedCard: null });
     getSocket().emit('start_round', { gameId, participantId, issueId });
+  },
+
+  startQuickRound() {
+    const { gameId, participantId } = get();
+    if (!gameId || !participantId) return;
+    set({ selectedCard: null });
+    getSocket().emit('start_quick_round', { gameId, participantId });
   },
 
   reveal() {

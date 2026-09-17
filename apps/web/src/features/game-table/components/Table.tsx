@@ -1,8 +1,11 @@
 import type { GameView, RoundView } from '@pp/contracts';
 import type { JSX } from 'react';
+import { useRef } from 'react';
 import type { EmojiInFlight } from '../../../shared/store/gameStore.js';
+import { useContainerSize } from '../hooks/useContainerSize.js';
 import { computeResultBadges } from '../resultBadges.js';
-import type { SeatPosition } from '../seatLayout.js';
+import { computeThrowOffset } from '../seatLayout.js';
+import type { SeatPosition, ThrowOffset } from '../seatLayout.js';
 import { EmojiThrowLayer } from './EmojiThrowLayer.js';
 import { ParticipantSeat } from './ParticipantSeat.js';
 
@@ -39,9 +42,23 @@ export function Table({
       : { feathers: new Set<string>(), capes: new Set<string>() };
 
   const seatsById = new Map(seats.map((seat) => [seat.id, seat.seat]));
+  const containerRef = useRef<HTMLDivElement>(null);
+  const containerSize = useContainerSize(containerRef);
+  const flightGeometryById = new Map<string, ThrowOffset>();
+  if (containerSize) {
+    for (const entry of emojisInFlight) {
+      if (entry.toParticipantId === null || entry.toParticipantId === entry.fromParticipantId)
+        continue;
+      const from = seatsById.get(entry.fromParticipantId);
+      const to = seatsById.get(entry.toParticipantId);
+      if (!from || !to) continue;
+      flightGeometryById.set(entry.id, computeThrowOffset(from, to, containerSize));
+    }
+  }
 
   return (
     <div
+      ref={containerRef}
       className="relative mx-auto aspect-[900/520] w-full max-w-[900px]"
       style={{ cursor: seatCursor }}
     >
@@ -127,7 +144,11 @@ export function Table({
         );
       })}
 
-      <EmojiThrowLayer emojisInFlight={emojisInFlight} seatsById={seatsById} />
+      <EmojiThrowLayer
+        emojisInFlight={emojisInFlight}
+        seatsById={seatsById}
+        flightGeometryById={flightGeometryById}
+      />
     </div>
   );
 }
