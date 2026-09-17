@@ -1,4 +1,4 @@
-# 06 — Despliegue: Render + Cloudflare Pages + Supabase
+# 06 — Despliegue: Render + Cloudflare Workers + Supabase
 
 > Documento vigente para producción. Sustituye a la recomendación de VPS + Dokploy de
 > `01-especificacion.md` §10 y a las filas "Despliegue"/"Persistencia" de `02-decisiones-y-plan.md` §1.
@@ -18,7 +18,7 @@ antes no encajaban.
 | Pieza                 | Servicio                                              | Motivo                                                                       |
 | --------------------- | ----------------------------------------------------- | ---------------------------------------------------------------------------- |
 | API (`apps/api`)      | **Render**, free web service, imagen Docker existente | Git push o imagen de GHCR, cero VPS que administrar                          |
-| Frontend (`apps/web`) | **Cloudflare Pages**, free                            | Estático, CDN global, nunca se duerme, sin límite práctico de ancho de banda |
+| Frontend (`apps/web`) | **Cloudflare Workers** (assets estáticos), free       | Estático, CDN global, nunca se duerme, sin límite práctico de ancho de banda |
 | Base de datos         | **Supabase**, free tier                               | Postgres gestionado, 500 MB, sin tarjeta                                     |
 
 Nadie de vosotros administra un servidor. Es el mismo `Dockerfile` de `apps/api` que ya existe de los
@@ -104,28 +104,37 @@ VPS, no de parchear con más automatismos.
 
 ---
 
-## 5. Cloudflare Pages — configuración
+## 5. Cloudflare Workers — configuración
 
-1. Crear el proyecto en el dashboard de Cloudflare, sin conectarlo al repositorio en modo "deploy
-   automático en cada push" — el despliegue lo dispara `deploy-web` en `deploy.yml`, para que el
-   front se versione junto a la API en vez de ir por libre en cada commit a `develop`.
-2. Generar un **API Token** con permiso de Cloudflare Pages (Edit) y guardarlo como secreto
-   `CLOUDFLARE_API_TOKEN`; el `Account ID` como `CLOUDFLARE_ACCOUNT_ID`.
-3. `VITE_API_URL` y `VITE_WS_URL` (el cliente de Socket.IO usa la segunda) son variables **de build**:
+> El asistente "Pages → Upload assets" del dashboard, en cuentas nuevas, crea un **Worker con
+> assets estáticos**, no un proyecto Pages clásico (Cloudflare lleva tiempo unificando Pages dentro
+> de Workers). Este documento asume ese camino — ver `docs/adr/0011-cloudflare-workers-en-vez-de-pages.md`.
+
+1. Crear el recurso en el dashboard de Cloudflare (el asistente de Pages basta para reservar el
+   nombre `planning-poker` y el subdominio `*.workers.dev`), sin conectarlo al repositorio en modo
+   "deploy automático en cada push" — el despliegue lo dispara `deploy-web` en `deploy.yml`, para
+   que el front se versione junto a la API en vez de ir por libre en cada commit a `develop`.
+2. `apps/web/wrangler.toml` define el Worker (`name`, `[assets]` apuntando a `./dist`,
+   `not_found_handling = "single-page-application"` para que las rutas del SPA no den 404). No hace
+   falta script de Worker: es un Worker solo-de-assets.
+3. Generar un **API Token** con permiso **Account → Workers Scripts → Edit** (no el de Pages, ese
+   permiso no vale para `wrangler deploy`) y guardarlo como secreto `CLOUDFLARE_API_TOKEN`; el
+   `Account ID` como `CLOUDFLARE_ACCOUNT_ID`.
+4. `VITE_API_URL` y `VITE_WS_URL` (el cliente de Socket.IO usa la segunda) son variables **de build**:
    Vite las congela dentro del bundle. Como el bundle lo construye `deploy-web` en GitHub Actions y
    Cloudflare recibe `apps/web/dist` ya construido vía Wrangler, se definen en el paso de build del
    workflow a partir de `vars.API_HOST` — **definirlas en el dashboard de Cloudflare no tendría
    ningún efecto**.
-4. Dominio: el que da Cloudflare Pages por defecto sirve para el MVP; un dominio propio es opcional y
-   no urgente para una herramienta interna.
+5. Dominio: el `*.workers.dev` que da Cloudflare por defecto sirve para el MVP; un dominio propio es
+   opcional y no urgente para una herramienta interna.
 
 ---
 
 ## 6. CORS y el WebSocket entre dominios distintos
 
-Al vivir la API y el front en dominios diferentes (`*.onrender.com` y `*.pages.dev`), hace falta:
+Al vivir la API y el front en dominios diferentes (`*.onrender.com` y `*.workers.dev`), hace falta:
 
-- `CORS_ORIGIN` en la API apuntando exactamente al dominio de Cloudflare Pages (no `*`).
+- `CORS_ORIGIN` en la API apuntando exactamente al dominio de Cloudflare Workers (no `*`).
 - Socket.IO configurado con ese mismo origen permitido en el handshake — es un punto de
   configuración aparte del CORS de Fastify, se olvida con facilidad y el síntoma es "funciona en
   local, no en producción". En este repo ya está resuelto: `main.ts` pasa `env.CORS_ORIGIN` tanto a
@@ -139,7 +148,7 @@ Al vivir la API y el front en dominios diferentes (`*.onrender.com` y `*.pages.d
 
 - [ ] Migraciones aplicadas contra Supabase, no contra un Postgres local
 - [ ] `deploy.yml` despliega un tag concreto y `/health` de Render confirma esa versión
-- [ ] El front en Cloudflare Pages consume la API de Render sin errores de CORS
+- [ ] El front en Cloudflare Workers consume la API de Render sin errores de CORS
 - [ ] Voto de un participante llega por WebSocket a otro participante con la API y el front en
       dominios distintos
 - [ ] `heartbeat.yml` corriendo en cron, verificado manualmente una vez con `workflow_dispatch`
