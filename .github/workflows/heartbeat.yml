@@ -21,4 +21,8 @@ jobs:
       - name: Resetear el contador de inactividad
         env:
           DATABASE_URL: ${{ secrets.SUPABASE_DATABASE_URL }}
-        run: psql "$DATABASE_URL" -c 'select 1;'
+        # sslmode=no-verify es un alias del driver `pg` de Node (docs/06-despliegue.md §3.3), no del
+        # libpq real que usa psql — ahí solo valen disable/allow/prefer/require/verify-ca/verify-full.
+        # `require` en libpq ya cifra sin verificar el certificado, que es el mismo efecto que
+        # buscábamos con no-verify, así que se sustituye solo para esta invocación.
+        run: psql "${DATABASE_URL/sslmode=no-verify/sslmode=require}" -c 'select 1;'
