@@ -13,6 +13,7 @@ import { JoinGame } from './application/use-cases/JoinGame.js';
 import { ListDecks } from './application/use-cases/ListDecks.js';
 import { RevealRound } from './application/use-cases/RevealRound.js';
 import { SaveCustomDeck } from './application/use-cases/SaveCustomDeck.js';
+import { StartQuickRound } from './application/use-cases/StartQuickRound.js';
 import { StartVotingRound } from './application/use-cases/StartVotingRound.js';
 import { SetFinalEstimate } from './application/use-cases/SetFinalEstimate.js';
 import { TimeoutReveal } from './application/use-cases/TimeoutReveal.js';
@@ -68,6 +69,7 @@ const createGame = new CreateGame(games, decks, teams, events, clock, ids);
 const joinGame = new JoinGame(games, events, clock, ids);
 const addIssue = new AddIssue(games, events, clock, ids);
 const startVotingRound = new StartVotingRound(games, events, clock, ids);
+const startQuickRound = new StartQuickRound(games, events, clock, ids);
 const castVote = new CastVote(games, events, clock);
 const revealRound = new RevealRound(games, events, clock);
 const timeoutReveal = new TimeoutReveal(games, events, clock);
@@ -102,6 +104,7 @@ registerSocketGateway(io, {
   getGameState,
   castVote,
   startVotingRound,
+  startQuickRound,
   revealRound,
   timeoutReveal,
   setFinalEstimate,

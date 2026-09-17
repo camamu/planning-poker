@@ -194,6 +194,7 @@ export function GameTablePage({ gameId, participantId }: GameTablePageProps): JS
         >
           <ResultsPanel
             round={round}
+            onStartQuickRound={table.startQuickRound}
             celebrate={game.settings.celebrate}
             votedCount={table.votedCount}
             totalVoters={table.totalVoters}
