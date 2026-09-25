@@ -14,7 +14,7 @@ export function EmojiPicker({ open, onSelect, onClose }: EmojiPickerProps): JSX.
   return (
     <Modal open={open} title="Elige un emoji" onClose={onClose}>
       <FrimousseEmojiPicker.Root
-        className="flex h-72 w-64 flex-col gap-2"
+        className="flex h-[28rem] w-[26rem] max-w-full flex-col gap-2"
         onEmojiSelect={(emoji) => {
           onSelect(emoji.emoji);
         }}
