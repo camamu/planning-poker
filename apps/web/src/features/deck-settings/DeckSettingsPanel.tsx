@@ -1,5 +1,5 @@
 import type { GameSettingsView } from '@pp/contracts';
-import { useState } from 'react';
+import { useRef, useState } from 'react';
 import type { JSX } from 'react';
 import { Button } from '../../design-system/index.js';
 import { updateGameSettings } from '../../shared/api/gamesClient.js';
@@ -33,6 +33,9 @@ export function DeckSettingsPanel(props: DeckSettingsPanelProps): JSX.Element {
   const [error, setError] = useState<string | null>(null);
   const [saved, setSaved] = useState(false);
   const [showDecks, setShowDecks] = useState(false);
+  // `saving` (estado) no basta para cerrar la ventana entre dos clics dentro del mismo tick, antes
+  // del re-render que desactiva el botón; este ref sí se lee/escribe de forma síncrona.
+  const savingRef = useRef(false);
 
   if (showDecks) {
     return (
@@ -45,6 +48,8 @@ export function DeckSettingsPanel(props: DeckSettingsPanelProps): JSX.Element {
   }
 
   async function handleSave(): Promise<void> {
+    if (savingRef.current) return;
+    savingRef.current = true;
     setSaving(true);
     setError(null);
     try {
@@ -59,6 +64,7 @@ export function DeckSettingsPanel(props: DeckSettingsPanelProps): JSX.Element {
     } catch (cause) {
       setError(cause instanceof Error ? cause.message : 'No se pudieron guardar los ajustes.');
     } finally {
+      savingRef.current = false;
       setSaving(false);
     }
   }
