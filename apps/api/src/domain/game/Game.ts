@@ -80,6 +80,20 @@ export class SettingsChangeNotAllowedError extends DomainError {
   }
 }
 
+export class DeckChangeNotAllowedError extends DomainError {
+  constructor(readonly participantId: ParticipantId) {
+    super(`El participante ${participantId.value} no puede cambiar la baraja de la partida.`);
+  }
+}
+
+export class DeckChangeDuringVotingError extends DomainError {
+  constructor(readonly gameId: GameId) {
+    super(
+      `La partida ${gameId.value} tiene una ronda abierta: la baraja solo se puede cambiar entre rondas.`,
+    );
+  }
+}
+
 export interface CreateGameProps {
   readonly id: GameId;
   readonly name: GameName;
@@ -111,7 +125,7 @@ export class Game {
   private constructor(
     readonly id: GameId,
     private readonly name: GameName,
-    private readonly deck: Deck,
+    private deck: Deck,
     private settings: GameSettings,
     private readonly teamId: TeamId | null,
   ) {}
@@ -339,6 +353,19 @@ export class Game {
     if (!participant.isFacilitator) throw new SettingsChangeNotAllowedError(requestedBy);
     this.settings = settings;
     this.record({ type: 'GameSettingsChanged', occurredAt: now, gameId: this.id, settings });
+  }
+
+  /**
+   * Solo el facilitador, y nunca con una ronda abierta: los votos ya emitidos podrían no existir
+   * en la baraja nueva y quedaría una ronda con cartas que nadie puede volver a elegir. Una ronda
+   * ya revelada no lo impide — su resultado es histórico y no vuelve a validarse contra la baraja.
+   */
+  changeDeck(deck: Deck, requestedBy: ParticipantId, now: Date): void {
+    const participant = this.requireParticipant(requestedBy);
+    if (!participant.isFacilitator) throw new DeckChangeNotAllowedError(requestedBy);
+    if (this.openRound()) throw new DeckChangeDuringVotingError(this.id);
+    this.deck = deck;
+    this.record({ type: 'GameDeckChanged', occurredAt: now, gameId: this.id, deck });
   }
 
   /** Mismo permiso que revelar: cerrar la issue es el otro extremo de la misma decisión. */

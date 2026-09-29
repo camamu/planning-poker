@@ -2,7 +2,12 @@ import { describe, expect, it } from 'vitest';
 import { Deck } from '../../src/domain/deck/Deck.js';
 import { DeckName } from '../../src/domain/deck/DeckName.js';
 import { DeckId } from '../../src/domain/deck/DeckId.js';
-import { DeckNotOwnedByTeamError, SavedDeck } from '../../src/domain/deck/SavedDeck.js';
+import {
+  DeckNotAvailableError,
+  DeckNotOwnedByTeamError,
+  SavedDeck,
+  SYSTEM_DECKS,
+} from '../../src/domain/deck/SavedDeck.js';
 import { TeamId } from '../../src/domain/team/TeamId.js';
 
 describe('SavedDeck.createCustom', () => {
@@ -64,5 +69,35 @@ describe('SavedDeck.belongsTo / assertOwnedBy', () => {
     expect(() => {
       deck.assertOwnedBy(TeamId.of('team-2'));
     }).toThrow(DeckNotOwnedByTeamError);
+  });
+});
+
+describe('SavedDeck.assertAvailableTo', () => {
+  const custom = SavedDeck.createCustom({
+    id: DeckId.of('deck-1'),
+    teamId: TeamId.of('team-1'),
+    name: DeckName.of('Mi baraja'),
+    rawCards: ['1', '2'],
+  });
+
+  it('una baraja de sistema está disponible para partidas con y sin equipo', () => {
+    const [system] = SYSTEM_DECKS;
+
+    expect(() => {
+      system?.assertAvailableTo(null);
+      system?.assertAvailableTo(TeamId.of('team-1'));
+    }).not.toThrow();
+  });
+
+  it('una baraja personalizada solo está disponible para su equipo', () => {
+    expect(() => {
+      custom.assertAvailableTo(TeamId.of('team-1'));
+    }).not.toThrow();
+    expect(() => {
+      custom.assertAvailableTo(TeamId.of('team-2'));
+    }).toThrow(DeckNotAvailableError);
+    expect(() => {
+      custom.assertAvailableTo(null);
+    }).toThrow(DeckNotAvailableError);
   });
 });

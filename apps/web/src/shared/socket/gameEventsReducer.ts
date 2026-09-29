@@ -62,6 +62,10 @@ export function gameEventsReducer(state: GameView | null, event: ServerEvent): G
     case 'settings_changed':
       if (!state) return state;
       return { ...state, settings: event.settings };
+
+    case 'deck_changed':
+      if (!state) return state;
+      return { ...state, deck: event.deck };
   }
 }
 
