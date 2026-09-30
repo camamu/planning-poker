@@ -1,4 +1,4 @@
-import type { GameSettingsView } from '@pp/contracts';
+import type { GameSettingsView, GameView } from '@pp/contracts';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 import { useGameStore } from './gameStore.js';
 
@@ -17,6 +17,18 @@ vi.mock('../socket/connection.js', () => ({
     },
   }),
 }));
+
+function baseGame(): GameView {
+  return {
+    id: 'game-1',
+    name: 'Sprint 42',
+    deck: { cards: ['1', '2', '?', '☕'] },
+    settings: baseSettings(),
+    participants: [],
+    issues: [],
+    currentRound: null,
+  };
+}
 
 function baseSettings(): GameSettingsView {
   return {
@@ -104,5 +116,26 @@ describe('gameStore', () => {
     });
 
     expect(useGameStore.getState().version).toBe(6);
+  });
+
+  it('el primer state_sync con version 0 se aplica (partida sin eventos o API recién reiniciada)', () => {
+    useGameStore.getState().connect('game-1', 'p1');
+    const stateSync = handlers.get('state_sync');
+    expect(stateSync).toBeDefined();
+
+    stateSync?.({ type: 'state_sync', version: 0, state: baseGame() });
+
+    expect(useGameStore.getState().game?.id).toBe('game-1');
+  });
+
+  it('un state_sync con version menor que la actual se aplica (el contador del servidor vive en memoria y se reinicia)', () => {
+    useGameStore.setState({ version: 12 });
+    const stateSync = handlers.get('state_sync');
+
+    stateSync?.({ type: 'state_sync', version: 3, state: baseGame() });
+
+    const state = useGameStore.getState();
+    expect(state.game?.id).toBe('game-1');
+    expect(state.version).toBe(3);
   });
 });
