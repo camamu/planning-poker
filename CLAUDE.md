@@ -22,7 +22,7 @@ pnpm lint                   # eslint . (flat config, typescript-eslint strictTyp
 pnpm typecheck               # pnpm -r typecheck (each workspace runs tsc --noEmit)
 pnpm arch                    # dependency-cruiser barrier over apps/api/src and apps/web/src
 pnpm test                    # pnpm -r test (vitest run per workspace)
-pnpm --filter @pp/api test:unit      # vitest run tests/domain tests/use-cases (no DB, no HTTP)
+pnpm --filter @pp/api test:unit      # vitest run tests/domain tests/use-cases tests/infrastructure (no DB, no HTTP)
 pnpm --filter @pp/api test:contract  # vitest run tests/contract (same suite against in-memory + Postgres repos, once they exist)
 pnpm --filter @pp/api test:e2e       # vitest run tests/e2e
 pnpm --filter @pp/api exec vitest run tests/domain/some.test.ts   # single test file
@@ -62,7 +62,7 @@ Fastify · Socket.IO · Postgres via `pg` + Kysely (query builder, not an ORM �
 
 ## Environment / config
 
-`apps/api/src/infrastructure/config/env.ts` validates `process.env` with zod at startup and throws loudly if anything is missing (`DATABASE_URL`, `PORT`, `NODE_ENV`, `CORS_ORIGIN`, `LOG_LEVEL`, `SESSION_SECRET`). Nothing else in the codebase should read `process.env` directly. `.env.example` documents all keys; real `.env` is gitignored.
+`apps/api/src/infrastructure/config/env.ts` validates `process.env` with zod at startup and throws loudly if anything is missing (`DATABASE_URL`, `PORT`, `NODE_ENV`, `CORS_ORIGIN`, `LOG_LEVEL`, `SESSION_SECRET`; `ADMIN_USERNAME` + `ADMIN_PASSWORD_HASH` are optional but must come together — without them `/admin` is disabled). Nothing else in the codebase should read `process.env` directly. `.env.example` documents all keys; real `.env` is gitignored.
 
 The `pg.Pool` in `main.ts` has a `.on('error', ...)` handler — without it, an idle client error (e.g. the DB container going down) crashes the whole Node process instead of `/ready` degrading to 503. Don't remove it.
 
@@ -84,7 +84,7 @@ The `pg.Pool` in `main.ts` has a `.on('error', ...)` handler — without it, an 
 
 ## Estado
 
-Bloque actual del plan: 10 (despliegue gestionado) cerrado — `docs/adr/0008-despliegue-gestionado.md`. Bloque 6 ya había adelantado partes de los bloques 7 y 8 del handoff Nocturne (dealer, temporizador de discusión, emojis, espectadores — `docs/adr/0005-extension-de-alcance-bloque-6.md`), y el bloque 7 cerró el resto de equipos y barajas (`docs/adr/0006-equipos-y-barajas.md`), así que el 8 no necesitó una PR propia. El bloque 9 entregó los cinco workflows de CI/CD (`.github/workflows/`) que `docs/00-setup-entorno.md` situaba en el bloque 1 (`docs/adr/0007-produccion-ci-cd.md`). El bloque 10 cambia el destino del despliegue: de VPS + Dokploy a **Render (API) + Cloudflare Workers (front) + Supabase (BD)**, con `deploy.yml` reescrito en tres jobs (migraciones → API → front), `heartbeat.yml` nuevo y `docker-compose.prod.yml` borrado; el documento vigente es `docs/06-despliegue.md`. El front pasó de Cloudflare Pages a Cloudflare Workers con assets tras el primer despliegue real (`docs/adr/0011-cloudflare-workers-en-vez-de-pages.md`): el dashboard de Cloudflare, en cuentas nuevas, crea un Worker en vez de un proyecto Pages clásico. El Ruleset de GitHub, crear las cuentas de los tres servicios y cargar sus secretos son pasos manuales pendientes de un humano (ver el ADR). No queda ningún bloque más en la tabla de `docs/02-decisiones-y-plan.md` §5. Actualiza esta línea al cerrar cada bloque.
+Bloque actual del plan: 10 (despliegue gestionado) cerrado — `docs/adr/0008-despliegue-gestionado.md`. Bloque 6 ya había adelantado partes de los bloques 7 y 8 del handoff Nocturne (dealer, temporizador de discusión, emojis, espectadores — `docs/adr/0005-extension-de-alcance-bloque-6.md`), y el bloque 7 cerró el resto de equipos y barajas (`docs/adr/0006-equipos-y-barajas.md`), así que el 8 no necesitó una PR propia. El bloque 9 entregó los cinco workflows de CI/CD (`.github/workflows/`) que `docs/00-setup-entorno.md` situaba en el bloque 1 (`docs/adr/0007-produccion-ci-cd.md`). El bloque 10 cambia el destino del despliegue: de VPS + Dokploy a **Render (API) + Cloudflare Workers (front) + Supabase (BD)**, con `deploy.yml` reescrito en tres jobs (migraciones → API → front), `heartbeat.yml` nuevo y `docker-compose.prod.yml` borrado; el documento vigente es `docs/06-despliegue.md`. El front pasó de Cloudflare Pages a Cloudflare Workers con assets tras el primer despliegue real (`docs/adr/0011-cloudflare-workers-en-vez-de-pages.md`): el dashboard de Cloudflare, en cuentas nuevas, crea un Worker en vez de un proyecto Pages clásico. El Ruleset de GitHub, crear las cuentas de los tres servicios y cargar sus secretos son pasos manuales pendientes de un humano (ver el ADR). No queda ningún bloque más en la tabla de `docs/02-decisiones-y-plan.md` §5. Fuera de la tabla, el panel de gestión `/admin` (salas, equipos y barajas; una cuenta de administración por entorno con `ADMIN_USERNAME`/`ADMIN_PASSWORD_HASH`, opcional) está en `docs/adr/0015-panel-de-gestion.md`. Actualiza esta línea al cerrar cada bloque.
 
 ## Known local-environment gotchas
 
