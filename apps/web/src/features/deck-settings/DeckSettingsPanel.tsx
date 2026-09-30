@@ -1,9 +1,10 @@
 import type { GameSettingsView } from '@pp/contracts';
-import { useState } from 'react';
+import { useRef, useState } from 'react';
 import type { JSX } from 'react';
 import { Button } from '../../design-system/index.js';
 import { updateGameSettings } from '../../shared/api/gamesClient.js';
 import { DeckEditorPanel } from '../deck-editor/DeckEditorPanel.js';
+import { GameDeckPicker } from './components/GameDeckPicker.js';
 import { GameSettingsForm } from './components/GameSettingsForm.js';
 import type { GameSettingsFormValue } from './components/GameSettingsForm.js';
 
@@ -11,6 +12,8 @@ export interface DeckSettingsPanelProps {
   readonly gameId: string;
   readonly participantId: string;
   readonly settings: GameSettingsView;
+  readonly deckCards: ReadonlyArray<string>;
+  readonly roundOpen: boolean;
   readonly onClose: () => void;
 }
 
@@ -33,6 +36,9 @@ export function DeckSettingsPanel(props: DeckSettingsPanelProps): JSX.Element {
   const [error, setError] = useState<string | null>(null);
   const [saved, setSaved] = useState(false);
   const [showDecks, setShowDecks] = useState(false);
+  // `saving` (estado) no basta para cerrar la ventana entre dos clics dentro del mismo tick, antes
+  // del re-render que desactiva el botón; este ref sí se lee/escribe de forma síncrona.
+  const savingRef = useRef(false);
 
   if (showDecks) {
     return (
@@ -45,6 +51,8 @@ export function DeckSettingsPanel(props: DeckSettingsPanelProps): JSX.Element {
   }
 
   async function handleSave(): Promise<void> {
+    if (savingRef.current) return;
+    savingRef.current = true;
     setSaving(true);
     setError(null);
     try {
@@ -59,6 +67,7 @@ export function DeckSettingsPanel(props: DeckSettingsPanelProps): JSX.Element {
     } catch (cause) {
       setError(cause instanceof Error ? cause.message : 'No se pudieron guardar los ajustes.');
     } finally {
+      savingRef.current = false;
       setSaving(false);
     }
   }
@@ -75,7 +84,7 @@ export function DeckSettingsPanel(props: DeckSettingsPanelProps): JSX.Element {
         <div>
           <span className="text-sm font-semibold">Ajustes finos</span>
           <p className="text-xs" style={{ color: 'var(--pp-muted)' }}>
-            Se aplican a la ronda siguiente
+            Los ajustes se aplican a la ronda siguiente
           </p>
         </div>
         <button type="button" className="btn btn-ghost" onClick={props.onClose} aria-label="Cerrar">
@@ -83,7 +92,13 @@ export function DeckSettingsPanel(props: DeckSettingsPanelProps): JSX.Element {
         </button>
       </div>
 
-      <div className="flex-1 overflow-y-auto p-4">
+      <div className="flex flex-1 flex-col gap-4 overflow-y-auto p-4">
+        <GameDeckPicker
+          gameId={props.gameId}
+          participantId={props.participantId}
+          currentCards={props.deckCards}
+          locked={props.roundOpen}
+        />
         <GameSettingsForm value={value} onChange={setValue} />
       </div>
 

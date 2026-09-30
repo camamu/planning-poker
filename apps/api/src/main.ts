@@ -18,6 +18,8 @@ import { StartVotingRound } from './application/use-cases/StartVotingRound.js';
 import { SetFinalEstimate } from './application/use-cases/SetFinalEstimate.js';
 import { TimeoutReveal } from './application/use-cases/TimeoutReveal.js';
 import { UpdateCustomDeck } from './application/use-cases/UpdateCustomDeck.js';
+import { ChangeGameDeck } from './application/use-cases/ChangeGameDeck.js';
+import { ListGameDecks } from './application/use-cases/ListGameDecks.js';
 import { UpdateGameSettings } from './application/use-cases/UpdateGameSettings.js';
 import { loadEnv } from './infrastructure/config/env.js';
 import { registerGameRoutes } from './infrastructure/http/routes/games.js';
@@ -75,6 +77,8 @@ const revealRound = new RevealRound(games, events, clock);
 const timeoutReveal = new TimeoutReveal(games, events, clock);
 const setFinalEstimate = new SetFinalEstimate(games, events, clock);
 const updateGameSettings = new UpdateGameSettings(games, events, clock);
+const changeGameDeck = new ChangeGameDeck(games, decks, events, clock);
+const listGameDecks = new ListGameDecks(games, decks);
 const getGameState = new GetGameState(games);
 
 const createTeam = new CreateTeam(teams, tokenHasher, ids);
@@ -90,6 +94,8 @@ registerGameRoutes(app, {
   addIssue,
   getGameState,
   updateGameSettings,
+  changeGameDeck,
+  listGameDecks,
   versions,
 });
 registerTeamRoutes(app, {

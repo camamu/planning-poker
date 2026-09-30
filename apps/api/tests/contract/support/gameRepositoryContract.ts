@@ -145,6 +145,19 @@ export function defineGameRepositoryContractTests(
       expect(reloaded?.currentDeck().contains(CardValue.of('5'))).toBe(false);
     });
 
+    it('save() persiste la baraja nueva tras cambiarla en una partida ya guardada', async () => {
+      const repository = await makeRepository();
+      const { game, facilitatorId } = newGame('game-deck-change');
+      await repository.save(game);
+
+      game.changeDeck(Deck.tshirt(), facilitatorId, NOW);
+      await repository.save(game);
+
+      const reloaded = await repository.findById(GameId.of('game-deck-change'));
+      expect(reloaded?.currentDeck().contains(CardValue.of('M'))).toBe(true);
+      expect(reloaded?.currentDeck().contains(CardValue.of('5'))).toBe(false);
+    });
+
     it('conserva whoCanReveal y namedRevealers tras recargar', async () => {
       const repository = await makeRepository();
       const namedRevealer = ParticipantId.of('game-8-named');

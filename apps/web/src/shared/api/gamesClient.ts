@@ -1,6 +1,8 @@
 import type {
   AddIssueCommandInput,
+  ChangeGameDeckCommandInput,
   CreateGameCommandInput,
+  DeckSummaryView,
   GameView,
   JoinGameCommandInput,
   UpdateGameSettingsCommandInput,
@@ -69,6 +71,17 @@ export function updateGameSettings(
   input: UpdateGameSettingsCommandInput,
 ): Promise<void> {
   return requestJson(`/api/games/${gameId}/settings`, {
+    method: 'PATCH',
+    body: JSON.stringify(input),
+  });
+}
+
+export function listGameDecks(gameId: string): Promise<ReadonlyArray<DeckSummaryView>> {
+  return requestJson(`/api/games/${gameId}/decks`);
+}
+
+export function changeGameDeck(gameId: string, input: ChangeGameDeckCommandInput): Promise<void> {
+  return requestJson(`/api/games/${gameId}/deck`, {
     method: 'PATCH',
     body: JSON.stringify(input),
   });

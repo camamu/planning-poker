@@ -151,6 +151,15 @@ describe('gameEventsReducer', () => {
     expect(next?.issues[0]).toMatchObject({ status: 'ESTIMATED', finalEstimate: '5' });
   });
 
+  it('deck_changed reemplaza la baraja de la partida', () => {
+    const event: ServerEvent = {
+      type: 'deck_changed',
+      version: 2,
+      deck: { cards: ['XS', 'S', 'M', '?', '☕'] },
+    };
+    expect(gameEventsReducer(baseState(), event)?.deck.cards).toEqual(['XS', 'S', 'M', '?', '☕']);
+  });
+
   it('settings_changed reemplaza los ajustes', () => {
     const state = baseState();
     const event: ServerEvent = {

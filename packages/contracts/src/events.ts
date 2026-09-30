@@ -46,7 +46,11 @@ export type ServerEvent =
       readonly issueId: string;
       readonly finalEstimate: string;
     })
-  | (ServerEventBase & { readonly type: 'settings_changed'; readonly settings: GameSettingsView });
+  | (ServerEventBase & { readonly type: 'settings_changed'; readonly settings: GameSettingsView })
+  | (ServerEventBase & {
+      readonly type: 'deck_changed';
+      readonly deck: { readonly cards: ReadonlyArray<string> };
+    });
 
 export type ServerEventType = ServerEvent['type'];
 

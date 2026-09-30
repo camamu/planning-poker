@@ -1,7 +1,8 @@
 import { useGameStore } from '../../../shared/store/gameStore.js';
 import type { EmojiInFlight } from '../../../shared/store/gameStore.js';
 
-const REACTION_BAR = ['👏', '😂', '😱', '🤔', '🐔'];
+const REACT_REACTIONS = ['👏', '😂', '😱', '🤔', '🐔'];
+const THROW_REACTIONS = ['🗞️', '🍆', '💩', '🥚'];
 
 export interface UseEmojiThrowResult {
   readonly mode: 'throw' | 'react';
@@ -26,7 +27,7 @@ export function useEmojiThrow(): UseEmojiThrowResult {
     mode,
     armedEmoji,
     emojisInFlight,
-    reactionBar: REACTION_BAR,
+    reactionBar: mode === 'throw' ? THROW_REACTIONS : REACT_REACTIONS,
     setMode: setEmojiMode,
     pick(emoji, ownParticipantId) {
       if (mode === 'react') {
