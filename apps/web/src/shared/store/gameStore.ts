@@ -278,6 +278,15 @@ socket.on('emoji_thrown', (event: Extract<EphemeralEvent, { type: 'emoji_thrown'
     useGameStore.getState().dismissEmoji(id);
   }, 2500);
 });
+// El servidor ya ha sacado al socket de la room: sin `game`, la mesa muestra el mensaje y la salida.
+socket.on('game_closed', () => {
+  useGameStore.setState({
+    game: null,
+    selectedCard: null,
+    discussionTimer: null,
+    errorMessage: 'Esta sala ya no existe: la ha cerrado un administrador.',
+  });
+});
 socket.on(
   'discussion_timer_sync',
   (event: Extract<EphemeralEvent, { type: 'discussion_timer_sync' }>) => {
