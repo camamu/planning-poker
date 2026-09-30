@@ -198,7 +198,8 @@ function applyEvent(event: ServerEvent): void {
   useGameStore.setState({
     game: next,
     version: event.version,
-    ...(roundChanged ? { selectedCard: null } : {}),
+    // Una carta elegida de la baraja anterior no tiene por qué existir en la nueva.
+    ...(roundChanged || event.type === 'deck_changed' ? { selectedCard: null } : {}),
   });
 
   if (needsResync(event.type) && gameId && participantId) {
@@ -250,6 +251,9 @@ socket.on('issue_estimated', (event: Extract<ServerEvent, { type: 'issue_estimat
   applyEvent(event);
 });
 socket.on('settings_changed', (event: Extract<ServerEvent, { type: 'settings_changed' }>) => {
+  applyEvent(event);
+});
+socket.on('deck_changed', (event: Extract<ServerEvent, { type: 'deck_changed' }>) => {
   applyEvent(event);
 });
 

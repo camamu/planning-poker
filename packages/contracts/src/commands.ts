@@ -51,6 +51,13 @@ export const updateGameSettingsCommandSchema = z.object({
 });
 export type UpdateGameSettingsCommandInput = z.infer<typeof updateGameSettingsCommandSchema>;
 
+/** REST — `PATCH /api/games/:id/deck` */
+export const changeGameDeckCommandSchema = z.object({
+  participantId: z.string().trim().min(1),
+  deckId: z.string().trim().min(1),
+});
+export type ChangeGameDeckCommandInput = z.infer<typeof changeGameDeckCommandSchema>;
+
 /** REST — `POST /api/games/:id/participants` */
 export const joinGameCommandSchema = z.object({
   displayName: z.string().trim().min(1),

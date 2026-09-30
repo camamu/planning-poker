@@ -285,6 +285,8 @@ export function GameTablePage({ gameId, participantId }: GameTablePageProps): JS
               gameId={gameId}
               participantId={participantId}
               settings={game.settings}
+              deckCards={game.deck.cards}
+              roundOpen={round?.status === 'OPEN'}
               onClose={() => {
                 setSettingsOpen(false);
               }}

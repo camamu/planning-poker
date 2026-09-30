@@ -10,6 +10,12 @@ export class DeckNotOwnedByTeamError extends DomainError {
   }
 }
 
+export class DeckNotAvailableError extends DomainError {
+  constructor(deckId: string) {
+    super(`La baraja "${deckId}" no está disponible para esta partida.`);
+  }
+}
+
 export interface SavedDeckProps {
   readonly id: DeckId;
   /** `null` = baraja de sistema, visible para todos y no editable. */
@@ -53,6 +59,14 @@ export class SavedDeck {
 
   belongsTo(teamId: TeamId): boolean {
     return this.teamId !== null && this.teamId.equals(teamId);
+  }
+
+  /** Una baraja de sistema sirve a cualquiera; una personalizada, solo al equipo dueño. */
+  assertAvailableTo(teamId: TeamId | null): void {
+    if (this.teamId === null) return;
+    if (teamId === null || !this.teamId.equals(teamId)) {
+      throw new DeckNotAvailableError(this.id.value);
+    }
   }
 
   assertOwnedBy(teamId: TeamId): void {

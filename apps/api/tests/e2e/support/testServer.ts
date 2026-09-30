@@ -4,12 +4,14 @@ import { Server as SocketIoServer } from 'socket.io';
 import { AddIssue } from '../../../src/application/use-cases/AddIssue.js';
 import { AuthenticateTeam } from '../../../src/application/use-cases/AuthenticateTeam.js';
 import { CastVote } from '../../../src/application/use-cases/CastVote.js';
+import { ChangeGameDeck } from '../../../src/application/use-cases/ChangeGameDeck.js';
 import { CreateGame } from '../../../src/application/use-cases/CreateGame.js';
 import { CreateTeam } from '../../../src/application/use-cases/CreateTeam.js';
 import { DeleteCustomDeck } from '../../../src/application/use-cases/DeleteCustomDeck.js';
 import { GetGameState } from '../../../src/application/use-cases/GetGameState.js';
 import { JoinGame } from '../../../src/application/use-cases/JoinGame.js';
 import { ListDecks } from '../../../src/application/use-cases/ListDecks.js';
+import { ListGameDecks } from '../../../src/application/use-cases/ListGameDecks.js';
 import { RevealRound } from '../../../src/application/use-cases/RevealRound.js';
 import { SaveCustomDeck } from '../../../src/application/use-cases/SaveCustomDeck.js';
 import { StartQuickRound } from '../../../src/application/use-cases/StartQuickRound.js';
@@ -69,6 +71,8 @@ export async function startTestServer(): Promise<TestServer> {
   const timeoutReveal = new TimeoutReveal(games, events, clock);
   const setFinalEstimate = new SetFinalEstimate(games, events, clock);
   const updateGameSettings = new UpdateGameSettings(games, events, clock);
+  const changeGameDeck = new ChangeGameDeck(games, decks, events, clock);
+  const listGameDecks = new ListGameDecks(games, decks);
   const getGameState = new GetGameState(games);
 
   const createTeam = new CreateTeam(teams, tokenHasher, ids);
@@ -84,6 +88,8 @@ export async function startTestServer(): Promise<TestServer> {
     addIssue,
     getGameState,
     updateGameSettings,
+    changeGameDeck,
+    listGameDecks,
     versions,
   });
   registerTeamRoutes(app, {

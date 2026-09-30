@@ -95,6 +95,11 @@ export class WsEventPublisher implements EventPublisher {
             revealOnTimeout: event.settings.revealOnTimeout,
           },
         };
+      case 'GameDeckChanged':
+        return {
+          type: 'deck_changed',
+          deck: { cards: event.deck.values().map((card) => card.raw) },
+        };
     }
   }
 

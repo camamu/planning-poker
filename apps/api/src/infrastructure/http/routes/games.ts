@@ -1,14 +1,17 @@
 import {
   addIssueCommandSchema,
+  changeGameDeckCommandSchema,
   createGameCommandSchema,
   joinGameCommandSchema,
   updateGameSettingsCommandSchema,
 } from '@pp/contracts';
 import type { FastifyInstance } from 'fastify';
 import type { AddIssue } from '../../../application/use-cases/AddIssue.js';
+import type { ChangeGameDeck } from '../../../application/use-cases/ChangeGameDeck.js';
 import type { CreateGame } from '../../../application/use-cases/CreateGame.js';
 import type { GetGameState } from '../../../application/use-cases/GetGameState.js';
 import type { JoinGame } from '../../../application/use-cases/JoinGame.js';
+import type { ListGameDecks } from '../../../application/use-cases/ListGameDecks.js';
 import type { UpdateGameSettings } from '../../../application/use-cases/UpdateGameSettings.js';
 import { GameId } from '../../../domain/game/ids.js';
 import type { GameVersionTracker } from '../../realtime/GameVersionTracker.js';
@@ -20,6 +23,8 @@ export interface GameRoutesDependencies {
   readonly addIssue: AddIssue;
   readonly getGameState: GetGameState;
   readonly updateGameSettings: UpdateGameSettings;
+  readonly changeGameDeck: ChangeGameDeck;
+  readonly listGameDecks: ListGameDecks;
   readonly versions: GameVersionTracker;
 }
 
@@ -125,6 +130,29 @@ export function registerGameRoutes(app: FastifyInstance, deps: GameRoutesDepende
           countdownSeconds: command.settings.countdownSeconds,
           revealOnTimeout: command.settings.revealOnTimeout,
         },
+      });
+      await reply.code(204).send();
+    } catch (error) {
+      sendError(reply, error);
+    }
+  });
+
+  app.get<{ Params: GameIdParams }>('/api/games/:id/decks', async (request, reply) => {
+    try {
+      const decks = await deps.listGameDecks.execute({ gameId: request.params.id });
+      await reply.send(decks);
+    } catch (error) {
+      sendError(reply, error);
+    }
+  });
+
+  app.patch<{ Params: GameIdParams }>('/api/games/:id/deck', async (request, reply) => {
+    try {
+      const command = changeGameDeckCommandSchema.parse(request.body);
+      await deps.changeGameDeck.execute({
+        gameId: request.params.id,
+        participantId: command.participantId,
+        deckId: command.deckId,
       });
       await reply.code(204).send();
     } catch (error) {
