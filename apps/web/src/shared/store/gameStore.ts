@@ -188,8 +188,10 @@ function applyEvent(event: ServerEvent): void {
   // El servidor no garantiza orden de entrega entre sockets/peticiones HTTP concurrentes (p. ej.
   // dos guardados de ajustes solapados): un evento con versión igual o anterior a la ya aplicada
   // es un duplicado o llegó desordenado, y aplicarlo igualmente revertiría el estado a algo más
-  // viejo (síntoma: ajustes/reacciones que "desaparecen" tras guardar).
-  if (event.version <= version) return;
+  // viejo (síntoma: ajustes/reacciones que "desaparecen" tras guardar). `state_sync` queda fuera:
+  // es una foto completa, no un parche, y el contador del servidor vive en memoria — una partida
+  // nueva o una API recién reiniciada responde con versión 0, que `connect()` ya dejó como actual.
+  if (event.type !== 'state_sync' && event.version <= version) return;
 
   const next = gameEventsReducer(game, event);
   // Abrir ronda nueva invalida el voto optimista en TODOS los clientes, no solo en el que pulsó
