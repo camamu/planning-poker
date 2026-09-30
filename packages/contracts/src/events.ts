@@ -77,4 +77,6 @@ export type EphemeralEvent =
       readonly roundId: string;
       readonly running: boolean;
       readonly remainingMs: number;
-    };
+    }
+  // La partida se ha borrado desde el panel de gestión: no hay estado que sincronizar después.
+  | { readonly type: 'game_closed' };

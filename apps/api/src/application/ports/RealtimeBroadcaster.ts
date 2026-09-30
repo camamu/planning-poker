@@ -8,4 +8,6 @@ import type { GameId } from '../../domain/game/ids.js';
  */
 export interface RealtimeBroadcaster {
   broadcastToGame(gameId: GameId, event: ServerEvent): Promise<void>;
+  /** Avisa a quien siga en la mesa de que la partida ya no existe y vacía la room. */
+  closeGame(gameId: GameId): Promise<void>;
 }

@@ -11,6 +11,9 @@ services:
       - CORS_ORIGIN=http://localhost:5173
       - LOG_LEVEL=info
       - SESSION_SECRET=dev-secret-change-me
+      # Panel /admin en local: usuario `admin`, contraseña `admin-dev-change-me`.
+      - ADMIN_USERNAME=admin
+      - ADMIN_PASSWORD_HASH=scrypt:njzt-OMxbpShy0fg6Cp_Tw:Vj4gWxw5YMNzjGoltMXKEwI5oOcaZT9hsAooMXY2-2-BW_00ZgpwkSQJTVGAwtPa0MMDqnUkDaxtFTPuED6B2A
     ports: ['3000:3000']
     depends_on:
       db: { condition: service_healthy }

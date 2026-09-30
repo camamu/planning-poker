@@ -45,3 +45,23 @@ describe('Team.hasTokenHash', () => {
     expect(team.hasTokenHash('otro-hash')).toBe(false);
   });
 });
+
+describe('Team.rename', () => {
+  it('renombrar un equipo conserva su slug para no romper los enlaces repartidos', () => {
+    const renamed = makeTeam().rename(TeamName.of('Plataforma'));
+
+    expect(renamed.name.value).toBe('Plataforma');
+    expect(renamed.slug.value).toBe('backend-team');
+    expect(renamed.hasTokenHash('hash-1')).toBe(true);
+  });
+});
+
+describe('Team.rotateToken', () => {
+  it('regenerar el token invalida el anterior', () => {
+    const rotated = makeTeam('hash-viejo').rotateToken('hash-nuevo');
+
+    expect(rotated.hasTokenHash('hash-viejo')).toBe(false);
+    expect(rotated.hasTokenHash('hash-nuevo')).toBe(true);
+    expect(rotated.slug.value).toBe('backend-team');
+  });
+});

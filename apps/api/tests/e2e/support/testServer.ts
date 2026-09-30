@@ -8,9 +8,18 @@ import { ChangeGameDeck } from '../../../src/application/use-cases/ChangeGameDec
 import { CreateGame } from '../../../src/application/use-cases/CreateGame.js';
 import { CreateTeam } from '../../../src/application/use-cases/CreateTeam.js';
 import { DeleteCustomDeck } from '../../../src/application/use-cases/DeleteCustomDeck.js';
+import { DeleteDeckAsAdmin } from '../../../src/application/use-cases/DeleteDeckAsAdmin.js';
+import { DeleteGame } from '../../../src/application/use-cases/DeleteGame.js';
+import { DeleteTeam } from '../../../src/application/use-cases/DeleteTeam.js';
 import { GetGameState } from '../../../src/application/use-cases/GetGameState.js';
 import { JoinGame } from '../../../src/application/use-cases/JoinGame.js';
 import { ListDecks } from '../../../src/application/use-cases/ListDecks.js';
+import { ListDecksForAdmin } from '../../../src/application/use-cases/ListDecksForAdmin.js';
+import { ListGamesForAdmin } from '../../../src/application/use-cases/ListGamesForAdmin.js';
+import { ListTeamsForAdmin } from '../../../src/application/use-cases/ListTeamsForAdmin.js';
+import { LogInAdmin } from '../../../src/application/use-cases/LogInAdmin.js';
+import { RegenerateTeamToken } from '../../../src/application/use-cases/RegenerateTeamToken.js';
+import { RenameTeam } from '../../../src/application/use-cases/RenameTeam.js';
 import { ListGameDecks } from '../../../src/application/use-cases/ListGameDecks.js';
 import { RevealRound } from '../../../src/application/use-cases/RevealRound.js';
 import { SaveCustomDeck } from '../../../src/application/use-cases/SaveCustomDeck.js';
@@ -20,6 +29,8 @@ import { SetFinalEstimate } from '../../../src/application/use-cases/SetFinalEst
 import { TimeoutReveal } from '../../../src/application/use-cases/TimeoutReveal.js';
 import { UpdateCustomDeck } from '../../../src/application/use-cases/UpdateCustomDeck.js';
 import { UpdateGameSettings } from '../../../src/application/use-cases/UpdateGameSettings.js';
+import { LoginThrottle } from '../../../src/infrastructure/http/LoginThrottle.js';
+import { registerAdminRoutes } from '../../../src/infrastructure/http/routes/admin.js';
 import { registerGameRoutes } from '../../../src/infrastructure/http/routes/games.js';
 import { registerTeamRoutes } from '../../../src/infrastructure/http/routes/teams.js';
 import { UuidGenerator } from '../../../src/infrastructure/ids/UuidGenerator.js';
@@ -31,8 +42,18 @@ import { GameVersionTracker } from '../../../src/infrastructure/realtime/GameVer
 import { registerSocketGateway } from '../../../src/infrastructure/realtime/SocketIoGateway.js';
 import { SocketIoBroadcaster } from '../../../src/infrastructure/realtime/SocketIoBroadcaster.js';
 import { WsEventPublisher } from '../../../src/infrastructure/realtime/WsEventPublisher.js';
+import { HmacAdminSessions } from '../../../src/infrastructure/security/HmacAdminSessions.js';
 import { HmacTokenHasher } from '../../../src/infrastructure/security/HmacTokenHasher.js';
+import { ScryptAdminCredentials } from '../../../src/infrastructure/security/ScryptAdminCredentials.js';
 import { SystemClock } from '../../../src/infrastructure/time/SystemClock.js';
+
+/** Credenciales del panel en el servidor de test; el hash se pasa a `startTestServer`. */
+export const TEST_ADMIN = { username: 'admin', password: 'contraseña-de-test' } as const;
+
+export interface TestServerOptions {
+  /** Resultado de `hashAdminPassword(TEST_ADMIN.password)`, calculado una vez por suite. */
+  readonly adminPasswordHash?: string;
+}
 
 export interface TestServer {
   readonly app: FastifyInstance;
@@ -45,7 +66,7 @@ export interface TestServer {
  * `InMemoryGameRepository`: este test ejercita HTTP+WS de punta a punta, no la persistencia
  * (eso ya lo cubre `tests/contract` contra Postgres real).
  */
-export async function startTestServer(): Promise<TestServer> {
+export async function startTestServer(options: TestServerOptions = {}): Promise<TestServer> {
   const app = Fastify({ logger: false });
 
   const games = new InMemoryGameRepository();
@@ -100,6 +121,27 @@ export async function startTestServer(): Promise<TestServer> {
     updateCustomDeck,
     deleteCustomDeck,
   });
+  if (options.adminPasswordHash !== undefined) {
+    const adminSessions = new HmacAdminSessions('test-session-secret', 60 * 60 * 1000);
+    await registerAdminRoutes(app, {
+      logInAdmin: new LogInAdmin(
+        new ScryptAdminCredentials(TEST_ADMIN.username, options.adminPasswordHash),
+        adminSessions,
+        clock,
+      ),
+      sessions: adminSessions,
+      throttle: new LoginThrottle(5, 15 * 60 * 1000),
+      clock,
+      listGamesForAdmin: new ListGamesForAdmin(games, teams),
+      deleteGame: new DeleteGame(games, broadcaster),
+      listTeamsForAdmin: new ListTeamsForAdmin(teams, decks, games),
+      renameTeam: new RenameTeam(teams),
+      regenerateTeamToken: new RegenerateTeamToken(teams, tokenHasher, ids),
+      deleteTeam: new DeleteTeam(teams, decks),
+      listDecksForAdmin: new ListDecksForAdmin(decks, teams),
+      deleteDeckAsAdmin: new DeleteDeckAsAdmin(decks),
+    });
+  }
   registerSocketGateway(io, {
     getGameState,
     castVote,

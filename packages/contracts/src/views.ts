@@ -83,3 +83,40 @@ export interface DeckSummaryView {
   readonly cards: ReadonlyArray<string>;
   readonly teamId: string | null;
 }
+
+/** `POST /api/admin/session` — el token va en `Authorization: Bearer` en el resto de `/api/admin/*`. */
+export interface AdminSessionView {
+  readonly token: string;
+  readonly expiresAt: string;
+}
+
+export interface AdminGameView {
+  readonly id: string;
+  readonly name: string;
+  readonly team: { readonly id: string; readonly name: string } | null;
+  readonly participantCount: number;
+  readonly issueCount: number;
+  readonly estimatedIssueCount: number;
+  readonly createdAt: string;
+}
+
+export interface AdminTeamView {
+  readonly id: string;
+  readonly slug: string;
+  readonly name: string;
+  readonly deckCount: number;
+  readonly gameCount: number;
+}
+
+export interface AdminDeckView {
+  readonly id: string;
+  readonly name: string;
+  readonly cards: ReadonlyArray<string>;
+  readonly team: { readonly id: string; readonly name: string } | null;
+}
+
+/** `POST /api/admin/teams/:teamId/token` — el token nuevo en claro, una única vez. */
+export interface AdminTeamTokenView {
+  readonly slug: string;
+  readonly token: string;
+}

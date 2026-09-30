@@ -1,5 +1,5 @@
 import type { Kysely } from 'kysely';
-import type { GameRepository } from '../../../application/ports/GameRepository.js';
+import type { GameRepository, GameSummary } from '../../../application/ports/GameRepository.js';
 import type { Game } from '../../../domain/game/Game.js';
 import type { GameId } from '../../../domain/game/ids.js';
 import {
@@ -99,5 +99,50 @@ export class PostgresGameRepository implements GameRepository {
         await trx.insertInto('votes').values(voteRows).execute();
       }
     });
+  }
+
+  async listSummaries(): Promise<ReadonlyArray<GameSummary>> {
+    const rows = await this.db
+      .selectFrom('games')
+      .select((eb) => [
+        'games.id',
+        'games.name',
+        'games.team_id',
+        'games.created_at',
+        eb
+          .selectFrom('participants')
+          .select((sub) => sub.fn.countAll<string>().as('count'))
+          .whereRef('participants.game_id', '=', 'games.id')
+          .as('participant_count'),
+        eb
+          .selectFrom('issues')
+          .select((sub) => sub.fn.countAll<string>().as('count'))
+          .whereRef('issues.game_id', '=', 'games.id')
+          .as('issue_count'),
+        eb
+          .selectFrom('issues')
+          .select((sub) => sub.fn.countAll<string>().as('count'))
+          .whereRef('issues.game_id', '=', 'games.id')
+          .where('issues.status', '=', 'ESTIMATED')
+          .as('estimated_issue_count'),
+      ])
+      .orderBy('games.created_at', 'desc')
+      .execute();
+
+    // `count(*)` llega como string (bigint en pg) y el subselect escalar se tipa como nullable.
+    return rows.map((row) => ({
+      id: row.id,
+      name: row.name,
+      teamId: row.team_id,
+      participantCount: Number(row.participant_count ?? 0),
+      issueCount: Number(row.issue_count ?? 0),
+      estimatedIssueCount: Number(row.estimated_issue_count ?? 0),
+      createdAt: row.created_at,
+    }));
+  }
+
+  /** Participantes, issues, rondas y votos caen por las FK en cascada de la migración 0001. */
+  async delete(id: GameId): Promise<void> {
+    await this.db.deleteFrom('games').where('id', '=', id.value).execute();
   }
 }
