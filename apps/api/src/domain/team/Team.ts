@@ -31,6 +31,16 @@ export class Team {
     return new Team(props.id, props.slug, props.name, props.tokenHash);
   }
 
+  /** El slug no cambia al renombrar: es lo que llevan los enlaces ya repartidos. */
+  rename(name: TeamName): Team {
+    return new Team(this.id, this.slug, name, this.tokenHash);
+  }
+
+  /** Sustituye el token de acceso: el enlace anterior deja de resolver en cuanto se persiste. */
+  rotateToken(tokenHash: string): Team {
+    return new Team(this.id, this.slug, this.name, tokenHash);
+  }
+
   hasTokenHash(candidateHash: string): boolean {
     return this.tokenHash === candidateHash;
   }
