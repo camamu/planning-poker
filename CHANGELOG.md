@@ -1,5 +1,12 @@
 # Changelog
 
+## [1.4.1](https://github.com/camamu/planning-poker/compare/planning-poker-v1.4.0...planning-poker-v1.4.1) (2026-09-30)
+
+
+### Bug Fixes
+
+* **web:** aplicar siempre state_sync aunque su versión no sea mayor ([655e82b](https://github.com/camamu/planning-poker/commit/655e82bd4bd8e0340af1312f2523ddd2cf463d89))
+
 ## [1.4.0](https://github.com/camamu/planning-poker/compare/planning-poker-v1.3.0...planning-poker-v1.4.0) (2026-09-30)
 
 
