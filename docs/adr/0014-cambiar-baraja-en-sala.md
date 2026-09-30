@@ -1,4 +1,4 @@
-# 0013 — Cambiar de baraja dentro de una sala
+# 0014 — Cambiar de baraja dentro de una sala
 
 ## Contexto
 
