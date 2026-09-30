@@ -8,9 +8,18 @@ import { CastVote } from './application/use-cases/CastVote.js';
 import { CreateGame } from './application/use-cases/CreateGame.js';
 import { CreateTeam } from './application/use-cases/CreateTeam.js';
 import { DeleteCustomDeck } from './application/use-cases/DeleteCustomDeck.js';
+import { DeleteDeckAsAdmin } from './application/use-cases/DeleteDeckAsAdmin.js';
+import { DeleteGame } from './application/use-cases/DeleteGame.js';
+import { DeleteTeam } from './application/use-cases/DeleteTeam.js';
 import { GetGameState } from './application/use-cases/GetGameState.js';
 import { JoinGame } from './application/use-cases/JoinGame.js';
 import { ListDecks } from './application/use-cases/ListDecks.js';
+import { ListDecksForAdmin } from './application/use-cases/ListDecksForAdmin.js';
+import { ListGamesForAdmin } from './application/use-cases/ListGamesForAdmin.js';
+import { ListTeamsForAdmin } from './application/use-cases/ListTeamsForAdmin.js';
+import { LogInAdmin } from './application/use-cases/LogInAdmin.js';
+import { RegenerateTeamToken } from './application/use-cases/RegenerateTeamToken.js';
+import { RenameTeam } from './application/use-cases/RenameTeam.js';
 import { RevealRound } from './application/use-cases/RevealRound.js';
 import { SaveCustomDeck } from './application/use-cases/SaveCustomDeck.js';
 import { StartQuickRound } from './application/use-cases/StartQuickRound.js';
@@ -22,6 +31,11 @@ import { ChangeGameDeck } from './application/use-cases/ChangeGameDeck.js';
 import { ListGameDecks } from './application/use-cases/ListGameDecks.js';
 import { UpdateGameSettings } from './application/use-cases/UpdateGameSettings.js';
 import { loadEnv } from './infrastructure/config/env.js';
+import { LoginThrottle } from './infrastructure/http/LoginThrottle.js';
+import {
+  registerAdminRoutes,
+  registerDisabledAdminRoutes,
+} from './infrastructure/http/routes/admin.js';
 import { registerGameRoutes } from './infrastructure/http/routes/games.js';
 import { registerHealthRoutes } from './infrastructure/http/routes/health.js';
 import { registerTeamRoutes } from './infrastructure/http/routes/teams.js';
@@ -35,10 +49,13 @@ import { GameVersionTracker } from './infrastructure/realtime/GameVersionTracker
 import { registerSocketGateway } from './infrastructure/realtime/SocketIoGateway.js';
 import { SocketIoBroadcaster } from './infrastructure/realtime/SocketIoBroadcaster.js';
 import { WsEventPublisher } from './infrastructure/realtime/WsEventPublisher.js';
+import { HmacAdminSessions } from './infrastructure/security/HmacAdminSessions.js';
 import { HmacTokenHasher } from './infrastructure/security/HmacTokenHasher.js';
+import { ScryptAdminCredentials } from './infrastructure/security/ScryptAdminCredentials.js';
 import { SystemClock } from './infrastructure/time/SystemClock.js';
 
 const env = loadEnv();
+const ADMIN_SESSION_TTL_MS = 8 * 60 * 60 * 1000;
 
 const app = Fastify({ logger: { level: env.LOG_LEVEL } });
 const pool = new Pool({ connectionString: env.DATABASE_URL });
@@ -106,6 +123,33 @@ registerTeamRoutes(app, {
   updateCustomDeck,
   deleteCustomDeck,
 });
+if (env.ADMIN_USERNAME !== undefined && env.ADMIN_PASSWORD_HASH !== undefined) {
+  // Con el hash de la contraseña en la clave, cambiarla cierra todas las sesiones abiertas.
+  const adminSessions = new HmacAdminSessions(
+    `${env.SESSION_SECRET}:${env.ADMIN_PASSWORD_HASH}`,
+    ADMIN_SESSION_TTL_MS,
+  );
+  await registerAdminRoutes(app, {
+    logInAdmin: new LogInAdmin(
+      new ScryptAdminCredentials(env.ADMIN_USERNAME, env.ADMIN_PASSWORD_HASH),
+      adminSessions,
+      clock,
+    ),
+    sessions: adminSessions,
+    throttle: new LoginThrottle(5, 15 * 60 * 1000),
+    clock,
+    listGamesForAdmin: new ListGamesForAdmin(games, teams),
+    deleteGame: new DeleteGame(games, broadcaster),
+    listTeamsForAdmin: new ListTeamsForAdmin(teams, decks, games),
+    renameTeam: new RenameTeam(teams),
+    regenerateTeamToken: new RegenerateTeamToken(teams, tokenHasher, ids),
+    deleteTeam: new DeleteTeam(teams, decks),
+    listDecksForAdmin: new ListDecksForAdmin(decks, teams),
+    deleteDeckAsAdmin: new DeleteDeckAsAdmin(decks),
+  });
+} else {
+  registerDisabledAdminRoutes(app);
+}
 registerSocketGateway(io, {
   getGameState,
   castVote,
