@@ -1,5 +1,18 @@
 # Changelog
 
+## [1.4.0](https://github.com/camamu/planning-poker/compare/planning-poker-v1.3.0...planning-poker-v1.4.0) (2026-09-30)
+
+
+### Features
+
+* **app:** permitir cambiar de baraja dentro de una sala ([556239d](https://github.com/camamu/planning-poker/commit/556239d1accc7aa8a53cb4374397e0c820194189))
+
+
+### Bug Fixes
+
+* **infra:** enable RLS on public tables ([df89bcf](https://github.com/camamu/planning-poker/commit/df89bcf3b9a64f79d75ad93c65f49bbd0005972e))
+* **web:** selector de emojis más grande, ajustes que no se pisan y nuevos emojis de lanzamiento ([1f70d3c](https://github.com/camamu/planning-poker/commit/1f70d3c4046c29dd8342a84c901a616ba9449bba))
+
 ## [1.3.0](https://github.com/camamu/planning-poker/compare/planning-poker-v1.2.1...planning-poker-v1.3.0) (2026-09-17)
 
 
