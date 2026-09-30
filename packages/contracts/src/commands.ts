@@ -141,3 +141,16 @@ export const wsDiscussionTimerControlCommandSchema = z.object({
 export type WsDiscussionTimerControlCommandInput = z.infer<
   typeof wsDiscussionTimerControlCommandSchema
 >;
+
+/** REST — `POST /api/admin/session` */
+export const adminLoginCommandSchema = z.object({
+  username: z.string().min(1),
+  password: z.string().min(1),
+});
+export type AdminLoginCommandInput = z.infer<typeof adminLoginCommandSchema>;
+
+/** REST — `PATCH /api/admin/teams/:teamId` */
+export const renameTeamCommandSchema = z.object({
+  name: z.string().trim().min(1),
+});
+export type RenameTeamCommandInput = z.infer<typeof renameTeamCommandSchema>;
