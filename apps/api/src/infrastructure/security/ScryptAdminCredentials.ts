@@ -1,8 +1,14 @@
 import { randomBytes, scrypt, timingSafeEqual } from 'node:crypto';
-import { promisify } from 'node:util';
 import type { AdminCredentials } from '../../application/ports/AdminCredentials.js';
 
-const scryptAsync = promisify(scrypt);
+function scryptAsync(password: string, salt: Buffer, keyLength: number): Promise<Buffer> {
+  return new Promise((resolve, reject) => {
+    scrypt(password, salt, keyLength, (error, derived) => {
+      if (error) reject(error);
+      else resolve(derived);
+    });
+  });
+}
 const KEY_LENGTH = 64;
 const PREFIX = 'scrypt';
 
@@ -12,7 +18,7 @@ const PREFIX = 'scrypt';
  */
 export async function hashAdminPassword(password: string): Promise<string> {
   const salt = randomBytes(16);
-  const derived = (await scryptAsync(password, salt, KEY_LENGTH)) as Buffer;
+  const derived = await scryptAsync(password, salt, KEY_LENGTH);
   return [PREFIX, salt.toString('base64url'), derived.toString('base64url')].join(':');
 }
 
@@ -41,7 +47,7 @@ export class ScryptAdminCredentials implements AdminCredentials {
   async matches(username: string, password: string): Promise<boolean> {
     // La contraseña se deriva siempre, aunque el usuario no coincida: si no, el tiempo de respuesta
     // delataría cuándo se ha acertado el usuario.
-    const derived = (await scryptAsync(password, this.salt, KEY_LENGTH)) as Buffer;
+    const derived = await scryptAsync(password, this.salt, KEY_LENGTH);
     const usernameMatches = equalInConstantTime(
       Buffer.from(username, 'utf8'),
       Buffer.from(this.username, 'utf8'),
