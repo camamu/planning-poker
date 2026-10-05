@@ -2,8 +2,9 @@ import type { GameSettingsView, GameView } from '@pp/contracts';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 import { useGameStore } from './gameStore.js';
 
-const { handlers } = vi.hoisted(() => ({
+const { handlers, emit } = vi.hoisted(() => ({
   handlers: new Map<string, (event: unknown) => void>(),
+  emit: vi.fn(),
 }));
 
 vi.mock('../socket/connection.js', () => ({
@@ -11,7 +12,7 @@ vi.mock('../socket/connection.js', () => ({
     connected: false,
     connect: vi.fn(),
     disconnect: vi.fn(),
-    emit: vi.fn(),
+    emit,
     on: (event: string, handler: (payload: unknown) => void) => {
       handlers.set(event, handler);
     },
@@ -81,6 +82,18 @@ describe('gameStore', () => {
     expect(state.gameId).toBe('game-1');
     expect(state.participantId).toBe('p1');
     expect(state.status).toBe('connecting');
+  });
+
+  it('cada conexión del socket, también una reconexión automática, vuelve a unirse a la partida', () => {
+    useGameStore.getState().connect('game-1', 'p1');
+    const onConnect = handlers.get('connect');
+    emit.mockClear();
+
+    onConnect?.(undefined);
+    onConnect?.(undefined);
+
+    expect(emit).toHaveBeenCalledTimes(2);
+    expect(emit).toHaveBeenLastCalledWith('join', { gameId: 'game-1', participantId: 'p1' });
   });
 
   it('connect() reinicia version a 0 al cambiar de partida', () => {
