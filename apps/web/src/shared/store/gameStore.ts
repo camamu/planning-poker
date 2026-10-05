@@ -92,7 +92,6 @@ export const useGameStore = create<GameStoreState>((set, get) => ({
     // socket no se ha conectado nunca, desconectar antes de conectar solo añade un intento fallido.
     if (socket.connected) socket.disconnect();
     socket.connect();
-    socket.emit('join', { gameId, participantId });
   },
 
   clearError() {
@@ -213,8 +212,13 @@ function applyEvent(event: ServerEvent): void {
 // socket durante toda la vida de la app, y volver a registrarlos en cada `connect()` los apilaría.
 const socket = getSocket();
 
+// Cada conexión, también las reconexiones automáticas de Socket.IO, es un socket nuevo en el
+// servidor y sin rooms: sin volver a emitir `join` aquí, tras un corte o un reinicio de la API el
+// cliente deja de recibir eventos y la mesa se queda congelada aunque los cambios sí se guarden.
 socket.on('connect', () => {
   useGameStore.setState({ status: 'connected' });
+  const { gameId, participantId } = useGameStore.getState();
+  if (gameId && participantId) socket.emit('join', { gameId, participantId });
 });
 socket.on('disconnect', () => {
   useGameStore.setState({ status: 'disconnected' });
