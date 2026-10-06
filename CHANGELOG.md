@@ -1,5 +1,12 @@
 # Changelog
 
+## [1.4.2](https://github.com/camamu/planning-poker/compare/planning-poker-v1.4.1...planning-poker-v1.4.2) (2026-10-05)
+
+
+### Bug Fixes
+
+* **web:** vuelve a unirse a la partida tras una reconexión del socket ([1404f08](https://github.com/camamu/planning-poker/commit/1404f0858b32e650a554440d9381cc8037ec6a9d))
+
 ## [1.4.1](https://github.com/camamu/planning-poker/compare/planning-poker-v1.4.0...planning-poker-v1.4.1) (2026-09-30)
 
 
