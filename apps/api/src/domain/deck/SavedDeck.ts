@@ -16,6 +16,12 @@ export class DeckNotAvailableError extends DomainError {
   }
 }
 
+export class SystemDeckNotDeletableError extends DomainError {
+  constructor(deckId: string) {
+    super(`La baraja "${deckId}" es de sistema y no se puede borrar.`);
+  }
+}
+
 export interface SavedDeckProps {
   readonly id: DeckId;
   /** `null` = baraja de sistema, visible para todos y no editable. */
@@ -71,6 +77,11 @@ export class SavedDeck {
 
   assertOwnedBy(teamId: TeamId): void {
     if (!this.belongsTo(teamId)) throw new DeckNotOwnedByTeamError(this.id.value);
+  }
+
+  /** Las de sistema tienen ID fijo sembrado por migración: borrarlas rompería `CreateGame`. */
+  assertDeletable(): void {
+    if (!this.isCustom()) throw new SystemDeckNotDeletableError(this.id.value);
   }
 
   currentDeck(): Deck {

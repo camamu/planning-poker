@@ -260,5 +260,55 @@ export function defineGameRepositoryContractTests(
         new Date(NOW.getTime() + 45_000),
       );
     });
+    it('listSummaries() cuenta participantes, issues e issues estimadas de cada partida', async () => {
+      const repository = await makeRepository();
+      const { game, facilitatorId } = newGame('game-summary');
+      game.addIssue(IssueId.of('summary-issue-1'), 'Implementar login', NOW);
+      game.addIssue(IssueId.of('summary-issue-2'), 'Implementar logout', NOW);
+      game.startVotingRound(RoundId.of('summary-round-1'), IssueId.of('summary-issue-1'), NOW);
+      game.castVote(facilitatorId, CardValue.of('8'), NOW);
+      game.reveal(facilitatorId, NOW);
+      game.setFinalEstimate(CardValue.of('8'), facilitatorId, NOW);
+      await repository.save(game);
+
+      const [summary] = await repository.listSummaries();
+
+      expect(summary).toMatchObject({
+        id: 'game-summary',
+        name: 'Sprint 42',
+        teamId: null,
+        participantCount: 1,
+        issueCount: 2,
+        estimatedIssueCount: 1,
+      });
+      expect(summary?.createdAt).toBeInstanceOf(Date);
+    });
+
+    it('listSummaries() devuelve las partidas más recientes primero', async () => {
+      const repository = await makeRepository();
+      await repository.save(newGame('game-older').game);
+      await repository.save(newGame('game-newer').game);
+
+      const summaries = await repository.listSummaries();
+
+      expect(summaries.map((summary) => summary.id)).toEqual(['game-newer', 'game-older']);
+    });
+
+    it('delete() borra la partida junto con sus participantes, issues y rondas', async () => {
+      const repository = await makeRepository();
+      const { game, facilitatorId } = newGame('game-deleted');
+      game.addIssue(IssueId.of('deleted-issue-1'), 'Implementar login', NOW);
+      game.startVotingRound(RoundId.of('deleted-round-1'), IssueId.of('deleted-issue-1'), NOW);
+      game.castVote(facilitatorId, CardValue.of('5'), NOW);
+      await repository.save(game);
+      await repository.save(newGame('game-kept').game);
+
+      await repository.delete(GameId.of('game-deleted'));
+
+      await expect(repository.findById(GameId.of('game-deleted'))).resolves.toBeUndefined();
+      expect((await repository.listSummaries()).map((summary) => summary.id)).toEqual([
+        'game-kept',
+      ]);
+    });
   });
 }

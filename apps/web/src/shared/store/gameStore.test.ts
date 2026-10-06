@@ -151,4 +151,15 @@ describe('gameStore', () => {
     expect(state.game?.id).toBe('game-1');
     expect(state.version).toBe(3);
   });
+
+  it('game_closed deja la mesa sin partida y con el aviso de que la sala se ha cerrado', () => {
+    useGameStore.setState({ game: baseGame(), selectedCard: '3' });
+
+    handlers.get('game_closed')?.({ type: 'game_closed' });
+
+    const state = useGameStore.getState();
+    expect(state.game).toBeNull();
+    expect(state.selectedCard).toBeNull();
+    expect(state.errorMessage).toMatch(/administrador/);
+  });
 });

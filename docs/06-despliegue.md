@@ -91,7 +91,12 @@ VPS, no de parchear con más automatismos.
    CORS_ORIGIN        → https://<dominio-de-cloudflare-pages>
    LOG_LEVEL          → info
    SESSION_SECRET     → generado, guardado como secreto de Render
+   ADMIN_USERNAME     → usuario del panel /admin (opcional, junto con el siguiente)
+   ADMIN_PASSWORD_HASH→ salida de `pnpm --filter @pp/api admin:hash-password`, como secreto
    ```
+   Sin `ADMIN_USERNAME`/`ADMIN_PASSWORD_HASH` el panel de gestión queda desactivado (`/api/admin/*`
+   responde 503); ver `docs/adr/0015-panel-de-gestion.md`. Cambiar la contraseña (o
+   `SESSION_SECRET`) cierra todas las sesiones de administración abiertas.
    `APP_VERSION` no se define aquí: viaja dentro de la imagen, inyectada por `publish.yml` con el tag
    de la release, y es lo que `deploy.yml` comprueba contra `/health`.
 4. Copiar la **Deploy Hook URL** de Settings y guardarla como secreto `RENDER_DEPLOY_HOOK_URL` en

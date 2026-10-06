@@ -8,11 +8,12 @@
     "build": "tsc -p tsconfig.build.json",
     "typecheck": "tsc -p tsconfig.test.json",
     "test": "vitest run",
-    "test:unit": "vitest run tests/domain tests/use-cases",
+    "test:unit": "vitest run tests/domain tests/use-cases tests/infrastructure",
     "test:contract": "vitest run tests/contract",
     "test:e2e": "vitest run tests/e2e",
     "migrate:up": "tsx src/infrastructure/persistence/postgres/migrate.ts up",
-    "migrate:down": "tsx src/infrastructure/persistence/postgres/migrate.ts down"
+    "migrate:down": "tsx src/infrastructure/persistence/postgres/migrate.ts down",
+    "admin:hash-password": "tsx src/infrastructure/security/hashAdminPasswordCli.ts"
   },
   "dependencies": {
     "@fastify/cors": "^11.3.0",
