@@ -55,6 +55,7 @@ export function toParticipantRows(game: Game): Insertable<ParticipantTable>[] {
     role: participant.currentRole(),
     is_facilitator: participant.isFacilitator,
     position: participant.joinOrder,
+    left: participant.hasLeft(),
   }));
 }
 
@@ -129,6 +130,7 @@ export function toDomainGame(rows: GameRowSet): Game {
         parseParticipantRole(row.role),
         row.is_facilitator,
         row.position,
+        row.left,
       ),
     ),
     issues: rows.issues.map((row) =>

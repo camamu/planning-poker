@@ -31,8 +31,8 @@ const baseGame: GameView = {
     revealOnTimeout: false,
   },
   participants: [
-    { id: 'p1', displayName: 'Yo', role: 'VOTER', isFacilitator: true },
-    { id: 'p2', displayName: 'Otro', role: 'VOTER', isFacilitator: false },
+    { id: 'p1', displayName: 'Yo', role: 'VOTER', isFacilitator: true, online: true },
+    { id: 'p2', displayName: 'Otro', role: 'VOTER', isFacilitator: false, online: true },
   ],
   issues: [],
   currentRound: {
@@ -59,6 +59,11 @@ function renderWith(
   return rendered;
 }
 
+const { removeParticipantRequest } = vi.hoisted(() => ({ removeParticipantRequest: vi.fn() }));
+vi.mock('../../../shared/api/gamesClient.js', () => ({
+  removeParticipant: removeParticipantRequest,
+}));
+
 describe('useGameTable', () => {
   it('recupera el voto propio del servidor cuando no hay voto optimista (recarga de página)', () => {
     const { result } = renderWith('p1', null);
@@ -73,5 +78,72 @@ describe('useGameTable', () => {
   it('no expone como propio el voto de otro participante', () => {
     const { result } = renderWith('p2', null);
     expect(result.current.selectedCard).toBeNull();
+  });
+
+  it('cuenta solo a los votantes conectados en "x de y han votado"', () => {
+    const { result } = renderWith('p1', null);
+    act(() => {
+      useGameStore.setState({
+        game: {
+          ...baseGame,
+          participants: [
+            { id: 'p1', displayName: 'Yo', role: 'VOTER', isFacilitator: true, online: true },
+            { id: 'p2', displayName: 'Otro', role: 'VOTER', isFacilitator: false, online: false },
+          ],
+        },
+      });
+    });
+
+    expect(result.current.totalVoters).toBe(1);
+    expect(result.current.votedCount).toBe(1);
+  });
+
+  it('mantiene en la mesa a los desconectados para poder quitarlos', () => {
+    const { result } = renderWith('p1', null);
+    act(() => {
+      useGameStore.setState({
+        game: {
+          ...baseGame,
+          participants: [
+            { id: 'p1', displayName: 'Yo', role: 'VOTER', isFacilitator: true, online: true },
+            { id: 'p2', displayName: 'Otro', role: 'VOTER', isFacilitator: false, online: false },
+          ],
+        },
+      });
+    });
+
+    expect(result.current.seats.map((seat) => [seat.id, seat.online])).toEqual([
+      ['p1', true],
+      ['p2', false],
+    ]);
+  });
+
+  it('indica si quien mira es el facilitador', () => {
+    expect(renderWith('p1', null).result.current.isFacilitator).toBe(true);
+    expect(renderWith('p2', null).result.current.isFacilitator).toBe(false);
+  });
+
+  it('al salir uno mismo muestra la pantalla de salida tras confirmarlo el servidor', async () => {
+    removeParticipantRequest.mockResolvedValue(undefined);
+    const { result } = renderWith('p2', null);
+
+    await act(async () => {
+      await result.current.removeParticipant('p2');
+    });
+
+    expect(removeParticipantRequest).toHaveBeenCalledWith('game-1', 'p2', 'p2');
+    expect(result.current.hasLeft).toBe(true);
+  });
+
+  it('si el servidor rechaza quitar a alguien muestra el error y no marca la salida', async () => {
+    removeParticipantRequest.mockRejectedValue(new Error('No puedes quitar a otro.'));
+    const { result } = renderWith('p2', null);
+
+    await act(async () => {
+      await result.current.removeParticipant('p1');
+    });
+
+    expect(result.current.hasLeft).toBe(false);
+    expect(result.current.errorMessage).toBe('No puedes quitar a otro.');
   });
 });

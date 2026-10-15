@@ -86,3 +86,15 @@ export function changeGameDeck(gameId: string, input: ChangeGameDeckCommandInput
     body: JSON.stringify(input),
   });
 }
+
+/** `requestedBy` es quien lo pide: el propio participante (salir) o el facilitador (quitar). */
+export function removeParticipant(
+  gameId: string,
+  participantId: string,
+  requestedBy: string,
+): Promise<void> {
+  return requestJson(`/api/games/${gameId}/participants/${participantId}`, {
+    method: 'DELETE',
+    body: JSON.stringify({ participantId: requestedBy }),
+  });
+}

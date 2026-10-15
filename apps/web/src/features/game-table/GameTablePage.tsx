@@ -24,9 +24,15 @@ import { useGameTable } from './hooks/useGameTable.js';
 export interface GameTablePageProps {
   readonly gameId: string;
   readonly participantId: string;
+  /** Tras salir o ser quitado: olvidar la identidad guardada y volver a la pantalla de unirse. */
+  readonly onRejoin: () => void;
 }
 
-export function GameTablePage({ gameId, participantId }: GameTablePageProps): JSX.Element {
+export function GameTablePage({
+  gameId,
+  participantId,
+  onRejoin,
+}: GameTablePageProps): JSX.Element {
   const table = useGameTable(gameId, participantId);
   const emoji = useEmojiThrow();
   const discussionTimer = useDiscussionTimer();
@@ -79,6 +85,28 @@ export function GameTablePage({ gameId, participantId }: GameTablePageProps): JS
     };
   }, [table.game, table.errorMessage, table.clearError]);
 
+  if (table.hasLeft) {
+    return (
+      <div
+        className="flex h-screen flex-col items-center justify-center gap-4 p-8 text-center"
+        style={{ background: 'var(--color-bg)' }}
+      >
+        <h1 className="text-lg">Has salido de la partida</h1>
+        <p className="text-sm" style={{ color: 'var(--pp-muted)' }}>
+          Ya no formas parte de esta mesa. Puedes volver a entrar cuando quieras.
+        </p>
+        <div className="flex gap-2">
+          <Button variant="primary" onClick={onRejoin}>
+            Volver a entrar
+          </Button>
+          <Link to="/">
+            <Button variant="secondary">Ir al inicio</Button>
+          </Link>
+        </div>
+      </div>
+    );
+  }
+
   if (!table.game && table.errorMessage) {
     return (
       <div
@@ -109,6 +137,11 @@ export function GameTablePage({ gameId, participantId }: GameTablePageProps): JS
   const me = game.participants.find((p) => p.id === participantId);
   const isMyTurnToVote = me?.role === 'VOTER';
 
+  function confirmRemove(targetId: string): void {
+    const name = game.participants.find((p) => p.id === targetId)?.displayName ?? 'esta persona';
+    if (window.confirm(`¿Quitar a ${name} de la partida?`)) void table.removeParticipant(targetId);
+  }
+
   return (
     <div
       className="flex min-h-screen flex-col lg:h-screen lg:overflow-hidden"
@@ -133,6 +166,14 @@ export function GameTablePage({ gameId, participantId }: GameTablePageProps): JS
         remainingMs={round?.status === 'OPEN' ? table.remainingMs : null}
         muted={table.muted}
         onToggleMuted={table.toggleMuted}
+        onLeave={
+          table.isFacilitator
+            ? undefined
+            : () => {
+                if (window.confirm('¿Salir de la partida?'))
+                  void table.removeParticipant(participantId);
+              }
+        }
         viewerId={participantId}
         onToggleIssues={() => {
           setIssuesOpen((open) => !open);
@@ -162,6 +203,7 @@ export function GameTablePage({ gameId, participantId }: GameTablePageProps): JS
                 emojisInFlight={emoji.emojisInFlight}
                 seatCursor={emoji.armedEmoji ? 'crosshair' : undefined}
                 onSeatClick={emoji.armedEmoji ? emoji.throwAtSeat : undefined}
+                onRemoveSeat={table.isFacilitator ? confirmRemove : undefined}
               />
             )}
           </div>
@@ -173,12 +215,31 @@ export function GameTablePage({ gameId, participantId }: GameTablePageProps): JS
                 <div
                   key={spectator.id}
                   className="flex items-center gap-1.5 rounded-full py-1 pl-1 pr-2.5"
-                  style={{ border: '1px dashed var(--pp-line)' }}
+                  style={{
+                    border: '1px dashed var(--pp-line)',
+                    opacity: spectator.online ? 1 : 0.45,
+                  }}
+                  title={
+                    spectator.online ? undefined : `${spectator.displayName} está desconectado`
+                  }
                 >
                   <Avatar seed={spectator.id} size={20} opacity={0.85} />
                   <span className="text-[11px]" style={{ color: 'var(--pp-muted)' }}>
                     {spectator.displayName}
                   </span>
+                  {table.isFacilitator ? (
+                    <button
+                      type="button"
+                      className="text-[10px]"
+                      style={{ color: 'var(--pp-muted)' }}
+                      aria-label={`Quitar a ${spectator.displayName}`}
+                      onClick={() => {
+                        confirmRemove(spectator.id);
+                      }}
+                    >
+                      ✕
+                    </button>
+                  ) : null}
                 </div>
               ))}
             </div>

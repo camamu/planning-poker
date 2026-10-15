@@ -15,6 +15,7 @@ export interface TableProps {
   readonly seats: ReadonlyArray<{
     readonly id: string;
     readonly displayName: string;
+    readonly online: boolean;
     readonly seat: SeatPosition;
   }>;
   readonly viewerId: string;
@@ -22,6 +23,8 @@ export interface TableProps {
   readonly emojisInFlight?: ReadonlyArray<EmojiInFlight> | undefined;
   readonly onSeatClick?: ((participantId: string) => void) | undefined;
   readonly seatCursor?: string | undefined;
+  /** Solo para el facilitador: quitar a otro participante de la mesa. */
+  readonly onRemoveSeat?: ((participantId: string) => void) | undefined;
 }
 
 export function Table({
@@ -33,6 +36,7 @@ export function Table({
   emojisInFlight = [],
   onSeatClick,
   seatCursor,
+  onRemoveSeat,
 }: TableProps): JSX.Element {
   const issue = round ? game.issues.find((candidate) => candidate.id === round.issueId) : undefined;
   const revealed = round?.status === 'REVEALED' || round?.status === 'CLOSED';
@@ -118,6 +122,14 @@ export function Table({
             seat={seat.seat}
             isDealer={round?.dealerId === seat.id}
             isViewer={seat.id === viewerId}
+            online={seat.online}
+            onRemove={
+              onRemoveSeat && seat.id !== viewerId
+                ? () => {
+                    onRemoveSeat(seat.id);
+                  }
+                : undefined
+            }
             badge={
               badges.feathers.has(seat.id)
                 ? 'feather'

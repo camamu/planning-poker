@@ -47,6 +47,8 @@ export class WsEventPublisher implements EventPublisher {
         return null;
       case 'ParticipantJoined':
         return { type: 'participant_joined', participantId: event.participantId.value };
+      case 'ParticipantLeft':
+        return { type: 'participant_left', participantId: event.participantId.value };
       case 'ParticipantRoleChanged':
         return {
           type: 'participant_role_changed',
