@@ -24,6 +24,18 @@ export class ParticipantNotFoundError extends DomainError {
   }
 }
 
+export class ParticipantRemovalNotAllowedError extends DomainError {
+  constructor(readonly participantId: ParticipantId) {
+    super(`El participante ${participantId.value} no puede quitar a otro de la partida.`);
+  }
+}
+
+export class FacilitatorCannotLeaveError extends DomainError {
+  constructor(readonly participantId: ParticipantId) {
+    super(`El facilitador ${participantId.value} no puede salir de la partida.`);
+  }
+}
+
 export class SpectatorCannotVoteError extends DomainError {
   constructor(readonly participantId: ParticipantId) {
     super(`El participante ${participantId.value} es espectador y no puede votar.`);
@@ -255,7 +267,12 @@ export class Game {
     });
   }
 
-  castVote(participantId: ParticipantId, card: CardValue, now: Date): void {
+  castVote(
+    participantId: ParticipantId,
+    card: CardValue,
+    now: Date,
+    present?: ReadonlyArray<ParticipantId>,
+  ): void {
     const participant = this.requireParticipant(participantId);
     if (participant.isSpectator()) throw new SpectatorCannotVoteError(participantId);
     if (!this.deck.contains(card)) throw new CardNotInDeckError(card);
@@ -275,9 +292,75 @@ export class Game {
       participantId,
     });
 
-    // autoReveal es una acción del sistema: se dispara directamente y no pasa por
-    // canReveal(), que solo aplica al reveal manual iniciado por un participante.
-    if (this.settings.autoReveal && round.everyVoterHasVoted(this.voterIds())) {
+    // Quien acaba de votar está presente por definición, aunque el seguimiento de presencia
+    // todavía no lo sepa (su socket puede estar a medio reconectar).
+    this.autoRevealIfComplete(round, present ? [...present, participantId] : undefined, now);
+  }
+
+  /**
+   * Revisa si la ronda abierta ya está completa cuando cambia quién está presente (invariante 8:
+   * "todos los VOTER presentes han votado"). Sin al menos un voto no revela: una ronda vacía no
+   * tiene resultado que mostrar. `present` ausente = nadie se descarta por estar desconectado.
+   */
+  reconcileAutoReveal(now: Date, present?: ReadonlyArray<ParticipantId>): void {
+    const round = this.openRound();
+    if (!round || round.voteCount() === 0) return;
+    this.autoRevealIfComplete(round, present, now);
+  }
+
+  /**
+   * Un participante sale (él mismo) o lo quita el facilitador. Es baja lógica: sus votos en rondas
+   * ya reveladas se conservan, pero su voto en la ronda abierta se retira porque ya no forma parte
+   * de ella. El facilitador no puede salir: sin él nadie podría tocar ajustes ni baraja.
+   */
+  removeParticipant(
+    targetId: ParticipantId,
+    requestedBy: ParticipantId,
+    now: Date,
+    present?: ReadonlyArray<ParticipantId>,
+  ): void {
+    const requester = this.requireParticipant(requestedBy);
+    const target = this.requireParticipant(targetId);
+    if (!requestedBy.equals(targetId) && !requester.isFacilitator) {
+      throw new ParticipantRemovalNotAllowedError(requestedBy);
+    }
+    if (target.isFacilitator) throw new FacilitatorCannotLeaveError(targetId);
+
+    target.leave();
+    this.record({
+      type: 'ParticipantLeft',
+      occurredAt: now,
+      gameId: this.id,
+      participantId: targetId,
+    });
+
+    const round = this.openRound();
+    if (!round) return;
+    if (round.hasVoted(targetId)) {
+      round.retractVote(targetId);
+      this.record({
+        type: 'VoteRetracted',
+        occurredAt: now,
+        gameId: this.id,
+        roundId: round.id,
+        participantId: targetId,
+      });
+    }
+    this.reconcileAutoReveal(now, present);
+  }
+
+  hasParticipantLeft(id: ParticipantId): boolean {
+    return this.participants.get(id.value)?.hasLeft() ?? false;
+  }
+
+  // autoReveal es una acción del sistema: se dispara directamente y no pasa por canReveal(), que
+  // solo aplica al reveal manual iniciado por un participante.
+  private autoRevealIfComplete(
+    round: Round,
+    present: ReadonlyArray<ParticipantId> | undefined,
+    now: Date,
+  ): void {
+    if (this.settings.autoReveal && round.everyVoterHasVoted(this.voterIds(present))) {
       this.performReveal(round, now);
     }
   }
@@ -339,7 +422,7 @@ export class Game {
     if (issueIndex < 0) return null;
 
     const voters = [...this.participants.values()]
-      .filter((participant) => !participant.isSpectator())
+      .filter((participant) => !participant.hasLeft() && !participant.isSpectator())
       .sort((a, b) => a.joinOrder - b.joinOrder);
     if (voters.length === 0) return null;
 
@@ -422,7 +505,7 @@ export class Game {
 
   private requireParticipant(id: ParticipantId): Participant {
     const participant = this.participants.get(id.value);
-    if (!participant) throw new ParticipantNotFoundError(id);
+    if (!participant || participant.hasLeft()) throw new ParticipantNotFoundError(id);
     return participant;
   }
 
@@ -432,9 +515,10 @@ export class Game {
     return issue;
   }
 
-  private voterIds(): ReadonlyArray<ParticipantId> {
+  private voterIds(present?: ReadonlyArray<ParticipantId>): ReadonlyArray<ParticipantId> {
     return [...this.participants.values()]
-      .filter((participant) => !participant.isSpectator())
+      .filter((participant) => !participant.hasLeft() && !participant.isSpectator())
+      .filter((participant) => !present || present.some((id) => id.equals(participant.id)))
       .map((participant) => participant.id);
   }
 

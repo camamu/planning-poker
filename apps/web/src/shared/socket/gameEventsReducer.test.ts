@@ -18,8 +18,8 @@ function baseState(overrides: Partial<GameView> = {}): GameView {
       revealOnTimeout: false,
     },
     participants: [
-      { id: 'p1', displayName: 'Ada', role: 'VOTER', isFacilitator: true },
-      { id: 'p2', displayName: 'Grace', role: 'VOTER', isFacilitator: false },
+      { id: 'p1', displayName: 'Ada', role: 'VOTER', isFacilitator: true, online: true },
+      { id: 'p2', displayName: 'Grace', role: 'VOTER', isFacilitator: false, online: true },
     ],
     issues: [{ id: 'issue-1', title: 'Login', status: 'VOTING', finalEstimate: null }],
     currentRound: {
@@ -47,6 +47,13 @@ describe('gameEventsReducer', () => {
     const event: ServerEvent = { type: 'participant_joined', version: 2, participantId: 'p3' };
     expect(gameEventsReducer(state, event)).toBe(state);
     expect(needsResync('participant_joined')).toBe(true);
+  });
+
+  it('participant_left no inventa el nuevo reparto de dealer: deja el estado igual (hace falta resync)', () => {
+    const state = baseState();
+    const event: ServerEvent = { type: 'participant_left', version: 2, participantId: 'p2' };
+    expect(gameEventsReducer(state, event)).toBe(state);
+    expect(needsResync('participant_left')).toBe(true);
   });
 
   it('issue_added no fabrica una issue: deja el estado igual (hace falta resync)', () => {

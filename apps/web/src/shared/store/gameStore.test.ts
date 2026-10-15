@@ -54,6 +54,7 @@ describe('gameStore', () => {
       participantId: null,
       errorMessage: null,
       selectedCard: null,
+      hasLeft: false,
       theme: 'dark',
       muted: false,
     });
@@ -94,6 +95,59 @@ describe('gameStore', () => {
 
     expect(emit).toHaveBeenCalledTimes(2);
     expect(emit).toHaveBeenLastCalledWith('join', { gameId: 'game-1', participantId: 'p1' });
+  });
+
+  it('presence_changed marca a un participante como conectado o desconectado', () => {
+    useGameStore.setState({
+      game: {
+        ...baseGame(),
+        participants: [
+          { id: 'p1', displayName: 'Ada', role: 'VOTER', isFacilitator: true, online: true },
+          { id: 'p2', displayName: 'Grace', role: 'VOTER', isFacilitator: false, online: true },
+        ],
+      },
+    });
+
+    handlers.get('presence_changed')?.({
+      type: 'presence_changed',
+      participantId: 'p2',
+      online: false,
+    });
+
+    expect(useGameStore.getState().game?.participants.map((p) => p.online)).toEqual([true, false]);
+  });
+
+  it('left_game marca que el propio participante ya no está en la partida', () => {
+    handlers.get('left_game')?.({ type: 'left_game' });
+    expect(useGameStore.getState().hasLeft).toBe(true);
+  });
+
+  it('participant_left del propio participante muestra la salida y no pide resincronizar', () => {
+    useGameStore.getState().connect('game-1', 'p1');
+    emit.mockClear();
+
+    handlers.get('participant_left')?.({
+      type: 'participant_left',
+      version: 1,
+      participantId: 'p1',
+    });
+
+    expect(useGameStore.getState().hasLeft).toBe(true);
+    expect(emit).not.toHaveBeenCalled();
+  });
+
+  it('participant_left de otro participante pide un state_sync fresco', () => {
+    useGameStore.getState().connect('game-1', 'p1');
+    emit.mockClear();
+
+    handlers.get('participant_left')?.({
+      type: 'participant_left',
+      version: 1,
+      participantId: 'p2',
+    });
+
+    expect(useGameStore.getState().hasLeft).toBe(false);
+    expect(emit).toHaveBeenCalledWith('join', { gameId: 'game-1', participantId: 'p1' });
   });
 
   it('connect() reinicia version a 0 al cambiar de partida', () => {

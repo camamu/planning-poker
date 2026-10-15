@@ -1,5 +1,6 @@
 import type { GameView, ParticipantView, RoundView } from '@pp/contracts';
 import { useEffect } from 'react';
+import { removeParticipant } from '../../../shared/api/gamesClient.js';
 import { useGameStore } from '../../../shared/store/gameStore.js';
 import type { ConnectionStatus } from '../../../shared/store/gameStore.js';
 import type { SeatPosition } from '../seatLayout.js';
@@ -15,6 +16,10 @@ export interface UseGameTableResult {
   readonly spectators: ReadonlyArray<ParticipantView>;
   readonly votedCount: number;
   readonly totalVoters: number;
+  readonly hasLeft: boolean;
+  readonly isFacilitator: boolean;
+  /** El facilitador quita a otro, o cualquiera sale él mismo (`targetId === participantId`). */
+  readonly removeParticipant: (targetId: string) => Promise<void>;
   readonly selectedCard: string | null;
   readonly castVote: (card: string) => void;
   readonly startRound: (issueId: string) => void;
@@ -35,6 +40,7 @@ export function useGameTable(gameId: string, participantId: string): UseGameTabl
   const game = useGameStore((state) => state.game);
   const status = useGameStore((state) => state.status);
   const errorMessage = useGameStore((state) => state.errorMessage);
+  const hasLeft = useGameStore((state) => state.hasLeft);
   const clearError = useGameStore((state) => state.clearError);
   const optimisticCard = useGameStore((state) => state.selectedCard);
   const castVote = useGameStore((state) => state.castVote);
@@ -65,7 +71,12 @@ export function useGameTable(gameId: string, participantId: string): UseGameTabl
   const spectators =
     game?.participants.filter((participant) => participant.role === 'SPECTATOR') ?? [];
   const seats = orderSeatsWithViewerAt(voters, participantId);
-  const votedCount = round?.votes.length ?? 0;
+  // Los recuentos solo cuentan a quien está conectado (invariante 8): un fantasma no debe hacer
+  // esperar a la mesa. Sus votos ya emitidos sí cuentan para el resultado, solo no para este "x de y".
+  const presentVoters = voters.filter((participant) => participant.online);
+  const votedCount =
+    round?.votes.filter((vote) => presentVoters.some((voter) => voter.id === vote.participantId))
+      .length ?? 0;
   // La proyección devuelve la carta del propio viewer en claro, así que al recargar la página se
   // recupera el voto. Manda el valor optimista mientras exista: es más reciente que la última
   // confirmación, y `participant_voted` no reenvía la carta al cambiar de voto.
@@ -80,7 +91,21 @@ export function useGameTable(gameId: string, participantId: string): UseGameTabl
     seats,
     spectators,
     votedCount,
-    totalVoters: voters.length,
+    totalVoters: presentVoters.length,
+    hasLeft,
+    isFacilitator:
+      game?.participants.find((participant) => participant.id === participantId)?.isFacilitator ??
+      false,
+    removeParticipant: async (targetId) => {
+      try {
+        await removeParticipant(gameId, targetId, participantId);
+        if (targetId === participantId) useGameStore.setState({ hasLeft: true });
+      } catch (cause) {
+        useGameStore.setState({
+          errorMessage: cause instanceof Error ? cause.message : 'No se pudo completar la acción.',
+        });
+      }
+    },
     selectedCard: optimisticCard ?? confirmedCard,
     castVote,
     startRound,

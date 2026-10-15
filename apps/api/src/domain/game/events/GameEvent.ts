@@ -14,6 +14,11 @@ export type GameEvent = DomainEvent &
         readonly participantId: ParticipantId;
       }
     | {
+        readonly type: 'ParticipantLeft';
+        readonly gameId: GameId;
+        readonly participantId: ParticipantId;
+      }
+    | {
         readonly type: 'ParticipantRoleChanged';
         readonly gameId: GameId;
         readonly participantId: ParticipantId;

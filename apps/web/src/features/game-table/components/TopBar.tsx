@@ -13,6 +13,8 @@ export interface TopBarProps {
   readonly viewerId: string;
   readonly onToggleIssues: () => void;
   readonly onToggleSettings?: (() => void) | undefined;
+  /** Ausente para el facilitador: no puede salir de su propia partida. */
+  readonly onLeave?: (() => void) | undefined;
 }
 
 export function TopBar(props: TopBarProps): JSX.Element {
@@ -75,6 +77,11 @@ export function TopBar(props: TopBarProps): JSX.Element {
         >
           🔗 Invitar
         </button>
+        {props.onLeave ? (
+          <button type="button" className="btn btn-ghost" onClick={props.onLeave}>
+            Salir
+          </button>
+        ) : null}
         <Avatar seed={props.viewerId} variant="initials" initials="TÚ" size={32} />
       </div>
       <InviteDialog

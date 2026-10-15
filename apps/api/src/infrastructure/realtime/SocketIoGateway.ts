@@ -12,6 +12,7 @@ import type { Server, Socket } from 'socket.io';
 import { ZodError } from 'zod';
 import type { CastVote } from '../../application/use-cases/CastVote.js';
 import type { GetGameState } from '../../application/use-cases/GetGameState.js';
+import { ParticipantHasLeftError } from '../../application/use-cases/ParticipantHasLeftError.js';
 import { GameNotFoundError } from '../../application/use-cases/GameNotFoundError.js';
 import type { RevealRound } from '../../application/use-cases/RevealRound.js';
 import type { StartQuickRound } from '../../application/use-cases/StartQuickRound.js';
@@ -21,10 +22,11 @@ import type { TimeoutReveal } from '../../application/use-cases/TimeoutReveal.js
 import type { GameRepository } from '../../application/ports/GameRepository.js';
 import { DomainError } from '../../domain/shared/DomainError.js';
 import type { Clock } from '../../domain/shared/Clock.js';
-import { GameId } from '../../domain/game/ids.js';
+import { GameId, ParticipantId } from '../../domain/game/ids.js';
 import type { DiscussionTimerTracker } from './DiscussionTimerTracker.js';
 import { gameRoom } from './gameRoom.js';
 import type { GameVersionTracker } from './GameVersionTracker.js';
+import type { PresenceTracker } from './PresenceTracker.js';
 
 export interface SocketGatewayDependencies {
   readonly getGameState: GetGameState;
@@ -38,6 +40,7 @@ export interface SocketGatewayDependencies {
   /** Solo lectura, para comprobar `settings.throwEmojis` antes de reenviar un emoji. */
   readonly games: GameRepository;
   readonly discussionTimer: DiscussionTimerTracker;
+  readonly presence: PresenceTracker;
   readonly clock: Clock;
 }
 
@@ -51,11 +54,24 @@ export interface SocketGatewayDependencies {
  */
 export function registerSocketGateway(io: Server, deps: SocketGatewayDependencies): void {
   io.on('connection', (socket) => {
+    socket.on('disconnect', () => {
+      deps.presence.disconnect(socket.id);
+    });
+
     socket.on('join', (payload: unknown) => {
       void handle(socket, async () => {
         const command = wsJoinCommandSchema.parse(payload);
         const gameId = GameId.of(command.gameId);
+        const participantId = ParticipantId.of(command.participantId);
+        const existing = await deps.games.findById(gameId);
+        if (existing?.hasParticipantLeft(participantId)) {
+          socket.emit('left_game', { type: 'left_game' });
+          return;
+        }
+
         await socket.join(gameRoom(gameId));
+        // Antes de leer el estado, para que el propio `state_sync` ya lo marque como conectado.
+        deps.presence.connect(socket.id, command.gameId, command.participantId);
         const state = await deps.getGameState.execute({
           gameId: command.gameId,
           viewerId: command.participantId,
@@ -158,6 +174,10 @@ async function handle(socket: Socket, action: () => Promise<void> | void): Promi
   try {
     await action();
   } catch (error) {
+    if (error instanceof ParticipantHasLeftError) {
+      socket.emit('left_game', { type: 'left_game' });
+      return;
+    }
     socket.emit('error', { type: 'error', message: toErrorMessage(error) });
   }
 }
