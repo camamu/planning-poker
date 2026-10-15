@@ -1,5 +1,19 @@
 # Changelog
 
+## [1.5.0](https://github.com/camamu/planning-poker/compare/planning-poker-v1.4.2...planning-poker-v1.5.0) (2026-10-15)
+
+
+### Features
+
+* **app:** presencia en tiempo real y salida de participantes ([7d7dd31](https://github.com/camamu/planning-poker/commit/7d7dd31916815b61ceb18483d0bef4d3e092bb11))
+* **app:** presencia en tiempo real y salida de participantes ([ee22bb1](https://github.com/camamu/planning-poker/commit/ee22bb1225cd0b1797b5d3e6c7351946c1d629ef))
+
+
+### Bug Fixes
+
+* **web:** hace visible que la baraja está bloqueada con una ronda abierta ([279f9a0](https://github.com/camamu/planning-poker/commit/279f9a05ad245c908d8bae189080d6099742af9d))
+* **web:** hace visible que la baraja está bloqueada con una ronda abierta ([78f49ab](https://github.com/camamu/planning-poker/commit/78f49abb40d95d14ebee00d09d85dd4d593fdfc9))
+
 ## [1.4.2](https://github.com/camamu/planning-poker/compare/planning-poker-v1.4.1...planning-poker-v1.4.2) (2026-10-05)
 
 
