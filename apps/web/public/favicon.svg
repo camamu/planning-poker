@@ -1,0 +1,9 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 48 48">
+  <mask id="chip" maskUnits="userSpaceOnUse" x="0" y="0" width="48" height="48">
+    <rect width="48" height="48" fill="#fff"/>
+    <circle cx="20" cy="22" r="10" fill="#000"/>
+    <rect x="24" y="18" width="17" height="25" rx="3" fill="#000" stroke="#000" stroke-width="4" transform="rotate(12 32.5 30.5)"/>
+  </mask>
+  <circle cx="20" cy="22" r="19" fill="#9184d9" mask="url(#chip)"/>
+  <rect x="24" y="18" width="17" height="25" rx="3" fill="#f2b86b" transform="rotate(12 32.5 30.5)"/>
+</svg>
