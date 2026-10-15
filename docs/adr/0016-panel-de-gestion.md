@@ -52,6 +52,11 @@ renombrar, regenerar el enlace y borrar equipos; y listar y borrar barajas perso
   partida con el mensaje "la ha cerrado un administrador". Es efímero y sin `version`: no hay estado
   que sincronizar después.
 
+- **Convive con la presencia en tiempo real (ADR 0015).** El recuento de participantes del listado
+  excluye a quienes ya salieron (baja lógica). Si una sala se borra mientras alguien sigue
+  conectado, su desconexión posterior llega a `ReconcileAutoReveal` con una sala inexistente, y eso
+  es un no-op, no un error.
+
 ## Fuera de alcance (deliberado)
 
 - Varios administradores, roles o auditoría de acciones: una sola cuenta cubre el caso real.
