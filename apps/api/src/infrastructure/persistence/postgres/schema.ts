@@ -28,6 +28,8 @@ export interface ParticipantTable {
   is_facilitator: boolean;
   /** Orden de entrada a la partida; base de `Game.currentDealer()`. Mismo patrón que issues/rounds. */
   position: number;
+  /** Baja lógica: ver docs/adr/0015-presencia-y-salida-de-participantes.md. */
+  left: ColumnType<boolean, boolean | undefined, boolean>;
 }
 
 export interface IssueTable {

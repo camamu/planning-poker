@@ -10,6 +10,10 @@ export interface ParticipantSeatProps {
   readonly seat: SeatPosition;
   readonly isDealer: boolean;
   readonly isViewer: boolean;
+  /** Conectado ahora mismo; si no, el asiento se atenúa (ADR 0015). */
+  readonly online: boolean;
+  /** Solo lo recibe el facilitador, y nunca para su propio asiento. */
+  readonly onRemove?: (() => void) | undefined;
   /** null = no ha votado (hueco vacío). */
   readonly card: { readonly hasVoted: boolean; readonly value: string | null } | null;
   readonly badge?: SeatBadge | undefined;
@@ -29,10 +33,26 @@ export function ParticipantSeat(props: ParticipantSeatProps): JSX.Element {
         background: 'rgba(22,24,38,.42)',
         boxShadow: 'inset 0 0 0 1px rgba(145,132,217,.14)',
         cursor: props.onClick ? 'pointer' : undefined,
+        opacity: props.online ? 1 : 0.45,
       }}
+      title={props.online ? undefined : `${props.displayName} está desconectado`}
       onClick={props.onClick}
       role={props.onClick ? 'button' : undefined}
     >
+      {props.onRemove ? (
+        <button
+          type="button"
+          className="absolute right-1 top-1 flex h-5 w-5 items-center justify-center rounded-full text-[10px]"
+          style={{ background: 'rgba(22,24,38,.85)', color: 'var(--color-neutral-100)' }}
+          aria-label={`Quitar a ${props.displayName}`}
+          onClick={(event) => {
+            event.stopPropagation();
+            props.onRemove?.();
+          }}
+        >
+          ✕
+        </button>
+      ) : null}
       {props.badge === 'feather' ? <FeatherOverlay /> : null}
       {props.badge === 'cape' ? <CapeOverlay /> : null}
 

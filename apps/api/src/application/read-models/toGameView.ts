@@ -17,7 +17,11 @@ import type { RoundResult } from '../../domain/game/RoundResult.js';
  * (invariante 7, docs/02-decisiones-y-plan.md §4.3): antes del reveal, `votes` solo lleva el
  * propio voto de `viewerId` en claro; el resto aparece solo como `hasVoted: true`, sin `card`.
  */
-export function toGameView(game: Game, viewerId: ParticipantId): GameView {
+export function toGameView(
+  game: Game,
+  viewerId: ParticipantId,
+  online: ReadonlyArray<ParticipantId> = [],
+): GameView {
   const round = game.currentRound();
   const settings = game.currentSettings();
   const dealerId = game.currentDealer();
@@ -41,18 +45,27 @@ export function toGameView(game: Game, viewerId: ParticipantId): GameView {
       countdownSeconds: settings.countdownSeconds,
       revealOnTimeout: settings.revealOnTimeout,
     },
-    participants: game.allParticipants().map(toParticipantView),
+    participants: game
+      .allParticipants()
+      .filter((participant) => !participant.hasLeft())
+      .map((participant) =>
+        toParticipantView(
+          participant,
+          online.some((id) => id.equals(participant.id)),
+        ),
+      ),
     issues: game.allIssues().map(toIssueView),
     currentRound: round ? toRoundView(round, viewerId, dealerId) : null,
   };
 }
 
-function toParticipantView(participant: Participant): ParticipantView {
+function toParticipantView(participant: Participant, online: boolean): ParticipantView {
   return {
     id: participant.id.value,
     displayName: participant.displayName.value,
     role: participant.currentRole(),
     isFacilitator: participant.isFacilitator,
+    online,
   };
 }
 

@@ -11,6 +11,8 @@ import { DeleteCustomDeck } from './application/use-cases/DeleteCustomDeck.js';
 import { GetGameState } from './application/use-cases/GetGameState.js';
 import { JoinGame } from './application/use-cases/JoinGame.js';
 import { ListDecks } from './application/use-cases/ListDecks.js';
+import { ReconcileAutoReveal } from './application/use-cases/ReconcileAutoReveal.js';
+import { RemoveParticipant } from './application/use-cases/RemoveParticipant.js';
 import { RevealRound } from './application/use-cases/RevealRound.js';
 import { SaveCustomDeck } from './application/use-cases/SaveCustomDeck.js';
 import { StartQuickRound } from './application/use-cases/StartQuickRound.js';
@@ -34,6 +36,8 @@ import { DiscussionTimerTracker } from './infrastructure/realtime/DiscussionTime
 import { GameVersionTracker } from './infrastructure/realtime/GameVersionTracker.js';
 import { registerSocketGateway } from './infrastructure/realtime/SocketIoGateway.js';
 import { SocketIoBroadcaster } from './infrastructure/realtime/SocketIoBroadcaster.js';
+import { PresenceTracker } from './infrastructure/realtime/PresenceTracker.js';
+import { createPresenceListener } from './infrastructure/realtime/presenceListener.js';
 import { WsEventPublisher } from './infrastructure/realtime/WsEventPublisher.js';
 import { HmacTokenHasher } from './infrastructure/security/HmacTokenHasher.js';
 import { SystemClock } from './infrastructure/time/SystemClock.js';
@@ -56,6 +60,8 @@ const ids = new UuidGenerator();
 const tokenHasher = new HmacTokenHasher(env.SESSION_SECRET);
 const versions = new GameVersionTracker();
 const discussionTimer = new DiscussionTimerTracker();
+// 30 s de gracia: un corte breve de red o una pestaña dormida en el móvil no deben contar como salir.
+const presence = new PresenceTracker(clock, { graceMs: 30_000, warmupMs: 30_000 });
 
 await app.register(cors, {
   origin: env.CORS_ORIGIN,
@@ -67,19 +73,27 @@ const io = new SocketIoServer(app.server, { cors: { origin: env.CORS_ORIGIN } })
 const broadcaster = new SocketIoBroadcaster(io);
 const events = new WsEventPublisher(games, broadcaster, versions);
 
+const reconcileAutoReveal = new ReconcileAutoReveal(games, events, clock, presence);
+presence.onChange(
+  createPresenceListener(io, reconcileAutoReveal, (error) => {
+    app.log.error(error, 'no se pudo reconciliar el auto-revelado tras un cambio de presencia');
+  }),
+);
+
 const createGame = new CreateGame(games, decks, teams, events, clock, ids);
 const joinGame = new JoinGame(games, events, clock, ids);
 const addIssue = new AddIssue(games, events, clock, ids);
 const startVotingRound = new StartVotingRound(games, events, clock, ids);
 const startQuickRound = new StartQuickRound(games, events, clock, ids);
-const castVote = new CastVote(games, events, clock);
+const castVote = new CastVote(games, events, clock, presence);
+const removeParticipant = new RemoveParticipant(games, events, clock, presence);
 const revealRound = new RevealRound(games, events, clock);
 const timeoutReveal = new TimeoutReveal(games, events, clock);
 const setFinalEstimate = new SetFinalEstimate(games, events, clock);
 const updateGameSettings = new UpdateGameSettings(games, events, clock);
 const changeGameDeck = new ChangeGameDeck(games, decks, events, clock);
 const listGameDecks = new ListGameDecks(games, decks);
-const getGameState = new GetGameState(games);
+const getGameState = new GetGameState(games, presence);
 
 const createTeam = new CreateTeam(teams, tokenHasher, ids);
 const authenticateTeam = new AuthenticateTeam(teams, tokenHasher);
@@ -91,6 +105,7 @@ const deleteCustomDeck = new DeleteCustomDeck(decks, teams, tokenHasher);
 registerGameRoutes(app, {
   createGame,
   joinGame,
+  removeParticipant,
   addIssue,
   getGameState,
   updateGameSettings,
@@ -117,6 +132,7 @@ registerSocketGateway(io, {
   versions,
   games,
   discussionTimer,
+  presence,
   clock,
 });
 

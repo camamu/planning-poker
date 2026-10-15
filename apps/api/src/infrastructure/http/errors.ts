@@ -2,10 +2,16 @@ import type { FastifyReply } from 'fastify';
 import { ZodError } from 'zod';
 import { DeckNotFoundError } from '../../application/use-cases/DeckNotFoundError.js';
 import { GameNotFoundError } from '../../application/use-cases/GameNotFoundError.js';
+import { ParticipantHasLeftError } from '../../application/use-cases/ParticipantHasLeftError.js';
 import { TeamNotFoundError } from '../../application/use-cases/TeamNotFoundError.js';
 import { DomainError } from '../../domain/shared/DomainError.js';
 
-const NOT_FOUND_ERRORS = [GameNotFoundError, TeamNotFoundError, DeckNotFoundError];
+const NOT_FOUND_ERRORS = [
+  GameNotFoundError,
+  TeamNotFoundError,
+  DeckNotFoundError,
+  ParticipantHasLeftError,
+];
 
 /**
  * Un `DomainError` es una regla de negocio incumplida (422); un `*NotFoundError` es un id (o,

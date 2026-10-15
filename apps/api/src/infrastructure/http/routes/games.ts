@@ -3,6 +3,7 @@ import {
   changeGameDeckCommandSchema,
   createGameCommandSchema,
   joinGameCommandSchema,
+  removeParticipantCommandSchema,
   updateGameSettingsCommandSchema,
 } from '@pp/contracts';
 import type { FastifyInstance } from 'fastify';
@@ -12,6 +13,7 @@ import type { CreateGame } from '../../../application/use-cases/CreateGame.js';
 import type { GetGameState } from '../../../application/use-cases/GetGameState.js';
 import type { JoinGame } from '../../../application/use-cases/JoinGame.js';
 import type { ListGameDecks } from '../../../application/use-cases/ListGameDecks.js';
+import type { RemoveParticipant } from '../../../application/use-cases/RemoveParticipant.js';
 import type { UpdateGameSettings } from '../../../application/use-cases/UpdateGameSettings.js';
 import { GameId } from '../../../domain/game/ids.js';
 import type { GameVersionTracker } from '../../realtime/GameVersionTracker.js';
@@ -20,6 +22,7 @@ import { sendError } from '../errors.js';
 export interface GameRoutesDependencies {
   readonly createGame: CreateGame;
   readonly joinGame: JoinGame;
+  readonly removeParticipant: RemoveParticipant;
   readonly addIssue: AddIssue;
   readonly getGameState: GetGameState;
   readonly updateGameSettings: UpdateGameSettings;
@@ -30,6 +33,10 @@ export interface GameRoutesDependencies {
 
 interface GameIdParams {
   readonly id: string;
+}
+
+interface ParticipantParams extends GameIdParams {
+  readonly participantId: string;
 }
 
 interface ViewerQuery {
@@ -98,6 +105,23 @@ export function registerGameRoutes(app: FastifyInstance, deps: GameRoutesDepende
       sendError(reply, error);
     }
   });
+
+  app.delete<{ Params: ParticipantParams }>(
+    '/api/games/:id/participants/:participantId',
+    async (request, reply) => {
+      try {
+        const command = removeParticipantCommandSchema.parse(request.body);
+        await deps.removeParticipant.execute({
+          gameId: request.params.id,
+          participantId: request.params.participantId,
+          requestedBy: command.participantId,
+        });
+        await reply.code(204).send();
+      } catch (error) {
+        sendError(reply, error);
+      }
+    },
+  );
 
   app.post<{ Params: GameIdParams }>('/api/games/:id/issues', async (request, reply) => {
     try {

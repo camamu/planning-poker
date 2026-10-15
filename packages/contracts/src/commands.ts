@@ -65,6 +65,15 @@ export const joinGameCommandSchema = z.object({
 });
 export type JoinGameCommandInput = z.infer<typeof joinGameCommandSchema>;
 
+/**
+ * REST — `DELETE /api/games/:id/participants/:participantId`. `participantId` del cuerpo es quien
+ * lo pide: el propio participante (salir) o el facilitador (quitar).
+ */
+export const removeParticipantCommandSchema = z.object({
+  participantId: z.string().trim().min(1),
+});
+export type RemoveParticipantCommandInput = z.infer<typeof removeParticipantCommandSchema>;
+
 /** REST — `POST /api/games/:id/issues` */
 export const addIssueCommandSchema = z.object({
   title: z.string().trim().min(1),
