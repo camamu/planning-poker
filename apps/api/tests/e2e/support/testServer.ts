@@ -21,6 +21,8 @@ import { LogInAdmin } from '../../../src/application/use-cases/LogInAdmin.js';
 import { RegenerateTeamToken } from '../../../src/application/use-cases/RegenerateTeamToken.js';
 import { RenameTeam } from '../../../src/application/use-cases/RenameTeam.js';
 import { ListGameDecks } from '../../../src/application/use-cases/ListGameDecks.js';
+import { ReconcileAutoReveal } from '../../../src/application/use-cases/ReconcileAutoReveal.js';
+import { RemoveParticipant } from '../../../src/application/use-cases/RemoveParticipant.js';
 import { RevealRound } from '../../../src/application/use-cases/RevealRound.js';
 import { SaveCustomDeck } from '../../../src/application/use-cases/SaveCustomDeck.js';
 import { StartQuickRound } from '../../../src/application/use-cases/StartQuickRound.js';
@@ -39,6 +41,8 @@ import { InMemoryGameRepository } from '../../../src/infrastructure/persistence/
 import { InMemoryTeamRepository } from '../../../src/infrastructure/persistence/in-memory/InMemoryTeamRepository.js';
 import { DiscussionTimerTracker } from '../../../src/infrastructure/realtime/DiscussionTimerTracker.js';
 import { GameVersionTracker } from '../../../src/infrastructure/realtime/GameVersionTracker.js';
+import { PresenceTracker } from '../../../src/infrastructure/realtime/PresenceTracker.js';
+import { createPresenceListener } from '../../../src/infrastructure/realtime/presenceListener.js';
 import { registerSocketGateway } from '../../../src/infrastructure/realtime/SocketIoGateway.js';
 import { SocketIoBroadcaster } from '../../../src/infrastructure/realtime/SocketIoBroadcaster.js';
 import { WsEventPublisher } from '../../../src/infrastructure/realtime/WsEventPublisher.js';
@@ -53,6 +57,8 @@ export const TEST_ADMIN = { username: 'admin', password: 'contraseña-de-test' }
 export interface TestServerOptions {
   /** Resultado de `hashAdminPassword(TEST_ADMIN.password)`, calculado una vez por suite. */
   readonly adminPasswordHash?: string;
+  /** Margen de gracia de presencia; corto en los tests para no esperar 30 s reales. */
+  readonly presenceGraceMs?: number;
 }
 
 export interface TestServer {
@@ -77,24 +83,32 @@ export async function startTestServer(options: TestServerOptions = {}): Promise<
   const tokenHasher = new HmacTokenHasher('test-session-secret');
   const versions = new GameVersionTracker();
   const discussionTimer = new DiscussionTimerTracker();
+  const presence = new PresenceTracker(clock, {
+    graceMs: options.presenceGraceMs ?? 50,
+    warmupMs: 0,
+  });
 
   const io = new SocketIoServer(app.server);
   const broadcaster = new SocketIoBroadcaster(io);
   const events = new WsEventPublisher(games, broadcaster, versions);
+
+  const reconcileAutoReveal = new ReconcileAutoReveal(games, events, clock, presence);
+  presence.onChange(createPresenceListener(io, reconcileAutoReveal, () => undefined));
 
   const createGame = new CreateGame(games, decks, teams, events, clock, ids);
   const joinGame = new JoinGame(games, events, clock, ids);
   const addIssue = new AddIssue(games, events, clock, ids);
   const startVotingRound = new StartVotingRound(games, events, clock, ids);
   const startQuickRound = new StartQuickRound(games, events, clock, ids);
-  const castVote = new CastVote(games, events, clock);
+  const castVote = new CastVote(games, events, clock, presence);
+  const removeParticipant = new RemoveParticipant(games, events, clock, presence);
   const revealRound = new RevealRound(games, events, clock);
   const timeoutReveal = new TimeoutReveal(games, events, clock);
   const setFinalEstimate = new SetFinalEstimate(games, events, clock);
   const updateGameSettings = new UpdateGameSettings(games, events, clock);
   const changeGameDeck = new ChangeGameDeck(games, decks, events, clock);
   const listGameDecks = new ListGameDecks(games, decks);
-  const getGameState = new GetGameState(games);
+  const getGameState = new GetGameState(games, presence);
 
   const createTeam = new CreateTeam(teams, tokenHasher, ids);
   const authenticateTeam = new AuthenticateTeam(teams, tokenHasher);
@@ -106,6 +120,7 @@ export async function startTestServer(options: TestServerOptions = {}): Promise<
   registerGameRoutes(app, {
     createGame,
     joinGame,
+    removeParticipant,
     addIssue,
     getGameState,
     updateGameSettings,
@@ -153,6 +168,7 @@ export async function startTestServer(options: TestServerOptions = {}): Promise<
     versions,
     games,
     discussionTimer,
+    presence,
     clock,
   });
 

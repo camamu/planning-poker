@@ -2,8 +2,9 @@ import type { GameSettingsView, GameView } from '@pp/contracts';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 import { useGameStore } from './gameStore.js';
 
-const { handlers } = vi.hoisted(() => ({
+const { handlers, emit } = vi.hoisted(() => ({
   handlers: new Map<string, (event: unknown) => void>(),
+  emit: vi.fn(),
 }));
 
 vi.mock('../socket/connection.js', () => ({
@@ -11,7 +12,7 @@ vi.mock('../socket/connection.js', () => ({
     connected: false,
     connect: vi.fn(),
     disconnect: vi.fn(),
-    emit: vi.fn(),
+    emit,
     on: (event: string, handler: (payload: unknown) => void) => {
       handlers.set(event, handler);
     },
@@ -53,6 +54,7 @@ describe('gameStore', () => {
       participantId: null,
       errorMessage: null,
       selectedCard: null,
+      hasLeft: false,
       theme: 'dark',
       muted: false,
     });
@@ -81,6 +83,71 @@ describe('gameStore', () => {
     expect(state.gameId).toBe('game-1');
     expect(state.participantId).toBe('p1');
     expect(state.status).toBe('connecting');
+  });
+
+  it('cada conexión del socket, también una reconexión automática, vuelve a unirse a la partida', () => {
+    useGameStore.getState().connect('game-1', 'p1');
+    const onConnect = handlers.get('connect');
+    emit.mockClear();
+
+    onConnect?.(undefined);
+    onConnect?.(undefined);
+
+    expect(emit).toHaveBeenCalledTimes(2);
+    expect(emit).toHaveBeenLastCalledWith('join', { gameId: 'game-1', participantId: 'p1' });
+  });
+
+  it('presence_changed marca a un participante como conectado o desconectado', () => {
+    useGameStore.setState({
+      game: {
+        ...baseGame(),
+        participants: [
+          { id: 'p1', displayName: 'Ada', role: 'VOTER', isFacilitator: true, online: true },
+          { id: 'p2', displayName: 'Grace', role: 'VOTER', isFacilitator: false, online: true },
+        ],
+      },
+    });
+
+    handlers.get('presence_changed')?.({
+      type: 'presence_changed',
+      participantId: 'p2',
+      online: false,
+    });
+
+    expect(useGameStore.getState().game?.participants.map((p) => p.online)).toEqual([true, false]);
+  });
+
+  it('left_game marca que el propio participante ya no está en la partida', () => {
+    handlers.get('left_game')?.({ type: 'left_game' });
+    expect(useGameStore.getState().hasLeft).toBe(true);
+  });
+
+  it('participant_left del propio participante muestra la salida y no pide resincronizar', () => {
+    useGameStore.getState().connect('game-1', 'p1');
+    emit.mockClear();
+
+    handlers.get('participant_left')?.({
+      type: 'participant_left',
+      version: 1,
+      participantId: 'p1',
+    });
+
+    expect(useGameStore.getState().hasLeft).toBe(true);
+    expect(emit).not.toHaveBeenCalled();
+  });
+
+  it('participant_left de otro participante pide un state_sync fresco', () => {
+    useGameStore.getState().connect('game-1', 'p1');
+    emit.mockClear();
+
+    handlers.get('participant_left')?.({
+      type: 'participant_left',
+      version: 1,
+      participantId: 'p2',
+    });
+
+    expect(useGameStore.getState().hasLeft).toBe(false);
+    expect(emit).toHaveBeenCalledWith('join', { gameId: 'game-1', participantId: 'p1' });
   });
 
   it('connect() reinicia version a 0 al cambiar de partida', () => {

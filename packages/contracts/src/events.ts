@@ -12,6 +12,7 @@ interface ServerEventBase {
 export type ServerEvent =
   | (ServerEventBase & { readonly type: 'state_sync'; readonly state: GameView })
   | (ServerEventBase & { readonly type: 'participant_joined'; readonly participantId: string })
+  | (ServerEventBase & { readonly type: 'participant_left'; readonly participantId: string })
   | (ServerEventBase & {
       readonly type: 'participant_role_changed';
       readonly participantId: string;
@@ -72,6 +73,13 @@ export type EphemeralEvent =
       readonly toParticipantId: string | null;
       readonly emoji: string;
     }
+  | {
+      readonly type: 'presence_changed';
+      readonly participantId: string;
+      readonly online: boolean;
+    }
+  // Solo al socket que intenta unirse con un participante que ya salió o al que han quitado.
+  | { readonly type: 'left_game' }
   | {
       readonly type: 'discussion_timer_sync';
       readonly roundId: string;

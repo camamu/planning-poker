@@ -234,6 +234,24 @@ export function defineGameRepositoryContractTests(
       expect(reloaded?.currentDealer()?.equals(facilitatorId)).toBe(true);
     });
 
+    it('conserva que un participante salió y sus votos de rondas reveladas tras recargar', async () => {
+      const repository = await makeRepository();
+      const { game, facilitatorId } = newGame('game-12');
+      const anaId = ParticipantId.of('game-12-ana');
+      game.addParticipant(anaId, DisplayName.of('Ana'), 'VOTER', NOW);
+      game.addIssue(IssueId.of('issue-1'), 'Implementar login', NOW);
+      game.startVotingRound(RoundId.of('round-1'), IssueId.of('issue-1'), NOW);
+      game.castVote(anaId, CardValue.of('5'), NOW);
+      game.reveal(facilitatorId, NOW);
+      game.removeParticipant(anaId, anaId, NOW);
+      await repository.save(game);
+
+      const reloaded = await repository.findById(GameId.of('game-12'));
+      expect(reloaded?.hasParticipantLeft(anaId)).toBe(true);
+      expect(reloaded?.hasParticipantLeft(facilitatorId)).toBe(false);
+      expect(reloaded?.currentRound()?.hasVoted(anaId)).toBe(true);
+    });
+
     it('conserva la fecha límite de la cuenta atrás de una ronda abierta tras recargar', async () => {
       const repository = await makeRepository();
       const game = Game.create(
@@ -282,6 +300,22 @@ export function defineGameRepositoryContractTests(
         estimatedIssueCount: 1,
       });
       expect(summary?.createdAt).toBeInstanceOf(Date);
+    });
+
+    it('listSummaries() no cuenta como participantes a quienes ya han salido de la partida', async () => {
+      const repository = await makeRepository();
+      const { game, facilitatorId } = newGame('game-left');
+      const leaverId = ParticipantId.of('game-left-leaver');
+      game.addParticipant(leaverId, DisplayName.of('Bea'), 'VOTER', NOW);
+      game.removeParticipant(leaverId, leaverId, NOW);
+      await repository.save(game);
+
+      const [summary] = await repository.listSummaries();
+
+      expect(summary?.participantCount).toBe(1);
+      expect(
+        game.allParticipants().some((participant) => participant.id.equals(facilitatorId)),
+      ).toBe(true);
     });
 
     it('listSummaries() devuelve las partidas más recientes primero', async () => {

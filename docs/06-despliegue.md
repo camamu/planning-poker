@@ -95,7 +95,7 @@ VPS, no de parchear con más automatismos.
    ADMIN_PASSWORD_HASH→ salida de `pnpm --filter @pp/api admin:hash-password`, como secreto
    ```
    Sin `ADMIN_USERNAME`/`ADMIN_PASSWORD_HASH` el panel de gestión queda desactivado (`/api/admin/*`
-   responde 503); ver `docs/adr/0015-panel-de-gestion.md`. Cambiar la contraseña (o
+   responde 503); ver `docs/adr/0016-panel-de-gestion.md`. Cambiar la contraseña (o
    `SESSION_SECRET`) cierra todas las sesiones de administración abiertas.
    `APP_VERSION` no se define aquí: viaja dentro de la imagen, inyectada por `publish.yml` con el tag
    de la release, y es lo que `deploy.yml` comprueba contra `/health`.

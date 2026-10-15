@@ -29,6 +29,8 @@ interface GameStoreState {
   readonly gameId: string | null;
   readonly participantId: string | null;
   readonly errorMessage: string | null;
+  /** El propio participante salió de la partida (o lo quitaron): hay que mostrar la pantalla de salida. */
+  readonly hasLeft: boolean;
   /** Voto propio pintado de forma optimista, antes de que el servidor confirme. La verdad es
    *  `currentRound.votes`, donde la proyección sí devuelve la carta del propio viewer (invariante
    *  7, docs/02 §4.3); esto solo cubre el hueco hasta que llega esa confirmación. */
@@ -68,6 +70,7 @@ export const useGameStore = create<GameStoreState>((set, get) => ({
   gameId: null,
   participantId: null,
   errorMessage: null,
+  hasLeft: false,
   selectedCard: null,
   theme: 'dark',
   muted: false,
@@ -82,6 +85,7 @@ export const useGameStore = create<GameStoreState>((set, get) => ({
       participantId,
       status: 'connecting',
       errorMessage: null,
+      hasLeft: false,
       game: null,
       version: 0,
       selectedCard: null,
@@ -92,7 +96,6 @@ export const useGameStore = create<GameStoreState>((set, get) => ({
     // socket no se ha conectado nunca, desconectar antes de conectar solo añade un intento fallido.
     if (socket.connected) socket.disconnect();
     socket.connect();
-    socket.emit('join', { gameId, participantId });
   },
 
   clearError() {
@@ -204,6 +207,11 @@ function applyEvent(event: ServerEvent): void {
     ...(roundChanged || event.type === 'deck_changed' ? { selectedCard: null } : {}),
   });
 
+  if (event.type === 'participant_left' && event.participantId === participantId) {
+    useGameStore.setState({ hasLeft: true });
+    return;
+  }
+
   if (needsResync(event.type) && gameId && participantId) {
     getSocket().emit('join', { gameId, participantId });
   }
@@ -213,8 +221,13 @@ function applyEvent(event: ServerEvent): void {
 // socket durante toda la vida de la app, y volver a registrarlos en cada `connect()` los apilaría.
 const socket = getSocket();
 
+// Cada conexión, también las reconexiones automáticas de Socket.IO, es un socket nuevo en el
+// servidor y sin rooms: sin volver a emitir `join` aquí, tras un corte o un reinicio de la API el
+// cliente deja de recibir eventos y la mesa se queda congelada aunque los cambios sí se guarden.
 socket.on('connect', () => {
   useGameStore.setState({ status: 'connected' });
+  const { gameId, participantId } = useGameStore.getState();
+  if (gameId && participantId) socket.emit('join', { gameId, participantId });
 });
 socket.on('disconnect', () => {
   useGameStore.setState({ status: 'disconnected' });
@@ -257,6 +270,31 @@ socket.on('settings_changed', (event: Extract<ServerEvent, { type: 'settings_cha
 });
 socket.on('deck_changed', (event: Extract<ServerEvent, { type: 'deck_changed' }>) => {
   applyEvent(event);
+});
+socket.on('participant_left', (event: Extract<ServerEvent, { type: 'participant_left' }>) => {
+  applyEvent(event);
+});
+
+// Presencia y salida propia son `EphemeralEvent`: no llevan `version` ni pasan por el reductor
+// (docs/adr/0015-presencia-y-salida-de-participantes.md).
+socket.on('presence_changed', (event: Extract<EphemeralEvent, { type: 'presence_changed' }>) => {
+  useGameStore.setState((state) =>
+    state.game
+      ? {
+          game: {
+            ...state.game,
+            participants: state.game.participants.map((participant) =>
+              participant.id === event.participantId
+                ? { ...participant, online: event.online }
+                : participant,
+            ),
+          },
+        }
+      : {},
+  );
+});
+socket.on('left_game', () => {
+  useGameStore.setState({ hasLeft: true });
 });
 
 // `emoji_thrown`/`discussion_timer_sync` son EphemeralEvent, no ServerEvent: no llevan `version`

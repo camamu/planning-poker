@@ -26,7 +26,8 @@ export class InMemoryGameRepository implements GameRepository {
         id: game.id.value,
         name: game.currentName().value,
         teamId: game.currentTeamId()?.value ?? null,
-        participantCount: game.allParticipants().length,
+        participantCount: game.allParticipants().filter((participant) => !participant.hasLeft())
+          .length,
         issueCount: issues.length,
         estimatedIssueCount: issues.filter((issue) => issue.currentStatus() === 'ESTIMATED').length,
         createdAt: this.createdAt.get(game.id.value) ?? new Date(0),

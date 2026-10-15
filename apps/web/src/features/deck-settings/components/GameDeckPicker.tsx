@@ -56,7 +56,11 @@ export function GameDeckPicker(props: GameDeckPickerProps): JSX.Element {
     <div className="field">
       <label>Baraja</label>
       {props.locked ? (
-        <p className="text-xs" style={{ color: 'var(--pp-muted)' }}>
+        <p
+          role="status"
+          className="rounded-md px-3 py-2 text-xs"
+          style={{ background: 'var(--color-accent-900)', color: 'var(--color-accent-200)' }}
+        >
           Hay una ronda abierta: revélala para poder cambiar de baraja.
         </p>
       ) : null}

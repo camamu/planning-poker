@@ -8,6 +8,8 @@ export interface ParticipantView {
   readonly displayName: string;
   readonly role: ParticipantRoleView;
   readonly isFacilitator: boolean;
+  /** Conectado ahora mismo. Dato efímero de presencia, no persistido (ADR 0015). */
+  readonly online: boolean;
 }
 
 export interface IssueView {

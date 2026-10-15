@@ -111,6 +111,10 @@ export class Round {
     this.votes.delete(participantId.value);
   }
 
+  voteCount(): number {
+    return this.votes.size;
+  }
+
   everyVoterHasVoted(voters: ReadonlyArray<ParticipantId>): boolean {
     return voters.every((voter) => this.hasVoted(voter));
   }

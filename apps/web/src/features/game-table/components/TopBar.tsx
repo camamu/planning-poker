@@ -1,6 +1,6 @@
 import { useState } from 'react';
 import type { JSX } from 'react';
-import { Avatar } from '../../../design-system/index.js';
+import { Avatar, Logo } from '../../../design-system/index.js';
 import { formatCountdown } from '../hooks/useCountdown.js';
 import { InviteDialog } from './InviteDialog.js';
 
@@ -13,6 +13,8 @@ export interface TopBarProps {
   readonly viewerId: string;
   readonly onToggleIssues: () => void;
   readonly onToggleSettings?: (() => void) | undefined;
+  /** Ausente para el facilitador: no puede salir de su propia partida. */
+  readonly onLeave?: (() => void) | undefined;
 }
 
 export function TopBar(props: TopBarProps): JSX.Element {
@@ -24,16 +26,9 @@ export function TopBar(props: TopBarProps): JSX.Element {
       style={{ borderBottom: '1px solid var(--color-divider)', background: 'var(--color-surface)' }}
     >
       <div className="flex min-w-0 items-center gap-2">
-        <div
-          className="flex h-[30px] w-[22px] flex-none items-center justify-center rounded text-[11px] font-bold"
-          style={{
-            border: '1.5px solid var(--color-accent)',
-            color: 'var(--color-accent)',
-            transform: 'rotate(-8deg)',
-          }}
-        >
-          8
-        </div>
+        <span className="flex-none">
+          <Logo size={32} />
+        </span>
         <span className="truncate text-sm font-semibold">{props.gameName}</span>
       </div>
       <span
@@ -75,6 +70,11 @@ export function TopBar(props: TopBarProps): JSX.Element {
         >
           🔗 Invitar
         </button>
+        {props.onLeave ? (
+          <button type="button" className="btn btn-ghost" onClick={props.onLeave}>
+            Salir
+          </button>
+        ) : null}
         <Avatar seed={props.viewerId} variant="initials" initials="TÚ" size={32} />
       </div>
       <InviteDialog

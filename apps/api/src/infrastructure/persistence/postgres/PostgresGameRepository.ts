@@ -113,6 +113,7 @@ export class PostgresGameRepository implements GameRepository {
           .selectFrom('participants')
           .select((sub) => sub.fn.countAll<string>().as('count'))
           .whereRef('participants.game_id', '=', 'games.id')
+          .where('participants.left', '=', false)
           .as('participant_count'),
         eb
           .selectFrom('issues')
