@@ -32,6 +32,16 @@ export class PostgresDeckRepository implements DeckRepository {
     return rows.map(toDomainDeck);
   }
 
+  async listCustom(): Promise<ReadonlyArray<SavedDeck>> {
+    const rows = await this.db
+      .selectFrom('decks')
+      .selectAll()
+      .where('team_id', 'is not', null)
+      .orderBy('created_at', 'asc')
+      .execute();
+    return rows.map(toDomainDeck);
+  }
+
   async save(deck: SavedDeck): Promise<void> {
     const row = toDeckRow(deck);
     await this.db
@@ -43,5 +53,9 @@ export class PostgresDeckRepository implements DeckRepository {
 
   async delete(id: DeckId): Promise<void> {
     await this.db.deleteFrom('decks').where('id', '=', id.value).execute();
+  }
+
+  async deleteOwnedBy(teamId: TeamId): Promise<void> {
+    await this.db.deleteFrom('decks').where('team_id', '=', teamId.value).execute();
   }
 }

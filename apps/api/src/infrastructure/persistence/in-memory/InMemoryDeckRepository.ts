@@ -22,6 +22,10 @@ export class InMemoryDeckRepository implements DeckRepository {
     return Promise.resolve(decks);
   }
 
+  listCustom(): Promise<ReadonlyArray<SavedDeck>> {
+    return Promise.resolve([...this.decks.values()].filter((deck) => deck.isCustom()));
+  }
+
   save(deck: SavedDeck): Promise<void> {
     this.decks.set(deck.id.value, deck);
     return Promise.resolve();
@@ -29,6 +33,13 @@ export class InMemoryDeckRepository implements DeckRepository {
 
   delete(id: DeckId): Promise<void> {
     this.decks.delete(id.value);
+    return Promise.resolve();
+  }
+
+  deleteOwnedBy(teamId: TeamId): Promise<void> {
+    for (const deck of this.decks.values()) {
+      if (deck.belongsTo(teamId)) this.decks.delete(deck.id.value);
+    }
     return Promise.resolve();
   }
 }
