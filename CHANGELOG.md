@@ -1,5 +1,12 @@
 # Changelog
 
+## [1.6.0](https://github.com/camamu/planning-poker/compare/planning-poker-v1.5.0...planning-poker-v1.6.0) (2026-10-16)
+
+
+### Features
+
+* **web:** logo de ficha y carta, favicon y token de marca ([360dd85](https://github.com/camamu/planning-poker/commit/360dd859ffd8de73514b9489db18777f68d7f806))
+
 ## [1.5.0](https://github.com/camamu/planning-poker/compare/planning-poker-v1.4.2...planning-poker-v1.5.0) (2026-10-15)
 
 
