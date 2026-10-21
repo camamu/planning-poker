@@ -1,6 +1,7 @@
 import type {
   AddIssueCommandInput,
   ChangeGameDeckCommandInput,
+  ChangeParticipantHatCommandInput,
   CreateGameCommandInput,
   DeckSummaryView,
   GameView,
@@ -82,6 +83,17 @@ export function listGameDecks(gameId: string): Promise<ReadonlyArray<DeckSummary
 
 export function changeGameDeck(gameId: string, input: ChangeGameDeckCommandInput): Promise<void> {
   return requestJson(`/api/games/${gameId}/deck`, {
+    method: 'PATCH',
+    body: JSON.stringify(input),
+  });
+}
+
+export function changeParticipantHat(
+  gameId: string,
+  participantId: string,
+  input: ChangeParticipantHatCommandInput,
+): Promise<void> {
+  return requestJson(`/api/games/${gameId}/participants/${participantId}/hat`, {
     method: 'PATCH',
     body: JSON.stringify(input),
   });

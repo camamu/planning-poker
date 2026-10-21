@@ -1,4 +1,6 @@
+import type { HatIdView } from '@pp/contracts';
 import type { JSX } from 'react';
+import { Hat } from '../Hat/Hat.js';
 
 const HUES = [289, 250, 200, 330, 30, 150, 100, 350, 60];
 
@@ -20,6 +22,8 @@ export interface AvatarProps {
   readonly initials?: string;
   readonly animated?: boolean;
   readonly opacity?: number;
+  /** Sombrero encima de la cabeza; sobresale por arriba del cuadrado sin cambiar su tamaño. */
+  readonly hat?: HatIdView | null | undefined;
 }
 
 export function Avatar(props: AvatarProps): JSX.Element {
@@ -35,12 +39,15 @@ export function Avatar(props: AvatarProps): JSX.Element {
     animation: props.animated ? 'ppFloat 4s ease-in-out infinite' : undefined,
   };
 
+  const hat = props.hat ? <HatOverlay hat={props.hat} size={size} /> : null;
+
   if (variant === 'initials') {
     return (
       <div
-        className="flex flex-none items-center justify-center rounded-[10px] text-xs font-bold"
+        className="relative flex flex-none items-center justify-center rounded-[10px] text-xs font-bold"
         style={{ ...style, color: '#1b1d2c' }}
       >
+        {hat}
         {props.initials}
       </div>
     );
@@ -48,6 +55,7 @@ export function Avatar(props: AvatarProps): JSX.Element {
 
   return (
     <div className="relative flex-none rounded-[8px]" style={style}>
+      {hat}
       <span
         className="absolute rounded-full"
         style={{
@@ -80,5 +88,21 @@ export function Avatar(props: AvatarProps): JSX.Element {
         }}
       />
     </div>
+  );
+}
+
+function HatOverlay({ hat, size }: { hat: HatIdView; size: number }): JSX.Element {
+  const width = size * 1.3;
+  const height = (width * 28) / 40;
+  // El ala del sombrero (y≈24 de 28 en el viewBox) cae un poco por debajo del borde superior de la
+  // cabeza: así parece puesto y no flotando encima.
+  const overlap = size * 0.16 + (height * 4) / 28;
+  return (
+    <span
+      className="pointer-events-none absolute left-1/2 z-[1] -translate-x-1/2"
+      style={{ top: overlap - height }}
+    >
+      <Hat hat={hat} width={width} />
+    </span>
   );
 }

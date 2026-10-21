@@ -1,4 +1,4 @@
-import type { GameView, RoundView } from '@pp/contracts';
+import type { GameView, HatIdView, RoundView } from '@pp/contracts';
 import type { JSX } from 'react';
 import { useRef } from 'react';
 import type { EmojiInFlight } from '../../../shared/store/gameStore.js';
@@ -16,6 +16,7 @@ export interface TableProps {
     readonly id: string;
     readonly displayName: string;
     readonly online: boolean;
+    readonly hat: HatIdView | null;
     readonly seat: SeatPosition;
   }>;
   readonly viewerId: string;
@@ -123,6 +124,7 @@ export function Table({
             isDealer={round?.dealerId === seat.id}
             isViewer={seat.id === viewerId}
             online={seat.online}
+            hat={seat.hat}
             onRemove={
               onRemoveSeat && seat.id !== viewerId
                 ? () => {

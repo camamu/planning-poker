@@ -1,3 +1,4 @@
+import type { HatIdView } from '@pp/contracts';
 import type { JSX } from 'react';
 import { Avatar, Card } from '../../../design-system/index.js';
 import type { SeatPosition } from '../seatLayout.js';
@@ -12,6 +13,7 @@ export interface ParticipantSeatProps {
   readonly isViewer: boolean;
   /** Conectado ahora mismo; si no, el asiento se atenúa (ADR 0015). */
   readonly online: boolean;
+  readonly hat?: HatIdView | null | undefined;
   /** Solo lo recibe el facilitador, y nunca para su propio asiento. */
   readonly onRemove?: (() => void) | undefined;
   /** null = no ha votado (hueco vacío). */
@@ -69,8 +71,9 @@ export function ParticipantSeat(props: ParticipantSeatProps): JSX.Element {
         />
       )}
 
-      <div className="flex max-w-[108px] items-center gap-1.5">
-        <Avatar seed={props.participantId} size={24} animated />
+      {/* pt reserva el hueco del sombrero para que no pise la carta de encima. */}
+      <div className="flex max-w-[108px] items-center gap-1.5 pt-1.5">
+        <Avatar seed={props.participantId} size={24} animated hat={props.hat} />
         <span className="truncate text-xs" style={{ color: 'var(--color-neutral-100)' }}>
           {props.isViewer ? 'Tú' : props.displayName}
         </span>
