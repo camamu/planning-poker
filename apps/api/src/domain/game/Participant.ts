@@ -1,4 +1,5 @@
 import type { DisplayName } from './DisplayName.js';
+import type { Hat } from './Hat.js';
 import type { ParticipantId } from './ids.js';
 
 export type ParticipantRole = 'VOTER' | 'SPECTATOR';
@@ -6,6 +7,7 @@ export type ParticipantRole = 'VOTER' | 'SPECTATOR';
 export class Participant {
   private role: ParticipantRole;
   private left: boolean;
+  private hat: Hat | null;
 
   private constructor(
     readonly id: ParticipantId,
@@ -15,9 +17,11 @@ export class Participant {
     /** Orden de entrada a la partida, estable entre reconstituciones. Base de `Game.currentDealer()`. */
     readonly joinOrder: number,
     left: boolean,
+    hat: Hat | null,
   ) {
     this.role = role;
     this.left = left;
+    this.hat = hat;
   }
 
   static join(
@@ -27,8 +31,9 @@ export class Participant {
     isFacilitator: boolean,
     joinOrder: number,
     left = false,
+    hat: Hat | null = null,
   ): Participant {
-    return new Participant(id, displayName, role, isFacilitator, joinOrder, left);
+    return new Participant(id, displayName, role, isFacilitator, joinOrder, left, hat);
   }
 
   /**
@@ -41,6 +46,15 @@ export class Participant {
 
   hasLeft(): boolean {
     return this.left;
+  }
+
+  /** `null` = sin sombrero. */
+  wearHat(hat: Hat | null): void {
+    this.hat = hat;
+  }
+
+  currentHat(): Hat | null {
+    return this.hat;
   }
 
   changeRole(role: ParticipantRole): void {

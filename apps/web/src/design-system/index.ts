@@ -1,5 +1,7 @@
 export { Avatar, hueForSeed } from './components/Avatar/Avatar.js';
 export type { AvatarProps } from './components/Avatar/Avatar.js';
+export { Hat, HAT_LABELS } from './components/Hat/Hat.js';
+export type { HatProps } from './components/Hat/Hat.js';
 export { Badge } from './components/Badge/Badge.js';
 export type { BadgeProps, BadgeVariant } from './components/Badge/Badge.js';
 export { Button } from './components/Button/Button.js';

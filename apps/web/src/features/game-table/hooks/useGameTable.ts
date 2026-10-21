@@ -1,6 +1,6 @@
-import type { GameView, ParticipantView, RoundView } from '@pp/contracts';
+import type { GameView, HatIdView, ParticipantView, RoundView } from '@pp/contracts';
 import { useEffect } from 'react';
-import { removeParticipant } from '../../../shared/api/gamesClient.js';
+import { changeParticipantHat, removeParticipant } from '../../../shared/api/gamesClient.js';
 import { useGameStore } from '../../../shared/store/gameStore.js';
 import type { ConnectionStatus } from '../../../shared/store/gameStore.js';
 import type { SeatPosition } from '../seatLayout.js';
@@ -20,6 +20,8 @@ export interface UseGameTableResult {
   readonly isFacilitator: boolean;
   /** El facilitador quita a otro, o cualquiera sale él mismo (`targetId === participantId`). */
   readonly removeParticipant: (targetId: string) => Promise<void>;
+  /** `null` = quitarse el sombrero. Solo el propio: nadie le pone sombrero a otro (ADR 0017). */
+  readonly changeHat: (hat: HatIdView | null) => Promise<void>;
   readonly selectedCard: string | null;
   readonly castVote: (card: string) => void;
   readonly startRound: (issueId: string) => void;
@@ -103,6 +105,15 @@ export function useGameTable(gameId: string, participantId: string): UseGameTabl
       } catch (cause) {
         useGameStore.setState({
           errorMessage: cause instanceof Error ? cause.message : 'No se pudo completar la acción.',
+        });
+      }
+    },
+    changeHat: async (hat) => {
+      try {
+        await changeParticipantHat(gameId, participantId, { participantId, hat });
+      } catch (cause) {
+        useGameStore.setState({
+          errorMessage: cause instanceof Error ? cause.message : 'No se pudo cambiar el sombrero.',
         });
       }
     },

@@ -5,6 +5,7 @@ import { DisplayName } from '../../../../domain/game/DisplayName.js';
 import { Game } from '../../../../domain/game/Game.js';
 import { GameName } from '../../../../domain/game/GameName.js';
 import { GameSettings } from '../../../../domain/game/GameSettings.js';
+import { Hat } from '../../../../domain/game/Hat.js';
 import type { WhoCanReveal } from '../../../../domain/game/GameSettings.js';
 import { GameId, IssueId, ParticipantId, RoundId } from '../../../../domain/game/ids.js';
 import { Issue } from '../../../../domain/game/Issue.js';
@@ -56,6 +57,7 @@ export function toParticipantRows(game: Game): Insertable<ParticipantTable>[] {
     is_facilitator: participant.isFacilitator,
     position: participant.joinOrder,
     left: participant.hasLeft(),
+    hat: participant.currentHat()?.id ?? null,
   }));
 }
 
@@ -131,6 +133,7 @@ export function toDomainGame(rows: GameRowSet): Game {
         row.is_facilitator,
         row.position,
         row.left,
+        row.hat === null ? null : Hat.of(row.hat),
       ),
     ),
     issues: rows.issues.map((row) =>
