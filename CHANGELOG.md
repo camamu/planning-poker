@@ -1,5 +1,16 @@
 # Changelog
 
+## [1.7.0](https://github.com/camamu/planning-poker/compare/planning-poker-v1.6.0...planning-poker-v1.7.0) (2026-10-21)
+
+
+### Features
+
+* **app:** caso de uso ChangeParticipantHat y sombrero en la vista ([0711d26](https://github.com/camamu/planning-poker/commit/0711d26f7797d8fc7985fc69a56a8a41b33f42b5))
+* **contracts:** sombrero en ParticipantView, comando y evento participant_hat_changed ([6eb2fbd](https://github.com/camamu/planning-poker/commit/6eb2fbdcf199b97a60af1682c068c73edd1ca842))
+* **domain:** sombrero de avatar con Game.changeParticipantHat (cada uno el suyo) ([63a9acc](https://github.com/camamu/planning-poker/commit/63a9acc58c3ef385aa4141c0be2abc2a10584e58))
+* **infra:** persistencia, PATCH y evento en vivo del sombrero de avatar ([d701225](https://github.com/camamu/planning-poker/commit/d7012257dbc327607aef557c419322dbd4376f7f))
+* **web:** sombreros de avatar dibujados y selector en la sala ([7b029ac](https://github.com/camamu/planning-poker/commit/7b029ac673c27fdbaaee535a11dcd76beb8707ad))
+
 ## [1.6.0](https://github.com/camamu/planning-poker/compare/planning-poker-v1.5.0...planning-poker-v1.6.0) (2026-10-16)
 
 
