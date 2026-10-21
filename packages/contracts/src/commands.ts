@@ -7,7 +7,8 @@ const participantRoleSchema = z.enum(['VOTER', 'SPECTATOR']);
 /**
  * Compartido entre `createGameCommandSchema` y `updateGameSettingsCommandSchema`. Los defaults
  * reproducen los de la pantalla "Ajustes finos" del handoff (docs/06-handoff-diseno.md §9):
- * auto-revelar, cambiar el voto y fiesta empiezan activados; emojis lanzados y cuenta atrás no.
+ * auto-revelar, cambiar el voto, fiesta y emojis lanzados empiezan activados; cuenta atrás no
+ * (emojis activados por defecto desde ADR 0018).
  */
 export const gameSettingsSchema = z.object({
   autoReveal: z.boolean(),
@@ -15,7 +16,7 @@ export const gameSettingsSchema = z.object({
   namedRevealers: z.array(z.string().trim().min(1)).optional(),
   allowVoteChange: z.boolean().default(true),
   celebrate: z.boolean().default(true),
-  throwEmojis: z.boolean().default(false),
+  throwEmojis: z.boolean().default(true),
   countdownSeconds: z.number().int().positive().nullable().default(null),
   revealOnTimeout: z.boolean().default(false),
 });
