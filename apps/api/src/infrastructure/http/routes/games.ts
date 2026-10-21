@@ -1,6 +1,7 @@
 import {
   addIssueCommandSchema,
   changeGameDeckCommandSchema,
+  changeParticipantHatCommandSchema,
   createGameCommandSchema,
   joinGameCommandSchema,
   removeParticipantCommandSchema,
@@ -9,6 +10,7 @@ import {
 import type { FastifyInstance } from 'fastify';
 import type { AddIssue } from '../../../application/use-cases/AddIssue.js';
 import type { ChangeGameDeck } from '../../../application/use-cases/ChangeGameDeck.js';
+import type { ChangeParticipantHat } from '../../../application/use-cases/ChangeParticipantHat.js';
 import type { CreateGame } from '../../../application/use-cases/CreateGame.js';
 import type { GetGameState } from '../../../application/use-cases/GetGameState.js';
 import type { JoinGame } from '../../../application/use-cases/JoinGame.js';
@@ -28,6 +30,7 @@ export interface GameRoutesDependencies {
   readonly updateGameSettings: UpdateGameSettings;
   readonly changeGameDeck: ChangeGameDeck;
   readonly listGameDecks: ListGameDecks;
+  readonly changeParticipantHat: ChangeParticipantHat;
   readonly versions: GameVersionTracker;
 }
 
@@ -183,4 +186,22 @@ export function registerGameRoutes(app: FastifyInstance, deps: GameRoutesDepende
       sendError(reply, error);
     }
   });
+
+  app.patch<{ Params: ParticipantParams }>(
+    '/api/games/:id/participants/:participantId/hat',
+    async (request, reply) => {
+      try {
+        const command = changeParticipantHatCommandSchema.parse(request.body);
+        await deps.changeParticipantHat.execute({
+          gameId: request.params.id,
+          participantId: request.params.participantId,
+          hat: command.hat,
+          requestedBy: command.participantId,
+        });
+        await reply.code(204).send();
+      } catch (error) {
+        sendError(reply, error);
+      }
+    },
+  );
 }
