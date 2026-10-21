@@ -5,6 +5,7 @@ import type { DisplayName } from './DisplayName.js';
 import type { GameEvent } from './events/GameEvent.js';
 import type { GameName } from './GameName.js';
 import type { GameSettings } from './GameSettings.js';
+import type { Hat } from './Hat.js';
 import type { GameId, IssueId, ParticipantId, RoundId } from './ids.js';
 import { Issue } from './Issue.js';
 import { Participant } from './Participant.js';
@@ -95,6 +96,12 @@ export class SettingsChangeNotAllowedError extends DomainError {
 export class DeckChangeNotAllowedError extends DomainError {
   constructor(readonly participantId: ParticipantId) {
     super(`El participante ${participantId.value} no puede cambiar la baraja de la partida.`);
+  }
+}
+
+export class HatChangeNotAllowedError extends DomainError {
+  constructor(readonly participantId: ParticipantId) {
+    super(`El participante ${participantId.value} no puede cambiar el sombrero de otro.`);
   }
 }
 
@@ -306,6 +313,28 @@ export class Game {
     const round = this.openRound();
     if (!round || round.voteCount() === 0) return;
     this.autoRevealIfComplete(round, present, now);
+  }
+
+  /**
+   * Cada uno elige su propio sombrero, también los espectadores y en mitad de una ronda: es pura
+   * cosmética y no afecta a votos ni permisos. Ni el facilitador puede ponérselo a otro.
+   */
+  changeParticipantHat(
+    targetId: ParticipantId,
+    hat: Hat | null,
+    requestedBy: ParticipantId,
+    now: Date,
+  ): void {
+    const target = this.requireParticipant(targetId);
+    if (!requestedBy.equals(targetId)) throw new HatChangeNotAllowedError(requestedBy);
+    target.wearHat(hat);
+    this.record({
+      type: 'ParticipantHatChanged',
+      occurredAt: now,
+      gameId: this.id,
+      participantId: targetId,
+      hat,
+    });
   }
 
   /**
