@@ -66,6 +66,7 @@ function toParticipantView(participant: Participant, online: boolean): Participa
     role: participant.currentRole(),
     isFacilitator: participant.isFacilitator,
     online,
+    hat: participant.currentHat()?.id ?? null,
   };
 }
 
