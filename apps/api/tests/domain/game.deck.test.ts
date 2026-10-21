@@ -1,11 +1,9 @@
 import { describe, expect, it } from 'vitest';
 import { CardValue } from '../../src/domain/deck/CardValue.js';
 import { Deck } from '../../src/domain/deck/Deck.js';
-import {
-  CardNotInDeckError,
-  DeckChangeDuringVotingError,
-  DeckChangeNotAllowedError,
-} from '../../src/domain/game/Game.js';
+import { DisplayName } from '../../src/domain/game/DisplayName.js';
+import { CardNotInDeckError, DeckChangeDuringVotingError } from '../../src/domain/game/Game.js';
+import { ParticipantId } from '../../src/domain/game/ids.js';
 import { addIssueAndOpenRound, addVoter, createGame, NOW } from './support/gameFixtures.js';
 
 describe('Game.changeDeck', () => {
@@ -23,13 +21,23 @@ describe('Game.changeDeck', () => {
     }).toThrow(CardNotInDeckError);
   });
 
-  it('no permite a un participante que no es facilitador cambiar la baraja', () => {
+  it('permite a cualquier votante, no solo al facilitador, cambiar la baraja', () => {
     const { game } = createGame();
     const voterId = addVoter(game);
 
-    expect(() => {
-      game.changeDeck(Deck.tshirt(), voterId, NOW);
-    }).toThrow(DeckChangeNotAllowedError);
+    game.changeDeck(Deck.tshirt(), voterId, NOW);
+
+    expect(game.currentDeck().contains(CardValue.of('XL'))).toBe(true);
+  });
+
+  it('permite a un espectador cambiar la baraja', () => {
+    const { game } = createGame();
+    const spectatorId = ParticipantId.of('spectator-1');
+    game.addParticipant(spectatorId, DisplayName.of('Mirón'), 'SPECTATOR', NOW);
+
+    game.changeDeck(Deck.tshirt(), spectatorId, NOW);
+
+    expect(game.currentDeck().contains(CardValue.of('XL'))).toBe(true);
   });
 
   it('no permite cambiar la baraja con una ronda abierta', () => {

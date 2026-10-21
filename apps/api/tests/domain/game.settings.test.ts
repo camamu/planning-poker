@@ -81,3 +81,9 @@ describe('Game.updateSettings', () => {
     }).toThrow();
   });
 });
+
+describe('ajuste "lanzar emojis" (throwEmojis)', () => {
+  it('viene activado por defecto si no se indica', () => {
+    expect(GameSettings.of({ autoReveal: true, whoCanReveal: 'ANYONE' }).throwEmojis).toBe(true);
+  });
+});

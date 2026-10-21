@@ -93,12 +93,6 @@ export class SettingsChangeNotAllowedError extends DomainError {
   }
 }
 
-export class DeckChangeNotAllowedError extends DomainError {
-  constructor(readonly participantId: ParticipantId) {
-    super(`El participante ${participantId.value} no puede cambiar la baraja de la partida.`);
-  }
-}
-
 export class HatChangeNotAllowedError extends DomainError {
   constructor(readonly participantId: ParticipantId) {
     super(`El participante ${participantId.value} no puede cambiar el sombrero de otro.`);
@@ -472,9 +466,9 @@ export class Game {
    * en la baraja nueva y quedaría una ronda con cartas que nadie puede volver a elegir. Una ronda
    * ya revelada no lo impide — su resultado es histórico y no vuelve a validarse contra la baraja.
    */
+  /** Cualquier participante, espectadores incluidos (ADR 0018): la baraja es de toda la sala. */
   changeDeck(deck: Deck, requestedBy: ParticipantId, now: Date): void {
-    const participant = this.requireParticipant(requestedBy);
-    if (!participant.isFacilitator) throw new DeckChangeNotAllowedError(requestedBy);
+    this.requireParticipant(requestedBy);
     if (this.openRound()) throw new DeckChangeDuringVotingError(this.id);
     this.deck = deck;
     this.record({ type: 'GameDeckChanged', occurredAt: now, gameId: this.id, deck });
