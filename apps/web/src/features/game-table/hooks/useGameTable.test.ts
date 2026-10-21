@@ -31,8 +31,8 @@ const baseGame: GameView = {
     revealOnTimeout: false,
   },
   participants: [
-    { id: 'p1', displayName: 'Yo', role: 'VOTER', isFacilitator: true, online: true },
-    { id: 'p2', displayName: 'Otro', role: 'VOTER', isFacilitator: false, online: true },
+    { id: 'p1', displayName: 'Yo', role: 'VOTER', isFacilitator: true, online: true, hat: null },
+    { id: 'p2', displayName: 'Otro', role: 'VOTER', isFacilitator: false, online: true, hat: null },
   ],
   issues: [],
   currentRound: {
@@ -87,8 +87,22 @@ describe('useGameTable', () => {
         game: {
           ...baseGame,
           participants: [
-            { id: 'p1', displayName: 'Yo', role: 'VOTER', isFacilitator: true, online: true },
-            { id: 'p2', displayName: 'Otro', role: 'VOTER', isFacilitator: false, online: false },
+            {
+              id: 'p1',
+              displayName: 'Yo',
+              role: 'VOTER',
+              isFacilitator: true,
+              online: true,
+              hat: null,
+            },
+            {
+              id: 'p2',
+              displayName: 'Otro',
+              role: 'VOTER',
+              isFacilitator: false,
+              online: false,
+              hat: null,
+            },
           ],
         },
       });
@@ -105,8 +119,22 @@ describe('useGameTable', () => {
         game: {
           ...baseGame,
           participants: [
-            { id: 'p1', displayName: 'Yo', role: 'VOTER', isFacilitator: true, online: true },
-            { id: 'p2', displayName: 'Otro', role: 'VOTER', isFacilitator: false, online: false },
+            {
+              id: 'p1',
+              displayName: 'Yo',
+              role: 'VOTER',
+              isFacilitator: true,
+              online: true,
+              hat: null,
+            },
+            {
+              id: 'p2',
+              displayName: 'Otro',
+              role: 'VOTER',
+              isFacilitator: false,
+              online: false,
+              hat: null,
+            },
           ],
         },
       });

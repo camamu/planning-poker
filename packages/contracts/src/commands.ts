@@ -1,4 +1,5 @@
 import { z } from 'zod';
+import type { HatIdView } from './views.js';
 
 const whoCanRevealSchema = z.enum(['FACILITATOR_ONLY', 'ANYONE', 'NAMED_LIST', 'DEALER']);
 const participantRoleSchema = z.enum(['VOTER', 'SPECTATOR']);
@@ -57,6 +58,29 @@ export const changeGameDeckCommandSchema = z.object({
   deckId: z.string().trim().min(1),
 });
 export type ChangeGameDeckCommandInput = z.infer<typeof changeGameDeckCommandSchema>;
+
+/** Orden de presentación del selector de sombreros en el front. */
+export const HAT_IDS = [
+  'cowboy',
+  'wizard',
+  'propeller',
+  'crown',
+  'top-hat',
+  'party',
+  'pirate',
+  'viking',
+  'chef',
+] as const satisfies ReadonlyArray<HatIdView>;
+
+/**
+ * REST — `PATCH /api/games/:id/participants/:participantId/hat`. `participantId` del cuerpo es
+ * quien lo pide; solo vale si coincide con el de la URL (`Game.changeParticipantHat`).
+ */
+export const changeParticipantHatCommandSchema = z.object({
+  participantId: z.string().trim().min(1),
+  hat: z.enum(HAT_IDS).nullable(),
+});
+export type ChangeParticipantHatCommandInput = z.infer<typeof changeParticipantHatCommandSchema>;
 
 /** REST — `POST /api/games/:id/participants` */
 export const joinGameCommandSchema = z.object({

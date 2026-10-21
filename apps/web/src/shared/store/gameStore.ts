@@ -247,6 +247,12 @@ socket.on(
     applyEvent(event);
   },
 );
+socket.on(
+  'participant_hat_changed',
+  (event: Extract<ServerEvent, { type: 'participant_hat_changed' }>) => {
+    applyEvent(event);
+  },
+);
 socket.on('issue_added', (event: Extract<ServerEvent, { type: 'issue_added' }>) => {
   applyEvent(event);
 });

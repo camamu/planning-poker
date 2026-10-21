@@ -30,6 +30,8 @@ export interface ParticipantTable {
   position: number;
   /** Baja lógica: ver docs/adr/0015-presencia-y-salida-de-participantes.md. */
   left: ColumnType<boolean, boolean | undefined, boolean>;
+  /** `HatId` del dominio, o `null` sin sombrero. */
+  hat: ColumnType<string | null, string | null | undefined, string | null>;
 }
 
 export interface IssueTable {

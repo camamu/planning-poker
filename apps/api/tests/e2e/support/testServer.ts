@@ -5,6 +5,7 @@ import { AddIssue } from '../../../src/application/use-cases/AddIssue.js';
 import { AuthenticateTeam } from '../../../src/application/use-cases/AuthenticateTeam.js';
 import { CastVote } from '../../../src/application/use-cases/CastVote.js';
 import { ChangeGameDeck } from '../../../src/application/use-cases/ChangeGameDeck.js';
+import { ChangeParticipantHat } from '../../../src/application/use-cases/ChangeParticipantHat.js';
 import { CreateGame } from '../../../src/application/use-cases/CreateGame.js';
 import { CreateTeam } from '../../../src/application/use-cases/CreateTeam.js';
 import { DeleteCustomDeck } from '../../../src/application/use-cases/DeleteCustomDeck.js';
@@ -89,6 +90,7 @@ export async function startTestServer(options: TestServerOptions = {}): Promise<
   const setFinalEstimate = new SetFinalEstimate(games, events, clock);
   const updateGameSettings = new UpdateGameSettings(games, events, clock);
   const changeGameDeck = new ChangeGameDeck(games, decks, events, clock);
+  const changeParticipantHat = new ChangeParticipantHat(games, events, clock);
   const listGameDecks = new ListGameDecks(games, decks);
   const getGameState = new GetGameState(games, presence);
 
@@ -107,6 +109,7 @@ export async function startTestServer(options: TestServerOptions = {}): Promise<
     getGameState,
     updateGameSettings,
     changeGameDeck,
+    changeParticipantHat,
     listGameDecks,
     versions,
   });

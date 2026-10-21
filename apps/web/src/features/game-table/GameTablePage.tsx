@@ -175,6 +175,8 @@ export function GameTablePage({
               }
         }
         viewerId={participantId}
+        viewerHat={me?.hat ?? null}
+        onChangeHat={table.changeHat}
         onToggleIssues={() => {
           setIssuesOpen((open) => !open);
         }}
@@ -223,7 +225,7 @@ export function GameTablePage({
                     spectator.online ? undefined : `${spectator.displayName} está desconectado`
                   }
                 >
-                  <Avatar seed={spectator.id} size={20} opacity={0.85} />
+                  <Avatar seed={spectator.id} size={20} opacity={0.85} hat={spectator.hat} />
                   <span className="text-[11px]" style={{ color: 'var(--pp-muted)' }}>
                     {spectator.displayName}
                   </span>

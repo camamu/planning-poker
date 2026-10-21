@@ -2,6 +2,7 @@ import type { CardValue } from '../../deck/CardValue.js';
 import type { Deck } from '../../deck/Deck.js';
 import type { DomainEvent } from '../../shared/DomainEvent.js';
 import type { GameSettings } from '../GameSettings.js';
+import type { Hat } from '../Hat.js';
 import type { GameId, IssueId, ParticipantId, RoundId } from '../ids.js';
 import type { ParticipantRole } from '../Participant.js';
 
@@ -23,6 +24,12 @@ export type GameEvent = DomainEvent &
         readonly gameId: GameId;
         readonly participantId: ParticipantId;
         readonly role: ParticipantRole;
+      }
+    | {
+        readonly type: 'ParticipantHatChanged';
+        readonly gameId: GameId;
+        readonly participantId: ParticipantId;
+        readonly hat: Hat | null;
       }
     | { readonly type: 'IssueAdded'; readonly gameId: GameId; readonly issueId: IssueId }
     | {

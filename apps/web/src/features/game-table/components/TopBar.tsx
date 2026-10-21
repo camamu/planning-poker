@@ -1,7 +1,9 @@
+import type { HatIdView } from '@pp/contracts';
 import { useState } from 'react';
 import type { JSX } from 'react';
 import { Avatar, Logo } from '../../../design-system/index.js';
 import { formatCountdown } from '../hooks/useCountdown.js';
+import { HatPicker } from './HatPicker.js';
 import { InviteDialog } from './InviteDialog.js';
 
 export interface TopBarProps {
@@ -11,6 +13,8 @@ export interface TopBarProps {
   readonly muted: boolean;
   readonly onToggleMuted: () => void;
   readonly viewerId: string;
+  readonly viewerHat: HatIdView | null;
+  readonly onChangeHat: (hat: HatIdView | null) => void | Promise<void>;
   readonly onToggleIssues: () => void;
   readonly onToggleSettings?: (() => void) | undefined;
   /** Ausente para el facilitador: no puede salir de su propia partida. */
@@ -19,6 +23,7 @@ export interface TopBarProps {
 
 export function TopBar(props: TopBarProps): JSX.Element {
   const [inviteOpen, setInviteOpen] = useState(false);
+  const [hatPickerOpen, setHatPickerOpen] = useState(false);
 
   return (
     <nav
@@ -65,6 +70,15 @@ export function TopBar(props: TopBarProps): JSX.Element {
           type="button"
           className="btn btn-secondary"
           onClick={() => {
+            setHatPickerOpen(true);
+          }}
+        >
+          🎩 Sombrero
+        </button>
+        <button
+          type="button"
+          className="btn btn-secondary"
+          onClick={() => {
             setInviteOpen(true);
           }}
         >
@@ -75,8 +89,35 @@ export function TopBar(props: TopBarProps): JSX.Element {
             Salir
           </button>
         ) : null}
-        <Avatar seed={props.viewerId} variant="initials" initials="TÚ" size={32} />
+        <button
+          type="button"
+          className="rounded-[10px] pt-3"
+          aria-label="Cambiar sombrero"
+          title="Cambiar sombrero"
+          onClick={() => {
+            setHatPickerOpen(true);
+          }}
+        >
+          <Avatar
+            seed={props.viewerId}
+            variant="initials"
+            initials="TÚ"
+            size={32}
+            hat={props.viewerHat}
+          />
+        </button>
       </div>
+      <HatPicker
+        open={hatPickerOpen}
+        viewerId={props.viewerId}
+        current={props.viewerHat}
+        onSelect={(hat) => {
+          void props.onChangeHat(hat);
+        }}
+        onClose={() => {
+          setHatPickerOpen(false);
+        }}
+      />
       <InviteDialog
         open={inviteOpen}
         link={window.location.href}
