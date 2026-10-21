@@ -180,13 +180,9 @@ export function GameTablePage({
         onToggleIssues={() => {
           setIssuesOpen((open) => !open);
         }}
-        onToggleSettings={
-          me?.isFacilitator
-            ? () => {
-                setSettingsOpen((open) => !open);
-              }
-            : undefined
-        }
+        onToggleSettings={() => {
+          setSettingsOpen((open) => !open);
+        }}
       />
       <div className="grid min-h-0 flex-1 grid-cols-1 lg:grid-cols-[1fr_316px]">
         <div className="flex min-w-0 flex-col" style={{ background: 'var(--pp-felt)' }}>
@@ -350,6 +346,7 @@ export function GameTablePage({
               settings={game.settings}
               deckCards={game.deck.cards}
               roundOpen={round?.status === 'OPEN'}
+              canEditSettings={me?.isFacilitator ?? false}
               onClose={() => {
                 setSettingsOpen(false);
               }}
