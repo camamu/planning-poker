@@ -1,7 +1,7 @@
 import { useState } from 'react';
 import type { JSX, SubmitEvent } from 'react';
 import type { ParticipantRoleView } from '@pp/contracts';
-import { Button, Input, SegmentedControl } from '../../design-system/index.js';
+import { Button, Input, Logo, SegmentedControl } from '../../design-system/index.js';
 import { joinGame } from '../../shared/api/gamesClient.js';
 import { saveParticipantIdentity } from '../../shared/viewer/ParticipantIdProvider.js';
 import type { ParticipantIdentity } from '../../shared/viewer/ParticipantIdProvider.js';
@@ -40,11 +40,7 @@ export function JoinGamePage({ gameId, onJoined }: JoinGamePageProps): JSX.Eleme
 
   return (
     <div className="mx-auto flex w-[400px] max-w-full flex-col items-center gap-4 py-16 text-center">
-      <div className="flex gap-2" aria-hidden="true">
-        <span className="text-2xl">🂡</span>
-        <span className="text-2xl">🂮</span>
-        <span className="text-2xl">🂫</span>
-      </div>
+      <Logo size={56} />
       <h1 className="text-lg">Te esperan para estimar</h1>
       <form
         className="flex w-full flex-col gap-4"
