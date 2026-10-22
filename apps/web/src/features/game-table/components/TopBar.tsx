@@ -16,7 +16,7 @@ export interface TopBarProps {
   readonly viewerHat: HatIdView | null;
   readonly onChangeHat: (hat: HatIdView | null) => void | Promise<void>;
   readonly onToggleIssues: () => void;
-  readonly onToggleSettings?: (() => void) | undefined;
+  readonly onToggleSettings: () => void;
   /** Ausente para el facilitador: no puede salir de su propia partida. */
   readonly onLeave?: (() => void) | undefined;
 }
@@ -58,11 +58,9 @@ export function TopBar(props: TopBarProps): JSX.Element {
         <button type="button" className="btn btn-secondary" onClick={props.onToggleIssues}>
           📋 Tareas
         </button>
-        {props.onToggleSettings ? (
-          <button type="button" className="btn btn-secondary" onClick={props.onToggleSettings}>
-            ⚙️ Ajustes
-          </button>
-        ) : null}
+        <button type="button" className="btn btn-secondary" onClick={props.onToggleSettings}>
+          ⚙️ Ajustes
+        </button>
         <button type="button" className="btn btn-secondary" onClick={props.onToggleMuted}>
           {props.muted ? '🔇' : '🔊'}
         </button>

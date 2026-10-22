@@ -14,6 +14,8 @@ export interface DeckSettingsPanelProps {
   readonly settings: GameSettingsView;
   readonly deckCards: ReadonlyArray<string>;
   readonly roundOpen: boolean;
+  /** La baraja la cambia cualquiera (ADR 0018); el resto de ajustes, solo el facilitador. */
+  readonly canEditSettings: boolean;
   readonly onClose: () => void;
 }
 
@@ -29,6 +31,11 @@ function toFormValue(settings: GameSettingsView): GameSettingsFormValue {
   };
 }
 
+const HEADERS = {
+  facilitator: { title: 'Ajustes finos', subtitle: 'Los ajustes se aplican a la ronda siguiente' },
+  others: { title: 'Baraja', subtitle: 'El resto de ajustes solo los cambia el facilitador' },
+} as const;
+
 /** Reutiliza GameSettingsForm (también usado, colapsado, en create-game). */
 export function DeckSettingsPanel(props: DeckSettingsPanelProps): JSX.Element {
   const [value, setValue] = useState<GameSettingsFormValue>(() => toFormValue(props.settings));
@@ -39,6 +46,7 @@ export function DeckSettingsPanel(props: DeckSettingsPanelProps): JSX.Element {
   // `saving` (estado) no basta para cerrar la ventana entre dos clics dentro del mismo tick, antes
   // del re-render que desactiva el botón; este ref sí se lee/escribe de forma síncrona.
   const savingRef = useRef(false);
+  const header = props.canEditSettings ? HEADERS.facilitator : HEADERS.others;
 
   if (showDecks) {
     return (
@@ -82,9 +90,9 @@ export function DeckSettingsPanel(props: DeckSettingsPanelProps): JSX.Element {
         style={{ borderBottom: '1px solid var(--color-divider)' }}
       >
         <div>
-          <span className="text-sm font-semibold">Ajustes finos</span>
+          <span className="text-sm font-semibold">{header.title}</span>
           <p className="text-xs" style={{ color: 'var(--pp-muted)' }}>
-            Los ajustes se aplican a la ronda siguiente
+            {header.subtitle}
           </p>
         </div>
         <button type="button" className="btn btn-ghost" onClick={props.onClose} aria-label="Cerrar">
@@ -99,43 +107,45 @@ export function DeckSettingsPanel(props: DeckSettingsPanelProps): JSX.Element {
           currentCards={props.deckCards}
           locked={props.roundOpen}
         />
-        <GameSettingsForm value={value} onChange={setValue} />
+        {props.canEditSettings ? <GameSettingsForm value={value} onChange={setValue} /> : null}
       </div>
 
-      <div
-        className="flex flex-col gap-2 p-4"
-        style={{ borderTop: '1px solid var(--color-divider)' }}
-      >
-        {error ? <p style={{ color: '#e5484d' }}>{error}</p> : null}
-        <Button
-          variant="primary"
-          block
-          disabled={saving}
-          onClick={() => {
-            void handleSave();
-          }}
+      {props.canEditSettings ? (
+        <div
+          className="flex flex-col gap-2 p-4"
+          style={{ borderTop: '1px solid var(--color-divider)' }}
         >
-          {saved ? 'Guardado ✓' : saving ? 'Guardando…' : 'Guardar ajustes'}
-        </Button>
-        <Button
-          variant="secondary"
-          block
-          onClick={() => {
-            setValue(toFormValue(props.settings));
-          }}
-        >
-          Volver a los de serie
-        </Button>
-        <button
-          type="button"
-          className="btn btn-ghost"
-          onClick={() => {
-            setShowDecks(true);
-          }}
-        >
-          Ver barajas del equipo →
-        </button>
-      </div>
+          {error ? <p style={{ color: '#e5484d' }}>{error}</p> : null}
+          <Button
+            variant="primary"
+            block
+            disabled={saving}
+            onClick={() => {
+              void handleSave();
+            }}
+          >
+            {saved ? 'Guardado ✓' : saving ? 'Guardando…' : 'Guardar ajustes'}
+          </Button>
+          <Button
+            variant="secondary"
+            block
+            onClick={() => {
+              setValue(toFormValue(props.settings));
+            }}
+          >
+            Volver a los de serie
+          </Button>
+          <button
+            type="button"
+            className="btn btn-ghost"
+            onClick={() => {
+              setShowDecks(true);
+            }}
+          >
+            Ver barajas del equipo →
+          </button>
+        </div>
+      ) : null}
     </div>
   );
 }

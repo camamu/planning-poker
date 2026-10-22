@@ -17,7 +17,7 @@ export const DEFAULT_SETTINGS: GameSettingsFormValue = {
   whoCanReveal: 'ANYONE',
   allowVoteChange: true,
   celebrate: true,
-  throwEmojis: false,
+  throwEmojis: true,
   countdownSeconds: null,
   revealOnTimeout: false,
 };
