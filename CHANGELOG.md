@@ -1,5 +1,15 @@
 # Changelog
 
+## [1.8.0](https://github.com/camamu/planning-poker/compare/planning-poker-v1.7.0...planning-poker-v1.8.0) (2026-10-22)
+
+
+### Features
+
+* **contracts:** throwEmojis activado por defecto ([6cd1094](https://github.com/camamu/planning-poker/commit/6cd1094b846143dfa42b5e4181089b5717b2ddbb))
+* **domain:** cualquier participante puede cambiar la baraja y emojis activados por defecto ([16def25](https://github.com/camamu/planning-poker/commit/16def2582a933e83fed5a6821767c288256bf1d7))
+* **web:** logo de la app en la pantalla de entrar a la sala ([7211c5e](https://github.com/camamu/planning-poker/commit/7211c5ef466814e625590921ed1b6d656bb9cbce))
+* **web:** selector de baraja para toda la sala y emojis activados al crear ([32e723f](https://github.com/camamu/planning-poker/commit/32e723f2668bb7854d6e9130d3e4d9616beb0a63))
+
 ## [1.7.0](https://github.com/camamu/planning-poker/compare/planning-poker-v1.6.0...planning-poker-v1.7.0) (2026-10-21)
 
 
