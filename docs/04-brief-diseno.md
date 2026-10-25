@@ -30,7 +30,7 @@ Orden recomendado dentro de Claude Design:
 >
 > **Qué importa:** que el estado de la partida se entienda de un vistazo sin leer nada — quién ha votado ya, si estamos esperando a alguien, si los votos están ocultos o revelados. La sesión es aburrida y se hace cada dos semanas; la interfaz tiene que ser rápida y clara, no impresionante.
 >
-> **Qué no es:** no es un producto comercial, no hay landing, no hay registro, no hay onboarding. Se entra por un enlace, se pone un nombre y se juega.
+> **Qué no es:** no es un producto comercial, no hay registro ni onboarding. Se entra por un enlace, se pone un nombre y se juega. Hay una página principal que explica la herramienta a quien llega sin enlace de sala, pero no es marketing: es una portada sobria con un botón para crear la sala.
 
 ---
 
@@ -120,11 +120,30 @@ Listado con las dos de sistema (no editables, marcadas como tal) y las personali
 
 Pídelos explícitamente o no aparecerán: partida vacía sin participantes · reconectando · partida no encontrada o caducada · un solo votante en la mesa · doce participantes con nombres largos · nombre de tarea muy largo · error al votar.
 
+### 5.7 Página principal
+
+Añadida en el plan v2 (bloque 21, `ADR 0029`). Pídela en una conversación propia, **después** de tener la mesa y con el sistema Nocturne ya cargado, pegando esto:
+
+> Diseña la página principal de la herramienta, la que ve quien abre la URL sin un enlace de sala. Su trabajo es explicar en un minuto qué es y llevar a crear una sala en un clic. Usa el sistema de diseño existente (Nocturne) y la misma dirección sobria: nada de degradados, ilustraciones de stock ni copy de marketing.
+>
+> Secciones, en este orden:
+>
+> 1. **Cabecera**: logo, nombre, una frase de qué es, botón principal «Crear sala» y secundario «Crear equipo». Como imagen, una mesa en miniatura compuesta con los componentes reales: unas cuantas cartas reveladas, avatares y el porcentaje de acuerdo. Nada de capturas de pantalla.
+> 2. **Volver a lo tuyo**: solo aparece si el navegador recuerda equipos o partidas. Una fila compacta con accesos directos. Diséñala con datos y vacía (ausente).
+> 3. **Cómo funciona**: tres pasos numerados — crear la sala y compartir enlace o QR · cada uno elige su carta, oculta · se revelan a la vez y se acuerda.
+> 4. **Funcionalidades**: tarjetas agrupadas en Votación, Resultados, Sala y Equipos, con un icono sencillo, un título y una línea cada una. Tienen que admitir crecer: se irán añadiendo más con el tiempo.
+> 5. **Sin cuentas**: un bloque corto que lo explique.
+> 6. **Pie** mínimo con la versión.
+>
+> Requisitos: móvil primero (el botón «Crear sala» visible sin scroll en un móvil), tema claro y oscuro, contraste AA. Pídeme también la variante de escritorio ancho.
+
+Cuando quede aprobada, el handoff solo trae los componentes de presentación a `design-system/`; la página y su contenido los monta Claude Code en `features/landing/`.
+
 ---
 
 ## 6. Qué **no** pedirle
 
-Landing de marketing, página de precios, onboarding, pantallas de registro, dashboard de administración, e integraciones. Nada de eso existe en este producto.
+Página de precios, onboarding, pantallas de registro, dashboard de administración, e integraciones. Nada de eso existe en este producto. La página principal (§5.7) sí existe, pero como portada sobria, no como landing de marketing.
 
 ---
 

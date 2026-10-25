@@ -251,3 +251,5 @@ Los bloques 2 y 3 no tocan una sola librería externa. Si en el bloque 5 tienes 
 ## 6. Lo que dejaría explícitamente fuera de la v1
 
 Votación asíncrona, histórico y exportación, importación CSV/URL, cuentas reales, y cualquier integración. Ninguna requiere rediseño para entrar después: async es un `RoundStatus` extra y un reveal en lote; el histórico ya está en `voting_rounds`, solo falta la vista.
+
+Todas salvo las cuentas reales se planifican, con algunas mejoras más, en [`07-plan-v2.md`](07-plan-v2.md) (bloques 11 a 21). La votación asíncrona se modela al final como un modo de ronda y no como un estado extra (`ADR 0027`).
