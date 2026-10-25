@@ -70,7 +70,7 @@ function toParticipantView(participant: Participant, online: boolean): Participa
   };
 }
 
-function toIssueView(issue: Issue): IssueView {
+export function toIssueView(issue: Issue): IssueView {
   return {
     id: issue.id.value,
     title: issue.title,
