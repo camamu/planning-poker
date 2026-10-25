@@ -16,9 +16,11 @@ const addIssueResponseSchema = z.object({
 const gameStateResponseSchema = z.object({
   version: z.number(),
   state: z.object({
+    issues: z.array(z.object({ id: z.string(), title: z.string() })),
     currentRound: z
       .object({
         status: z.enum(['OPEN', 'REVEALED', 'CLOSED']),
+        dealerId: z.string().nullable(),
         votes: z.array(z.object({ participantId: z.string(), card: z.string().nullable() })),
       })
       .nullable(),

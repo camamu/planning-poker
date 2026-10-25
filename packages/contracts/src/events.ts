@@ -2,6 +2,7 @@ import type {
   GameSettingsView,
   GameView,
   HatIdView,
+  IssueView,
   ParticipantRoleView,
   RoundResultView,
 } from './views.js';
@@ -30,6 +31,19 @@ export type ServerEvent =
       readonly hat: HatIdView | null;
     })
   | (ServerEventBase & { readonly type: 'issue_added'; readonly issueId: string })
+  | (ServerEventBase & { readonly type: 'issue_edited'; readonly issue: IssueView })
+  // `dealerId` acompaña a los dos eventos que mueven la posición de la tarea actual en la cola
+  // (Game.currentDealer()): sin él los clientes pintarían un dealer que ya no es el del servidor.
+  | (ServerEventBase & {
+      readonly type: 'issue_removed';
+      readonly issueId: string;
+      readonly dealerId: string | null;
+    })
+  | (ServerEventBase & {
+      readonly type: 'issues_reordered';
+      readonly issueIds: ReadonlyArray<string>;
+      readonly dealerId: string | null;
+    })
   | (ServerEventBase & {
       readonly type: 'round_started';
       readonly roundId: string;

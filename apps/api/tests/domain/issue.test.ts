@@ -14,6 +14,14 @@ describe('Issue', () => {
     expect(() => Issue.create(IssueId.of('i1'), '   ')).toThrow(InvalidIssueTitleError);
   });
 
+  it('rename() reutiliza la validación del título de create()', () => {
+    const issue = Issue.create(IssueId.of('i1'), 'Implementar login');
+    expect(() => {
+      issue.rename('   ');
+    }).toThrow(InvalidIssueTitleError);
+    expect(issue.title).toBe('Implementar login');
+  });
+
   it('startVoting() la pasa a VOTING', () => {
     const issue = Issue.create(IssueId.of('i1'), 'Implementar login');
     issue.startVoting();

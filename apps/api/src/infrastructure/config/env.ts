@@ -10,7 +10,7 @@ const envSchema = z
     LOG_LEVEL: z.enum(['fatal', 'error', 'warn', 'info', 'debug', 'trace']).default('info'),
     SESSION_SECRET: z.string().min(1),
     APP_VERSION: z.string().default('dev'),
-    // Opcionales a la vez: sin ninguno de los dos, el panel de gestión queda desactivado (ADR 0019).
+    // Opcionales a la vez: sin ninguno de los dos, el panel de gestión queda desactivado (ADR 0030).
     ADMIN_USERNAME: z.string().min(1).optional(),
     ADMIN_PASSWORD_HASH: z
       .string()

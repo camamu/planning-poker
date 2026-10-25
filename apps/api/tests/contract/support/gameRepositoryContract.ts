@@ -81,6 +81,43 @@ export function defineGameRepositoryContractTests(
       expect(reloaded?.allIssues().map((issue) => issue.title)).toEqual(['Primero', 'Segundo']);
     });
 
+    it('conserva el orden y el título de las tareas tras reordenarlas, editarlas y borrar una', async () => {
+      const repository = await makeRepository();
+      const { game, facilitatorId } = newGame('game-issues-edit');
+      game.addIssue(IssueId.of('issue-1'), 'Primero', NOW);
+      game.addIssue(IssueId.of('issue-2'), 'Segundo', NOW);
+      game.addIssue(IssueId.of('issue-3'), 'Tercero', NOW);
+      game.addIssue(IssueId.of('issue-4'), 'Cuarto', NOW);
+      await repository.save(game);
+
+      const loaded = await repository.findById(GameId.of('game-issues-edit'));
+      if (!loaded) throw new Error('la partida guardada no se ha podido recargar');
+      loaded.reorderIssues(
+        ['issue-3', 'issue-1', 'issue-4', 'issue-2'].map((id) => IssueId.of(id)),
+        facilitatorId,
+        NOW,
+      );
+      loaded.editIssue(
+        IssueId.of('issue-1'),
+        { title: 'Primero, corregido', description: 'Detalle', externalUrl: 'https://t/1' },
+        facilitatorId,
+        NOW,
+      );
+      loaded.removeIssue(IssueId.of('issue-4'), facilitatorId, NOW);
+      await repository.save(loaded);
+
+      const reloaded = await repository.findById(GameId.of('game-issues-edit'));
+      expect(reloaded?.allIssues().map((issue) => issue.id.value)).toEqual([
+        'issue-3',
+        'issue-1',
+        'issue-2',
+      ]);
+      const edited = reloaded?.findIssue(IssueId.of('issue-1'));
+      expect(edited?.title).toBe('Primero, corregido');
+      expect(edited?.description).toBe('Detalle');
+      expect(edited?.externalUrl).toBe('https://t/1');
+    });
+
     it('conserva los votos de una ronda abierta sin revelar, sin exponerlos como revelados', async () => {
       const repository = await makeRepository();
       const { game, facilitatorId } = newGame('game-4');

@@ -28,6 +28,9 @@ export interface UseGameTableResult {
   readonly startQuickRound: () => void;
   readonly reveal: () => void;
   readonly setFinalEstimate: (card: string) => void;
+  readonly renameIssue: (issueId: string, title: string) => void;
+  readonly deleteIssue: (issueId: string) => void;
+  readonly reorderIssues: (issueIds: ReadonlyArray<string>) => void;
   readonly remainingMs: number | null;
   readonly theme: 'dark' | 'light';
   readonly muted: boolean;
@@ -51,6 +54,9 @@ export function useGameTable(gameId: string, participantId: string): UseGameTabl
   const reveal = useGameStore((state) => state.reveal);
   const setFinalEstimate = useGameStore((state) => state.setFinalEstimate);
   const timeoutReveal = useGameStore((state) => state.timeoutReveal);
+  const renameIssue = useGameStore((state) => state.renameIssue);
+  const deleteIssue = useGameStore((state) => state.deleteIssue);
+  const reorderIssueQueue = useGameStore((state) => state.reorderIssueQueue);
   const theme = useGameStore((state) => state.theme);
   const muted = useGameStore((state) => state.muted);
   const toggleTheme = useGameStore((state) => state.toggleTheme);
@@ -123,6 +129,9 @@ export function useGameTable(gameId: string, participantId: string): UseGameTabl
     startQuickRound,
     reveal,
     setFinalEstimate,
+    renameIssue: (issueId, title) => void renameIssue(issueId, title),
+    deleteIssue: (issueId) => void deleteIssue(issueId),
+    reorderIssues: (issueIds) => void reorderIssueQueue(issueIds),
     remainingMs,
     theme,
     muted,

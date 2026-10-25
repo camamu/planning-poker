@@ -316,6 +316,9 @@ export function GameTablePage({
               onAddIssue={(title) => {
                 void addIssue(gameId, { title });
               }}
+              onRenameIssue={table.renameIssue}
+              onDeleteIssue={table.deleteIssue}
+              onReorderIssues={table.reorderIssues}
               onStartRound={table.startRound}
               onClose={() => {
                 setIssuesOpen(false);
