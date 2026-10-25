@@ -105,6 +105,35 @@ export const addIssueCommandSchema = z.object({
 });
 export type AddIssueCommandInput = z.infer<typeof addIssueCommandSchema>;
 
+/**
+ * REST — `PATCH /api/games/:id/issues/:issueId`. `description` y `externalUrl` ausentes dejan lo
+ * que había (ADR 0019). `externalUrl` solo admite http(s): se pintará como enlace (bloque 15).
+ */
+export const editIssueCommandSchema = z.object({
+  participantId: z.string().trim().min(1),
+  title: z.string().trim().min(1),
+  description: z.string().trim().optional(),
+  externalUrl: z
+    .string()
+    .trim()
+    .pipe(z.url({ protocol: /^https?$/ }))
+    .optional(),
+});
+export type EditIssueCommandInput = z.infer<typeof editIssueCommandSchema>;
+
+/** REST — `DELETE /api/games/:id/issues/:issueId` */
+export const removeIssueCommandSchema = z.object({
+  participantId: z.string().trim().min(1),
+});
+export type RemoveIssueCommandInput = z.infer<typeof removeIssueCommandSchema>;
+
+/** REST — `PUT /api/games/:id/issues/order`. Tiene que ser una permutación de TODAS las tareas. */
+export const reorderIssuesCommandSchema = z.object({
+  participantId: z.string().trim().min(1),
+  issueIds: z.array(z.string().trim().min(1)),
+});
+export type ReorderIssuesCommandInput = z.infer<typeof reorderIssuesCommandSchema>;
+
 /** WS cliente→servidor — `join` (entra en la room de la partida y pide `state_sync`) */
 export const wsJoinCommandSchema = z.object({
   gameId: z.string().trim().min(1),
