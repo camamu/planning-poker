@@ -40,6 +40,12 @@ function renderPanel(overrides: Partial<IssueListPanelProps> = {}): IssueListPan
   return props;
 }
 
+function dragHandle(index: number): HTMLElement {
+  const handle = screen.getAllByText('⋮⋮')[index];
+  if (!handle) throw new Error(`no hay tirador de arrastre en la posición ${index.toString()}`);
+  return handle;
+}
+
 function openMenu(id: string): void {
   fireEvent.click(screen.getByRole('button', { name: `Más acciones de «Tarea ${id}»` }));
 }
@@ -160,9 +166,8 @@ describe('IssueListPanel: gestión de tareas', () => {
   it('reordena arrastrando una tarea sobre otra', () => {
     const props = renderPanel();
     const dataTransfer = { setData: vi.fn(), setDragImage: vi.fn(), effectAllowed: '' };
-    const handles = screen.getAllByText('⋮⋮');
 
-    fireEvent.dragStart(handles[0] as HTMLElement, { dataTransfer });
+    fireEvent.dragStart(dragHandle(0), { dataTransfer });
     fireEvent.dragOver(screen.getByText('Tarea p3'));
     fireEvent.drop(screen.getByText('Tarea p3'));
 
@@ -173,7 +178,7 @@ describe('IssueListPanel: gestión de tareas', () => {
     const props = renderPanel();
     const dataTransfer = { setData: vi.fn(), setDragImage: vi.fn(), effectAllowed: '' };
 
-    fireEvent.dragStart(screen.getAllByText('⋮⋮')[1] as HTMLElement, { dataTransfer });
+    fireEvent.dragStart(dragHandle(1), { dataTransfer });
     fireEvent.drop(screen.getByText('Tarea p2'));
 
     expect(props.onReorderIssues).not.toHaveBeenCalled();
