@@ -8,6 +8,7 @@ import type { GameSettings } from './GameSettings.js';
 import type { Hat } from './Hat.js';
 import type { GameId, IssueId, ParticipantId, RoundId } from './ids.js';
 import { Issue } from './Issue.js';
+import type { IssueChanges } from './Issue.js';
 import { Participant } from './Participant.js';
 import type { ParticipantRole } from './Participant.js';
 import { Round } from './Round.js';
@@ -64,6 +65,20 @@ export class AnotherRoundOpenError extends DomainError {
 export class IssueNotFoundError extends DomainError {
   constructor(readonly issueId: IssueId) {
     super(`No existe la issue ${issueId.value} en esta partida.`);
+  }
+}
+
+export class IssueHasRoundsError extends DomainError {
+  constructor(readonly issueId: IssueId) {
+    super(
+      `La issue ${issueId.value} ya tiene rondas: solo se puede borrar una tarea que nunca se ha votado.`,
+    );
+  }
+}
+
+export class InvalidIssueOrderError extends DomainError {
+  constructor(readonly gameId: GameId) {
+    super(`El orden recibido no contiene exactamente las tareas de la partida ${gameId.value}.`);
   }
 }
 
@@ -232,6 +247,61 @@ export class Game {
   addIssue(id: IssueId, title: string, now: Date): void {
     this.issues.push(Issue.create(id, title));
     this.record({ type: 'IssueAdded', occurredAt: now, gameId: this.id, issueId: id });
+  }
+
+  /**
+   * Cualquier participante que no haya salido, mismo criterio que `addIssue`: la cola es de toda la
+   * sala. También vale para una tarea ya votada — es la forma de corregirla (ADR 0019).
+   */
+  editIssue(issueId: IssueId, changes: IssueChanges, requestedBy: ParticipantId, now: Date): void {
+    this.requireParticipant(requestedBy);
+    this.requireIssue(issueId).rename(changes.title, changes.description, changes.externalUrl);
+    this.record({ type: 'IssueEdited', occurredAt: now, gameId: this.id, issueId });
+  }
+
+  /**
+   * Solo una tarea que nunca ha tenido ronda: las rondas y sus votos son histórico (F7) y
+   * `currentRound()` podría acabar apuntando a otra ronda. Cubre también la tarea de la ronda abierta.
+   */
+  removeIssue(issueId: IssueId, requestedBy: ParticipantId, now: Date): void {
+    this.requireParticipant(requestedBy);
+    this.requireIssue(issueId);
+    if (this.rounds.some((round) => round.issueId.equals(issueId))) {
+      throw new IssueHasRoundsError(issueId);
+    }
+    this.issues.splice(
+      this.issues.findIndex((issue) => issue.id.equals(issueId)),
+      1,
+    );
+    this.record({ type: 'IssueRemoved', occurredAt: now, gameId: this.id, issueId });
+  }
+
+  /**
+   * Exige una permutación exacta de las tareas actuales. Un orden parcial obligaría a decidir dónde
+   * van las que faltan, y dos clientes reordenando a la vez darían resultados distintos según quién
+   * llegue primero. Valida todo antes de tocar la cola, para no dejarla a medias.
+   */
+  reorderIssues(orderedIds: ReadonlyArray<IssueId>, requestedBy: ParticipantId, now: Date): void {
+    this.requireParticipant(requestedBy);
+
+    const remaining = new Map(this.issues.map((issue) => [issue.id.value, issue]));
+    const reordered: Issue[] = [];
+    for (const id of orderedIds) {
+      const issue = remaining.get(id.value);
+      // Un id repetido ya no está en `remaining` la segunda vez, así que cae aquí igual que uno ajeno.
+      if (!issue) throw new InvalidIssueOrderError(this.id);
+      remaining.delete(id.value);
+      reordered.push(issue);
+    }
+    if (remaining.size > 0) throw new InvalidIssueOrderError(this.id);
+
+    this.issues.splice(0, this.issues.length, ...reordered);
+    this.record({
+      type: 'IssuesReordered',
+      occurredAt: now,
+      gameId: this.id,
+      issueIds: orderedIds,
+    });
   }
 
   /**
