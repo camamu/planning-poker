@@ -2,7 +2,7 @@
 
 Este documento planifica la siguiente tanda de funcionalidades en el mismo formato que
 `02-decisiones-y-plan.md` §5: **un bloque = una rama `feat/NN-nombre` desde `develop` = una PR**.
-Cada bloque tiene ya su ADR en borrador en `docs/adr/` (0019–0028) con el contexto y las decisiones;
+Cada bloque tiene ya su ADR en borrador en `docs/adr/` (0019–0029) con el contexto y las decisiones;
 aquí está el detalle de implementación, los tests y los criterios de aceptación.
 
 **Cómo usarlo con Claude Code:** antes de empezar un bloque, lee su sección aquí, su ADR y los
@@ -34,9 +34,11 @@ línea «Estado» de `CLAUDE.md`.
 | 18  | Exportar CSV y Markdown           | F16 (exportar), F7 (export) | 0026 | 15, 17     | No        |
 | 19  | Votación asíncrona                | F2                          | 0027 | 11         | 0009      |
 | 20  | Webhooks salientes                | F18 (genérico)              | 0028 | 15, 17     | 0010      |
+| 21  | Página principal                  | Nueva (revisa `04` §6)      | 0029 | —          | No        |
 
 Orden recomendado: el de la tabla. Los bloques 11, 13 y 19 tocan mucho `Game.ts`; hacerlos en
-secuencia evita conflictos. El 14 es independiente y se puede adelantar.
+secuencia evita conflictos. El 14 y el 21 son independientes y se pueden adelantar; el 21 necesita
+antes el diseño de Claude Design (`04-brief-diseno.md` §5.7).
 
 El bloque 20 no integra ningún gestor concreto: envía webhooks y cada equipo los conecta con lo que
 use (Jira Automation, n8n, Make, Zapier, una GitHub Action). Ver su ADR.
@@ -62,6 +64,8 @@ sigue el mismo recorrido que las existentes, en este orden:
    suficientes, `resync` si no) y la UI lee de `gameStore`.
 7. **E2E**: obligatorio si el bloque añade cualquier dato que pueda contener votos ajenos
    (invariante 7). Inspecciona el payload crudo del socket, no la UI.
+8. **Página principal**: si el bloque entrega algo visible para el usuario y el bloque 21 ya está
+   hecho, añade su línea en `features/landing/content.ts` en la misma PR.
 
 `PostgresGameRepository.save()` borra y reinserta participantes, issues, rondas y votos en el orden
 del agregado. Consecuencia útil: borrar o reordenar issues en el dominio se persiste sin tocar el
@@ -631,3 +635,86 @@ El bloque crea `docs/08-webhooks.md`, pensado para quien configura el receptor, 
 
 Registro histórico de entregas, reenvío manual de entregas fallidas, adaptadores específicos de un
 gestor (el puerto `IssueTracker` queda como posible bloque futuro si alguno lo merece).
+
+---
+
+## 13. Bloque 21 — Página principal
+
+**Objetivo.** Una página de entrada en `/` que explique qué es la app y qué se puede hacer con
+ella, con un botón que lleve a crear la sala. Hoy `/` es directamente el formulario de crear
+partida. Revisa la decisión de `04-brief-diseno.md` §2 y §6 de no tener landing (ADR 0029).
+
+**Antes de empezar:** el diseño se pide en Claude Design con `04-brief-diseno.md` §5.7 y entra por
+handoff, como el resto de pantallas. Sin diseño aprobado, este bloque no empieza.
+
+### Rutas
+
+| Ruta                     | Antes           | Después                                                        |
+| ------------------------ | --------------- | -------------------------------------------------------------- |
+| `/`                      | Crear partida   | Página principal (`features/landing/LandingPage.tsx`)          |
+| `/games/new`             | —               | Crear partida (`CreateGamePage`, sin cambios internos)         |
+| `/?team=…&deckId=…`      | Crear en equipo | Redirige a `/games/new?team=…&deckId=…` (enlaces ya guardados) |
+| `/games/:gameId`, `/t/…` | —               | Sin cambios                                                    |
+
+- React Router da prioridad al segmento estático: `/games/new` no cae en `/games/:gameId`. Un test
+  de rutas lo fija.
+- Se actualizan los enlaces que hoy apuntan al formulario: `TeamPage` («Crear partida con esta
+  baraja»), `CreateGamePage` («salir del equipo» y la lista de equipos recordados). «Ir al inicio»
+  y «Volver al inicio» de la sala siguen yendo a `/`, que ahora es la página principal.
+
+### Contenido
+
+1. **Cabecera**: logo, nombre, una frase de qué es («Estimad tareas en equipo sin anclaros en el
+   voto de nadie»), botón principal **«Crear sala»** (→ `/games/new`) y secundario «Crear equipo»
+   (→ `/teams/new`).
+2. **Volver a lo tuyo** (solo si hay datos en `localStorage`): equipos recordados
+   (`rememberedTeams`) y, con el bloque 16, partidas recientes. Quien vuelve no tiene que pasar por
+   el marketing.
+3. **Cómo funciona**, en tres pasos: creas la sala y compartes el enlace o el QR · cada uno elige su
+   carta, oculta · se revelan todas a la vez y se acuerda la estimación.
+4. **Funcionalidades**, en tarjetas agrupadas:
+   - _Votación_: votos ocultos hasta revelar, revelado simultáneo, auto-revelado, cuenta atrás,
+     «Votar ya» sin crear tarea, volver a votar.
+   - _Resultados_: distribución, media, porcentaje de acuerdo, confeti con unanimidad, marcas para
+     el voto más alto y el más bajo.
+   - _Sala_: espectadores, temporizador de discusión, emojis, sombreros, quién reparte en cada
+     tarea, cambiar de baraja entre rondas, presencia en tiempo real.
+   - _Equipos_: barajas propias, enlace privado del equipo, sin cuentas.
+5. **Sin cuentas**: se entra con un enlace y un nombre; el equipo se guarda con un enlace privado.
+6. **Pie**: versión desplegada (opcional, inyectada en el build desde
+   `.release-please-manifest.json` con `define` de Vite).
+
+**Regla: la página solo anuncia lo que ya existe.** El contenido vive como datos en
+`features/landing/content.ts`, y cada bloque posterior que añada algo visible añade su línea en la
+misma PR (ver §2). Así la página nunca promete funcionalidades a medio hacer.
+
+### Técnica
+
+- **Cero llamadas a la API para pintarse.** Se carga al instante aunque Render esté dormido. Si
+  existe el bloque 14, la página dispara el calentamiento en silencio (sin banner): cuando el
+  usuario pulsa «Crear sala», la API ya está despertando.
+- La imagen de cabecera se compone con los componentes reales del `design-system/` (cartas,
+  avatares) en un estado fijo, no con capturas que se queden viejas.
+- Componentes nuevos de presentación (sección, tarjeta de funcionalidad, paso numerado) en
+  `design-system/`, sin lógica; la página y su contenido en `features/landing/`.
+- Metadatos en `index.html`: `description` y Open Graph (título, descripción, imagen del logo) para
+  que el enlace se vea bien al pegarlo en Slack o Teams. `noindex` por defecto (ADR 0029).
+- Móvil primero, tema claro y oscuro, contraste AA, como el resto de la app.
+
+### Tests
+
+- Rutas: `/` pinta la página principal; `/games/new` pinta el formulario; `/?team=x&deckId=y`
+  redirige a `/games/new?team=x&deckId=y`; `/games/abc` sigue siendo la sala.
+- Página: «Crear sala» navega a `/games/new`; la sección «Volver a lo tuyo» no aparece sin datos
+  recordados y lista los equipos cuando los hay; no se hace ninguna petición a la API al pintarla.
+
+### Criterios de aceptación
+
+- Abrir la URL de la app muestra la página principal al instante, también con la API dormida.
+- Desde ella se llega a crear una sala en un clic.
+- Un enlace antiguo de equipo (`/?team=…`) sigue llevando al formulario con el equipo cargado.
+- Al pegar la URL en Slack aparece título, descripción y logo.
+
+### Fuera de alcance
+
+Precios, registro, blog, varios idiomas, analítica de visitas.
