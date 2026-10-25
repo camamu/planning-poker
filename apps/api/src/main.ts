@@ -8,11 +8,14 @@ import { CastVote } from './application/use-cases/CastVote.js';
 import { CreateGame } from './application/use-cases/CreateGame.js';
 import { CreateTeam } from './application/use-cases/CreateTeam.js';
 import { DeleteCustomDeck } from './application/use-cases/DeleteCustomDeck.js';
+import { EditIssue } from './application/use-cases/EditIssue.js';
 import { GetGameState } from './application/use-cases/GetGameState.js';
 import { JoinGame } from './application/use-cases/JoinGame.js';
 import { ListDecks } from './application/use-cases/ListDecks.js';
 import { ReconcileAutoReveal } from './application/use-cases/ReconcileAutoReveal.js';
+import { RemoveIssue } from './application/use-cases/RemoveIssue.js';
 import { RemoveParticipant } from './application/use-cases/RemoveParticipant.js';
+import { ReorderIssues } from './application/use-cases/ReorderIssues.js';
 import { RevealRound } from './application/use-cases/RevealRound.js';
 import { SaveCustomDeck } from './application/use-cases/SaveCustomDeck.js';
 import { StartQuickRound } from './application/use-cases/StartQuickRound.js';
@@ -84,6 +87,9 @@ presence.onChange(
 const createGame = new CreateGame(games, decks, teams, events, clock, ids);
 const joinGame = new JoinGame(games, events, clock, ids);
 const addIssue = new AddIssue(games, events, clock, ids);
+const editIssue = new EditIssue(games, events, clock);
+const removeIssue = new RemoveIssue(games, events, clock);
+const reorderIssues = new ReorderIssues(games, events, clock);
 const startVotingRound = new StartVotingRound(games, events, clock, ids);
 const startQuickRound = new StartQuickRound(games, events, clock, ids);
 const castVote = new CastVote(games, events, clock, presence);
@@ -109,6 +115,9 @@ registerGameRoutes(app, {
   joinGame,
   removeParticipant,
   addIssue,
+  editIssue,
+  removeIssue,
+  reorderIssues,
   getGameState,
   updateGameSettings,
   changeGameDeck,

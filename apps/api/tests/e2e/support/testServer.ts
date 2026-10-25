@@ -9,12 +9,15 @@ import { ChangeParticipantHat } from '../../../src/application/use-cases/ChangeP
 import { CreateGame } from '../../../src/application/use-cases/CreateGame.js';
 import { CreateTeam } from '../../../src/application/use-cases/CreateTeam.js';
 import { DeleteCustomDeck } from '../../../src/application/use-cases/DeleteCustomDeck.js';
+import { EditIssue } from '../../../src/application/use-cases/EditIssue.js';
 import { GetGameState } from '../../../src/application/use-cases/GetGameState.js';
 import { JoinGame } from '../../../src/application/use-cases/JoinGame.js';
 import { ListDecks } from '../../../src/application/use-cases/ListDecks.js';
 import { ListGameDecks } from '../../../src/application/use-cases/ListGameDecks.js';
 import { ReconcileAutoReveal } from '../../../src/application/use-cases/ReconcileAutoReveal.js';
+import { RemoveIssue } from '../../../src/application/use-cases/RemoveIssue.js';
 import { RemoveParticipant } from '../../../src/application/use-cases/RemoveParticipant.js';
+import { ReorderIssues } from '../../../src/application/use-cases/ReorderIssues.js';
 import { RevealRound } from '../../../src/application/use-cases/RevealRound.js';
 import { SaveCustomDeck } from '../../../src/application/use-cases/SaveCustomDeck.js';
 import { StartQuickRound } from '../../../src/application/use-cases/StartQuickRound.js';
@@ -81,6 +84,9 @@ export async function startTestServer(options: TestServerOptions = {}): Promise<
   const createGame = new CreateGame(games, decks, teams, events, clock, ids);
   const joinGame = new JoinGame(games, events, clock, ids);
   const addIssue = new AddIssue(games, events, clock, ids);
+  const editIssue = new EditIssue(games, events, clock);
+  const removeIssue = new RemoveIssue(games, events, clock);
+  const reorderIssues = new ReorderIssues(games, events, clock);
   const startVotingRound = new StartVotingRound(games, events, clock, ids);
   const startQuickRound = new StartQuickRound(games, events, clock, ids);
   const castVote = new CastVote(games, events, clock, presence);
@@ -106,6 +112,9 @@ export async function startTestServer(options: TestServerOptions = {}): Promise<
     joinGame,
     removeParticipant,
     addIssue,
+    editIssue,
+    removeIssue,
+    reorderIssues,
     getGameState,
     updateGameSettings,
     changeGameDeck,
