@@ -33,13 +33,13 @@ línea «Estado» de `CLAUDE.md`.
 | 17  | Resumen de sesión                 | F7 (resumen)                | 0025 | 16         | No        |
 | 18  | Exportar CSV y Markdown           | F16 (exportar), F7 (export) | 0026 | 15, 17     | No        |
 | 19  | Votación asíncrona                | F2                          | 0027 | 11         | 0009      |
-| 20  | Integración con gestor de tareas  | F18                         | 0028 | 15         | 0010      |
+| 20  | Webhooks salientes                | F18 (genérico)              | 0028 | 15, 17     | 0010      |
 
 Orden recomendado: el de la tabla. Los bloques 11, 13 y 19 tocan mucho `Game.ts`; hacerlos en
 secuencia evita conflictos. El 14 es independiente y se puede adelantar.
 
-El bloque 20 **necesita una decisión antes de empezar**: qué gestor usa el equipo (Jira Cloud,
-Linear o GitHub Issues). Ver su ADR.
+El bloque 20 no integra ningún gestor concreto: envía webhooks y cada equipo los conecta con lo que
+use (Jira Automation, n8n, Make, Zapier, una GitHub Action). Ver su ADR.
 
 ---
 
@@ -292,8 +292,9 @@ activarlo es decisión del equipo, no del bloque.
   - Una línea que es una URL se convierte en tarea con `externalUrl` y un título derivado por
     `issueKeyFromUrl(url)`: Jira `/browse/ABC-123` → `ABC-123`; GitHub `/owner/repo/issues/42` →
     `repo#42`; Linear `/issue/ABC-12/slug` → `ABC-12`; en otro caso, el último segmento del path.
-- `issueKeyFromUrl` vive en `shared/issues/issueKey.ts`: el bloque 18 la reutiliza para la columna
-  `key` del CSV exportado.
+- `issueKeyFromUrl` vive en `packages/contracts/src/issueKey.ts` (función pura): el bloque 18 la
+  reutiliza para la columna `key` del CSV exportado y el bloque 20 para el campo `key` de los
+  webhooks, que se construyen en la api.
 - Vista previa en tabla con casilla por fila antes de importar, y aviso si se superan 200.
 - La lista muestra un icono de enlace en las tareas con `externalUrl`.
 
@@ -510,45 +511,123 @@ Migración `0009_rounds_mode`: `rounds.mode text not null default 'LIVE'`. Mappe
 
 ---
 
-## 12. Bloque 20 — Integración con gestor de tareas
+## 12. Bloque 20 — Webhooks salientes
 
-**Decisión pendiente antes de empezar:** qué gestor (Jira Cloud, Linear o GitHub Issues). El diseño
-de abajo es común; solo cambia el adaptador. Hasta decidirlo, la importación del bloque 15 cubre el
-caso con URLs y CSV, como ya preveía `01-especificacion.md` §1.2.
+**Objetivo.** Llevar lo que pasa en la app a cualquier gestor o herramienta sin integrar ninguno en
+concreto. La app avisa por HTTP de los hechos relevantes y cada equipo conecta ese aviso con lo que
+use: Jira Automation, n8n, Make, Zapier o una GitHub Action. La entrada de tareas sigue siendo la
+del bloque 15 (URLs y CSV), que ya es genérica.
 
-### Diseño (ver ADR 0028)
+### Dominio (`domain/team`)
 
-- Puerto `IssueTracker` en `application/ports`:
-  `search(query): Promise<ExternalIssue[]>` y `writeEstimate(externalKey, estimate): Promise<void>`.
-- Adaptador del gestor elegido en `infrastructure/trackers/`, con `fetch` nativo.
-- Configuración por **equipo** (las partidas sin equipo no integran): tabla `team_integrations`
-  (`team_id`, `provider`, `base_url`, `credentials_encrypted`, `default_query`,
-  `estimate_field`). Credenciales cifradas con AES-256-GCM (`node:crypto`) y una clave nueva
-  `INTEGRATIONS_KEY` validada en `env.ts`. **Nunca** se devuelven al cliente.
-- `Issue` gana `externalKey: string | null` (migración `0010`).
-- Importar: desde una partida de equipo, «Importar del gestor» → búsqueda con la consulta por
-  defecto → selección → `importIssues` del bloque 15 con `externalKey`.
-- Escribir de vuelta: un `EventPublisher` compuesto en infraestructura reenvía `IssueEstimated` a
-  un caso de uso `SyncEstimateToTracker`, que solo actúa si la issue tiene `externalKey` y el
-  equipo integración. Un fallo no bloquea la partida: se registra y se emite
-  `tracker_sync_failed { issueId, message }` a la sala.
-- Estimaciones no numéricas (tallas): se escriben solo si la integración define un mapeo; si no,
-  se omiten con aviso.
+- Entidad `Webhook` dentro de `Team`: `id`, `url`, `events`, `secret`.
+- VO `WebhookUrl`: solo `https` (`InsecureWebhookUrlError`). La comprobación de red (que no apunte a
+  una IP privada) es de infraestructura, no del dominio.
+- `WebhookEvent`: `'issue.estimated' | 'issues.imported' | 'session.summary'`. Al menos uno por
+  webhook.
+- `Team.addWebhook(id, url, events, secret)`, `Team.removeWebhook(id)`. Máximo 3 por equipo
+  (`TooManyWebhooksError`).
+- El secreto lo genera la api (puerto `IdGenerator` o uno nuevo `SecretGenerator`), nunca el
+  usuario.
+
+### Eventos que se envían
+
+| Evento            | Cuándo                                                   | Datos principales                                  |
+| ----------------- | -------------------------------------------------------- | -------------------------------------------------- |
+| `issue.estimated` | Al aceptar la estimación de una tarea (`IssueEstimated`) | tarea, `key`, enlace, estimación, rondas y acuerdo |
+| `issues.imported` | Al importar tareas (`IssuesImported`, bloque 15)         | lista de tareas con `key` y enlace                 |
+| `session.summary` | Al pulsar «Enviar resumen» en el resumen (bloque 17)     | `GameSummaryView` completo                         |
+| `ping`            | Al pulsar «Enviar prueba» en la página del equipo        | solo cabeceras y equipo                            |
+
+Solo se envían para partidas creadas dentro de un equipo: sin equipo no hay dónde configurar el
+webhook.
+
+### Formato del envío
+
+- `POST` con `Content-Type: application/json` y cuerpo versionado:
+  `{ "version": 1, "event", "deliveryId", "occurredAt", "team": { slug, name }, "game": { id, name, url }, "data": {...} }`.
+- `data` de `issue.estimated`: `{ issueId, title, key, externalUrl, finalEstimate, numericEstimate, rounds, agreementPercentage }`.
+  `key` sale de `issueKeyFromUrl` (bloque 15). **Nunca votos individuales** (mismo criterio que el
+  resumen, ADR 0025).
+- Cabeceras: `X-PP-Event`, `X-PP-Delivery`, `X-PP-Timestamp` y
+  `X-PP-Signature: sha256=<hex>`, HMAC-SHA256 de `"<timestamp>.<cuerpo>"` con el secreto del
+  webhook. El receptor puede verificarla y rechazar marcas de tiempo de más de 5 minutos.
+- Los esquemas del cuerpo viven en `packages/contracts/src/webhooks.ts` para que la documentación y
+  los tests usen el mismo tipo.
+
+### Aplicación
+
+- `DispatchWebhooks`: reacciona a `IssueEstimated` e `IssuesImported`. Carga la partida; si no
+  tiene equipo, no hace nada. Carga los webhooks del equipo suscritos a ese evento, construye el
+  cuerpo con un read model puro (`toWebhookPayload`) y lo entrega por el puerto `WebhookSender`.
+- Se engancha con un `EventPublisher` compuesto en infraestructura (el actual por socket + el de
+  webhooks), cableado en `main.ts`. El dominio no sabe que existen los webhooks.
+- `SendSessionSummary` (`POST /api/games/:id/summary/webhook`, `{ participantId }`) y
+  `TestWebhook` (`POST /api/teams/:slug/webhooks/:webhookId/test?k=`).
+- Gestión: `GET`, `POST` y `DELETE /api/teams/:slug/webhooks?k=<token>`. El `POST` devuelve el
+  secreto **una sola vez**; los listados solo muestran URL, eventos y los 4 últimos caracteres del
+  secreto.
+
+### Infraestructura
+
+- `FetchWebhookSender` con `fetch` nativo: timeout de 5 s, sin seguir redirecciones, y hasta 3
+  reintentos con espera creciente (1 s, 5 s, 25 s) ante errores de red o respuestas 5xx. Los 4xx no
+  se reintentan.
+- **Protección SSRF**: antes de cada envío se resuelve el DNS y se rechaza si apunta a una
+  dirección privada, de loopback, link-local o de metadatos. Sin esto, cualquiera con el token de un
+  equipo podría hacer que la api llame a servicios internos de Render.
+- Firma con `node:crypto` (como `HmacTokenHasher`).
+- Los reintentos viven en memoria: si la api se reinicia a mitad, la entrega se pierde. Aceptado
+  para una herramienta interna (ADR 0028).
+- Si una entrega agota los reintentos, se emite `webhook_failed { event, issueId? }` a la sala por
+  `RealtimeBroadcaster`. Nunca deshace la acción que la provocó.
+
+### Persistencia
+
+Migración `0010_team_webhooks`: tabla `team_webhooks` (`id`, `team_id` con `on delete cascade`,
+`url`, `events` jsonb, `secret`, `created_at`), con RLS activado como el resto de tablas públicas
+(ADR 0013). `PostgresTeamRepository` la carga y guarda con el equipo; test de contrato.
 
 ### Frontend
 
-- `TeamPage`: sección «Integración» (proveedor, URL, credencial, consulta por defecto, campo de
-  estimación) con «Probar conexión».
-- En la sala: «Importar del gestor» en el panel de tareas; `Toast` si falla la escritura de vuelta.
+- `TeamPage`, sección «Webhooks»: alta (URL y casillas de eventos), secreto mostrado una vez con
+  botón de copiar, «Enviar prueba» con el resultado (código HTTP o error), y borrar.
+- Resumen de sesión (bloque 17): «Enviar resumen» si la partida es de un equipo con un webhook
+  suscrito a `session.summary`.
+- `Toast` en la sala ante `webhook_failed`.
+
+### Documentación para el equipo
+
+El bloque crea `docs/08-webhooks.md`, pensado para quien configura el receptor, no para Claude Code:
+
+- Esquema de cada evento con un ejemplo real.
+- Cómo verificar la firma, con un fragmento en Node.
+- Receta para Jira Automation: disparador «Incoming webhook», buscar la tarea por `{{webhookData.data.key}}`
+  y editar el campo de story points con `{{webhookData.data.numericEstimate}}`.
+- Receta para n8n (Webhook → Linear/GitHub) y para una GitHub Action vía `repository_dispatch`.
 
 ### Tests
 
-- Adaptador contra un servidor HTTP falso (sin red real en CI).
-- Caso de uso: `no escribe de vuelta una tarea sin clave externa`, `un fallo del gestor no deshace
-  la estimación`.
-- `team_integrations` nunca aparece en `TeamView`.
+- Dominio: `un webhook solo acepta URLs https`, `un webhook necesita al menos un evento`, `un equipo
+  no puede tener más de tres webhooks`.
+- Read model: `el cuerpo de issue.estimated no contiene votos individuales`, `la clave se deriva de
+  la URL externa`.
+- Caso de uso: `no envía webhooks de una partida sin equipo`, `solo envía a los webhooks suscritos
+  al evento`, `un fallo de entrega no deshace la estimación`.
+- Infraestructura: firma verificable con el secreto; rechazo de `127.0.0.1`, `10.0.0.0/8`,
+  `169.254.169.254` y de un nombre que resuelve a IP privada; reintento ante 503 y no ante 400. Todo
+  contra un servidor HTTP local, sin red real en CI (la comprobación SSRF se inyecta para poder
+  probar contra `localhost`).
+- E2E: estimar una tarea en una partida de equipo llega a un receptor local con firma válida.
 
 ### Criterios de aceptación
 
-- Importar las tareas del sprint desde el gestor y ver la estimación escrita allí al aceptarla.
-- Con el gestor caído, la sesión sigue funcionando y avisa.
+- Configurar un webhook en el equipo y recibir el `ping` en un receptor de prueba.
+- Con una regla de Jira Automation siguiendo `08-webhooks.md`, aceptar una estimación actualiza los
+  story points de la tarea en Jira.
+- Con el receptor caído, la sesión sigue funcionando y la sala ve el aviso.
+
+### Fuera de alcance
+
+Registro histórico de entregas, reenvío manual de entregas fallidas, adaptadores específicos de un
+gestor (el puerto `IssueTracker` queda como posible bloque futuro si alguno lo merece).

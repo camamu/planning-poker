@@ -20,13 +20,14 @@ URLs como alternativa barata a integrar Jira o Linear (F16, F17).
 - **Detección de formato**: cabecera CSV reconocible → CSV (separador `,` o `;`); si no, una tarea
   por línea; una línea que es una URL → tarea con enlace y título derivado de la clave (Jira, GitHub,
   Linear, o último segmento del path).
-- **`issueKeyFromUrl` es compartida** (`shared/issues/issueKey.ts`): la exportación del bloque 18
-  la usa para la columna `key`, de modo que exportar e importar son simétricos.
+- **`issueKeyFromUrl` es compartida** (`packages/contracts/src/issueKey.ts`, función pura): la
+  exportación del bloque 18 la usa para la columna `key`, de modo que exportar e importar son
+  simétricos, y los webhooks del bloque 20 la usan en la api para el mismo campo.
 - `IssueView` expone por fin `description` y `externalUrl`, que ya estaban en dominio y BD.
 
 ## Consecuencias
 
 - Sin migración: `issues.description` y `issues.external_url` existen desde `0001`.
 - El título derivado de una URL es solo la clave (`ABC-123`), no el resumen real de la tarea: leerlo
-  exigiría llamar al gestor, que es el bloque 20.
+  exigiría llamar a la API de cada gestor, que el plan descarta (ADR 0028).
 - El límite de 200 protege el `save()`, que reescribe todas las issues de la partida.
