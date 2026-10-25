@@ -42,6 +42,7 @@ const baseGame: GameView = {
     status: 'OPEN',
     votes: [{ participantId: 'p1', card: '5', hasVoted: true }],
     result: null,
+    previousRounds: [],
     dealerId: null,
     timerDeadline: null,
   },

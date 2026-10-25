@@ -43,6 +43,17 @@ export interface RoundVoteView {
   readonly hasVoted: true;
 }
 
+/**
+ * Ronda ya revelada de la misma tarea que la actual. A diferencia de `RoundVoteView`, `card` va
+ * siempre en claro: `toGameView` solo construye esto desde rondas reveladas (invariante 7).
+ */
+export interface PastRoundView {
+  readonly id: string;
+  readonly roundNumber: number;
+  readonly votes: ReadonlyArray<{ readonly participantId: string; readonly card: string }>;
+  readonly result: RoundResultView;
+}
+
 export interface RoundView {
   readonly id: string;
   readonly issueId: string;
@@ -50,6 +61,8 @@ export interface RoundView {
   readonly status: RoundStatusView;
   readonly votes: ReadonlyArray<RoundVoteView>;
   readonly result: RoundResultView | null;
+  /** Rondas reveladas o cerradas de la misma tarea anteriores a esta, en orden (ADR 0020). */
+  readonly previousRounds: ReadonlyArray<PastRoundView>;
   /** Participante elegido como "dealer" para la tarea de esta ronda; ver `Game.currentDealer()`. */
   readonly dealerId: string | null;
   /** ISO 8601. Fecha límite de la cuenta atrás (F5), o `null` si `countdownSeconds` está desactivado. */
