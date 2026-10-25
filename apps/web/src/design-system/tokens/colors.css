@@ -174,17 +174,22 @@
     opacity: 1;
   }
   30% {
-    transform: translate(calc(-50% + var(--pp-dx) * 0.3), calc(var(--pp-dy) * 0.3 - var(--pp-arc) * 0.84))
+    transform: translate(
+        calc(-50% + var(--pp-dx) * 0.3),
+        calc(var(--pp-dy) * 0.3 - var(--pp-arc) * 0.84)
+      )
       scale(0.95);
   }
   50% {
-    transform: translate(calc(-50% + var(--pp-dx) * 0.5), calc(var(--pp-dy) * 0.5 - var(--pp-arc))) scale(1.02);
+    transform: translate(calc(-50% + var(--pp-dx) * 0.5), calc(var(--pp-dy) * 0.5 - var(--pp-arc)))
+      scale(1.02);
   }
   62% {
     transform: translate(calc(-50% + var(--pp-dx)), var(--pp-dy)) scaleX(1.22) scaleY(0.78);
   }
   72% {
-    transform: translate(calc(-50% + var(--pp-dx)), calc(var(--pp-dy) - 15px)) scaleX(0.9) scaleY(1.15);
+    transform: translate(calc(-50% + var(--pp-dx)), calc(var(--pp-dy) - 15px)) scaleX(0.9)
+      scaleY(1.15);
   }
   82% {
     transform: translate(calc(-50% + var(--pp-dx)), var(--pp-dy)) scaleX(1.08) scaleY(0.94);
@@ -196,5 +201,24 @@
   100% {
     transform: translate(calc(-50% + var(--pp-dx)), var(--pp-dy)) scale(1);
     opacity: 0;
+  }
+}
+@keyframes ppHelice {
+  0%,
+  100% {
+    transform: scaleX(1);
+  }
+  50% {
+    transform: scaleX(-1);
+  }
+}
+.pp-hat-propeller {
+  transform-box: view-box;
+  transform-origin: 20px 7.5px;
+  animation: ppHelice 0.5s linear infinite;
+}
+@media (prefers-reduced-motion: reduce) {
+  .pp-hat-propeller {
+    animation: none;
   }
 }

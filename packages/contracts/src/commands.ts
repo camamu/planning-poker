@@ -1,4 +1,5 @@
 import { z } from 'zod';
+import type { HatIdView } from './views.js';
 
 const whoCanRevealSchema = z.enum(['FACILITATOR_ONLY', 'ANYONE', 'NAMED_LIST', 'DEALER']);
 const participantRoleSchema = z.enum(['VOTER', 'SPECTATOR']);
@@ -6,7 +7,8 @@ const participantRoleSchema = z.enum(['VOTER', 'SPECTATOR']);
 /**
  * Compartido entre `createGameCommandSchema` y `updateGameSettingsCommandSchema`. Los defaults
  * reproducen los de la pantalla "Ajustes finos" del handoff (docs/06-handoff-diseno.md §9):
- * auto-revelar, cambiar el voto y fiesta empiezan activados; emojis lanzados y cuenta atrás no.
+ * auto-revelar, cambiar el voto, fiesta y emojis lanzados empiezan activados; cuenta atrás no
+ * (emojis activados por defecto desde ADR 0018).
  */
 export const gameSettingsSchema = z.object({
   autoReveal: z.boolean(),
@@ -14,7 +16,7 @@ export const gameSettingsSchema = z.object({
   namedRevealers: z.array(z.string().trim().min(1)).optional(),
   allowVoteChange: z.boolean().default(true),
   celebrate: z.boolean().default(true),
-  throwEmojis: z.boolean().default(false),
+  throwEmojis: z.boolean().default(true),
   countdownSeconds: z.number().int().positive().nullable().default(null),
   revealOnTimeout: z.boolean().default(false),
 });
@@ -57,6 +59,29 @@ export const changeGameDeckCommandSchema = z.object({
   deckId: z.string().trim().min(1),
 });
 export type ChangeGameDeckCommandInput = z.infer<typeof changeGameDeckCommandSchema>;
+
+/** Orden de presentación del selector de sombreros en el front. */
+export const HAT_IDS = [
+  'cowboy',
+  'wizard',
+  'propeller',
+  'crown',
+  'top-hat',
+  'party',
+  'pirate',
+  'viking',
+  'chef',
+] as const satisfies ReadonlyArray<HatIdView>;
+
+/**
+ * REST — `PATCH /api/games/:id/participants/:participantId/hat`. `participantId` del cuerpo es
+ * quien lo pide; solo vale si coincide con el de la URL (`Game.changeParticipantHat`).
+ */
+export const changeParticipantHatCommandSchema = z.object({
+  participantId: z.string().trim().min(1),
+  hat: z.enum(HAT_IDS).nullable(),
+});
+export type ChangeParticipantHatCommandInput = z.infer<typeof changeParticipantHatCommandSchema>;
 
 /** REST — `POST /api/games/:id/participants` */
 export const joinGameCommandSchema = z.object({

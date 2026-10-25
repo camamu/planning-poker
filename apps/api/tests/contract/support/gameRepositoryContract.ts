@@ -6,6 +6,7 @@ import { DisplayName } from '../../../src/domain/game/DisplayName.js';
 import { Game } from '../../../src/domain/game/Game.js';
 import { GameName } from '../../../src/domain/game/GameName.js';
 import { GameSettings } from '../../../src/domain/game/GameSettings.js';
+import { Hat } from '../../../src/domain/game/Hat.js';
 import { GameId, IssueId, ParticipantId, RoundId } from '../../../src/domain/game/ids.js';
 
 const NOW = new Date('2026-08-07T10:00:00Z');
@@ -250,6 +251,19 @@ export function defineGameRepositoryContractTests(
       expect(reloaded?.hasParticipantLeft(anaId)).toBe(true);
       expect(reloaded?.hasParticipantLeft(facilitatorId)).toBe(false);
       expect(reloaded?.currentRound()?.hasVoted(anaId)).toBe(true);
+    });
+
+    it('conserva el sombrero de cada participante tras recargar', async () => {
+      const repository = await makeRepository();
+      const { game, facilitatorId } = newGame('game-13');
+      const anaId = ParticipantId.of('game-13-ana');
+      game.addParticipant(anaId, DisplayName.of('Ana'), 'VOTER', NOW);
+      game.changeParticipantHat(facilitatorId, Hat.of('wizard'), facilitatorId, NOW);
+      await repository.save(game);
+
+      const reloaded = await repository.findById(GameId.of('game-13'));
+      const hats = reloaded?.allParticipants().map((participant) => participant.currentHat()?.id);
+      expect(hats).toEqual(['wizard', undefined]);
     });
 
     it('conserva la fecha límite de la cuenta atrás de una ronda abierta tras recargar', async () => {

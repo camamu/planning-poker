@@ -79,10 +79,18 @@ describe('cambiar la baraja de una partida en vivo', () => {
     expect(body.state.deck.cards).toContain('XXL');
   }, 10000);
 
-  it('rechaza con 422 el cambio de un participante que no es facilitador', async () => {
+  it('acepta el cambio de un participante que no es facilitador', async () => {
     const { gameId, voterId } = await createGameWithVoter();
 
     const response = await patchDeck(server, gameId, voterId, SYSTEM_DECK_IDS.tshirt.value);
+
+    expect(response.status).toBe(204);
+  }, 10000);
+
+  it('rechaza con 422 a quien no es participante de la partida', async () => {
+    const { gameId } = await createGameWithVoter();
+
+    const response = await patchDeck(server, gameId, 'nadie', SYSTEM_DECK_IDS.tshirt.value);
 
     expect(response.status).toBe(422);
   }, 10000);

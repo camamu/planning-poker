@@ -175,16 +175,14 @@ export function GameTablePage({
               }
         }
         viewerId={participantId}
+        viewerHat={me?.hat ?? null}
+        onChangeHat={table.changeHat}
         onToggleIssues={() => {
           setIssuesOpen((open) => !open);
         }}
-        onToggleSettings={
-          me?.isFacilitator
-            ? () => {
-                setSettingsOpen((open) => !open);
-              }
-            : undefined
-        }
+        onToggleSettings={() => {
+          setSettingsOpen((open) => !open);
+        }}
       />
       <div className="grid min-h-0 flex-1 grid-cols-1 lg:grid-cols-[1fr_316px]">
         <div className="flex min-w-0 flex-col" style={{ background: 'var(--pp-felt)' }}>
@@ -223,7 +221,7 @@ export function GameTablePage({
                     spectator.online ? undefined : `${spectator.displayName} está desconectado`
                   }
                 >
-                  <Avatar seed={spectator.id} size={20} opacity={0.85} />
+                  <Avatar seed={spectator.id} size={20} opacity={0.85} hat={spectator.hat} />
                   <span className="text-[11px]" style={{ color: 'var(--pp-muted)' }}>
                     {spectator.displayName}
                   </span>
@@ -348,6 +346,7 @@ export function GameTablePage({
               settings={game.settings}
               deckCards={game.deck.cards}
               roundOpen={round?.status === 'OPEN'}
+              canEditSettings={me?.isFacilitator ?? false}
               onClose={() => {
                 setSettingsOpen(false);
               }}

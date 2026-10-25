@@ -10,6 +10,7 @@ era crear otra sala y perder participantes, cola de tareas e histórico de estim
 
 - **`Game.changeDeck(deck, requestedBy, now)`** sustituye la baraja y emite `GameDeckChanged`.
   Solo el facilitador puede (`DeckChangeNotAllowedError`), mismo criterio que `updateSettings`.
+  _Revisado por `ADR 0018`: ahora puede cualquier participante._
 - **Solo entre rondas.** Con una ronda `OPEN` lanza `DeckChangeDuringVotingError`: sus votos podrían
   no existir en la baraja nueva y quedaría una ronda con cartas que nadie puede volver a elegir.
   Descartamos borrar votos en silencio (destructivo, y el resto de la sala no se entera de por qué).

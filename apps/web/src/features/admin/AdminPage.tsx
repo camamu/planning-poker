@@ -24,7 +24,7 @@ function isSection(value: string): value is Section {
   return SECTIONS.some((section) => section.value === value);
 }
 
-/** `/admin` — gestión de salas, equipos y barajas de toda la instancia (ADR 0016). */
+/** `/admin` — gestión de salas, equipos y barajas de toda la instancia (ADR 0019). */
 export function AdminPage(): JSX.Element {
   const [session, setSession] = useState<AdminSessionView | null>(() => loadAdminSession());
   const [section, setSection] = useState<Section>('games');

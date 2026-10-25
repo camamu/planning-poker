@@ -8,10 +8,7 @@ import { ListGameDecks } from '../../src/application/use-cases/ListGameDecks.js'
 import { SaveCustomDeck } from '../../src/application/use-cases/SaveCustomDeck.js';
 import { CardValue } from '../../src/domain/deck/CardValue.js';
 import { DeckNotAvailableError, SYSTEM_DECK_IDS } from '../../src/domain/deck/SavedDeck.js';
-import {
-  DeckChangeDuringVotingError,
-  DeckChangeNotAllowedError,
-} from '../../src/domain/game/Game.js';
+import { DeckChangeDuringVotingError } from '../../src/domain/game/Game.js';
 import { GameId } from '../../src/domain/game/ids.js';
 import { seedGame, seedGameWithOpenRound } from './support/gameFixtures.js';
 import type { SeededGame } from './support/gameFixtures.js';
@@ -47,7 +44,7 @@ describe('ChangeGameDeck', () => {
     expect(seeded.context.events.published.map((event) => event.type)).toEqual(['GameDeckChanged']);
   });
 
-  it('lanza DeckChangeNotAllowedError si quien lo pide no es el facilitador', async () => {
+  it('un votante que no es facilitador también puede cambiar la baraja', async () => {
     const seeded = await seedGame();
     const { games, events, clock, ids } = seeded.context;
     const voterId = await new JoinGame(games, events, clock, ids).execute({
@@ -56,13 +53,14 @@ describe('ChangeGameDeck', () => {
       role: 'VOTER',
     });
 
-    await expect(
-      changeDeckUseCase(seeded).execute({
-        gameId: seeded.gameId,
-        participantId: voterId,
-        deckId: SYSTEM_DECK_IDS.tshirt.value,
-      }),
-    ).rejects.toThrow(DeckChangeNotAllowedError);
+    await changeDeckUseCase(seeded).execute({
+      gameId: seeded.gameId,
+      participantId: voterId,
+      deckId: SYSTEM_DECK_IDS.tshirt.value,
+    });
+
+    const stored = await games.findById(GameId.of(seeded.gameId));
+    expect(stored?.currentDeck().contains(CardValue.of('XL'))).toBe(true);
   });
 
   it('lanza DeckChangeDuringVotingError con una ronda abierta', async () => {

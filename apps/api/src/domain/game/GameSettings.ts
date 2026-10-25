@@ -32,7 +32,7 @@ export class GameSettings {
       props.namedRevealers ?? [],
       props.allowVoteChange ?? true,
       props.celebrate ?? true,
-      props.throwEmojis ?? false,
+      props.throwEmojis ?? true,
       props.countdownSeconds ?? null,
       props.revealOnTimeout ?? false,
     );

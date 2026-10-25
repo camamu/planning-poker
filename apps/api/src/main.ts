@@ -30,6 +30,7 @@ import { SetFinalEstimate } from './application/use-cases/SetFinalEstimate.js';
 import { TimeoutReveal } from './application/use-cases/TimeoutReveal.js';
 import { UpdateCustomDeck } from './application/use-cases/UpdateCustomDeck.js';
 import { ChangeGameDeck } from './application/use-cases/ChangeGameDeck.js';
+import { ChangeParticipantHat } from './application/use-cases/ChangeParticipantHat.js';
 import { ListGameDecks } from './application/use-cases/ListGameDecks.js';
 import { UpdateGameSettings } from './application/use-cases/UpdateGameSettings.js';
 import { loadEnv } from './infrastructure/config/env.js';
@@ -109,6 +110,7 @@ const timeoutReveal = new TimeoutReveal(games, events, clock);
 const setFinalEstimate = new SetFinalEstimate(games, events, clock);
 const updateGameSettings = new UpdateGameSettings(games, events, clock);
 const changeGameDeck = new ChangeGameDeck(games, decks, events, clock);
+const changeParticipantHat = new ChangeParticipantHat(games, events, clock);
 const listGameDecks = new ListGameDecks(games, decks);
 const getGameState = new GetGameState(games, presence);
 
@@ -127,6 +129,7 @@ registerGameRoutes(app, {
   getGameState,
   updateGameSettings,
   changeGameDeck,
+  changeParticipantHat,
   listGameDecks,
   versions,
 });

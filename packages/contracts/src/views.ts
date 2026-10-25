@@ -1,3 +1,6 @@
+/** Mismo catálogo que `HAT_IDS` del dominio; `hatIds` en commands.ts lo valida en el borde. */
+export type HatIdView =
+  'cowboy' | 'wizard' | 'propeller' | 'crown' | 'top-hat' | 'party' | 'pirate' | 'viking' | 'chef';
 export type ParticipantRoleView = 'VOTER' | 'SPECTATOR';
 export type IssueStatusView = 'PENDING' | 'VOTING' | 'ESTIMATED';
 export type RoundStatusView = 'OPEN' | 'REVEALED' | 'CLOSED';
@@ -10,6 +13,8 @@ export interface ParticipantView {
   readonly isFacilitator: boolean;
   /** Conectado ahora mismo. Dato efímero de presencia, no persistido (ADR 0015). */
   readonly online: boolean;
+  /** Sombrero del avatar, `null` sin sombrero (ADR 0017). */
+  readonly hat: HatIdView | null;
 }
 
 export interface IssueView {

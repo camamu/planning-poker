@@ -5,6 +5,7 @@ import type { DisplayName } from './DisplayName.js';
 import type { GameEvent } from './events/GameEvent.js';
 import type { GameName } from './GameName.js';
 import type { GameSettings } from './GameSettings.js';
+import type { Hat } from './Hat.js';
 import type { GameId, IssueId, ParticipantId, RoundId } from './ids.js';
 import { Issue } from './Issue.js';
 import { Participant } from './Participant.js';
@@ -92,9 +93,9 @@ export class SettingsChangeNotAllowedError extends DomainError {
   }
 }
 
-export class DeckChangeNotAllowedError extends DomainError {
+export class HatChangeNotAllowedError extends DomainError {
   constructor(readonly participantId: ParticipantId) {
-    super(`El participante ${participantId.value} no puede cambiar la baraja de la partida.`);
+    super(`El participante ${participantId.value} no puede cambiar el sombrero de otro.`);
   }
 }
 
@@ -309,6 +310,28 @@ export class Game {
   }
 
   /**
+   * Cada uno elige su propio sombrero, también los espectadores y en mitad de una ronda: es pura
+   * cosmética y no afecta a votos ni permisos. Ni el facilitador puede ponérselo a otro.
+   */
+  changeParticipantHat(
+    targetId: ParticipantId,
+    hat: Hat | null,
+    requestedBy: ParticipantId,
+    now: Date,
+  ): void {
+    const target = this.requireParticipant(targetId);
+    if (!requestedBy.equals(targetId)) throw new HatChangeNotAllowedError(requestedBy);
+    target.wearHat(hat);
+    this.record({
+      type: 'ParticipantHatChanged',
+      occurredAt: now,
+      gameId: this.id,
+      participantId: targetId,
+      hat,
+    });
+  }
+
+  /**
    * Un participante sale (él mismo) o lo quita el facilitador. Es baja lógica: sus votos en rondas
    * ya reveladas se conservan, pero su voto en la ronda abierta se retira porque ya no forma parte
    * de ella. El facilitador no puede salir: sin él nadie podría tocar ajustes ni baraja.
@@ -443,9 +466,9 @@ export class Game {
    * en la baraja nueva y quedaría una ronda con cartas que nadie puede volver a elegir. Una ronda
    * ya revelada no lo impide — su resultado es histórico y no vuelve a validarse contra la baraja.
    */
+  /** Cualquier participante, espectadores incluidos (ADR 0018): la baraja es de toda la sala. */
   changeDeck(deck: Deck, requestedBy: ParticipantId, now: Date): void {
-    const participant = this.requireParticipant(requestedBy);
-    if (!participant.isFacilitator) throw new DeckChangeNotAllowedError(requestedBy);
+    this.requireParticipant(requestedBy);
     if (this.openRound()) throw new DeckChangeDuringVotingError(this.id);
     this.deck = deck;
     this.record({ type: 'GameDeckChanged', occurredAt: now, gameId: this.id, deck });

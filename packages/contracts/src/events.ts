@@ -1,4 +1,10 @@
-import type { GameSettingsView, GameView, ParticipantRoleView, RoundResultView } from './views.js';
+import type {
+  GameSettingsView,
+  GameView,
+  HatIdView,
+  ParticipantRoleView,
+  RoundResultView,
+} from './views.js';
 
 /**
  * Todos los eventos servidor→cliente llevan `version`, el contador incremental de la
@@ -17,6 +23,11 @@ export type ServerEvent =
       readonly type: 'participant_role_changed';
       readonly participantId: string;
       readonly role: ParticipantRoleView;
+    })
+  | (ServerEventBase & {
+      readonly type: 'participant_hat_changed';
+      readonly participantId: string;
+      readonly hat: HatIdView | null;
     })
   | (ServerEventBase & { readonly type: 'issue_added'; readonly issueId: string })
   | (ServerEventBase & {

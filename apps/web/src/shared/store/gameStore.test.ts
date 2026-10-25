@@ -102,8 +102,22 @@ describe('gameStore', () => {
       game: {
         ...baseGame(),
         participants: [
-          { id: 'p1', displayName: 'Ada', role: 'VOTER', isFacilitator: true, online: true },
-          { id: 'p2', displayName: 'Grace', role: 'VOTER', isFacilitator: false, online: true },
+          {
+            id: 'p1',
+            displayName: 'Ada',
+            role: 'VOTER',
+            isFacilitator: true,
+            online: true,
+            hat: null,
+          },
+          {
+            id: 'p2',
+            displayName: 'Grace',
+            role: 'VOTER',
+            isFacilitator: false,
+            online: true,
+            hat: null,
+          },
         ],
       },
     });

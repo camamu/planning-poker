@@ -18,8 +18,15 @@ function baseState(overrides: Partial<GameView> = {}): GameView {
       revealOnTimeout: false,
     },
     participants: [
-      { id: 'p1', displayName: 'Ada', role: 'VOTER', isFacilitator: true, online: true },
-      { id: 'p2', displayName: 'Grace', role: 'VOTER', isFacilitator: false, online: true },
+      { id: 'p1', displayName: 'Ada', role: 'VOTER', isFacilitator: true, online: true, hat: null },
+      {
+        id: 'p2',
+        displayName: 'Grace',
+        role: 'VOTER',
+        isFacilitator: false,
+        online: true,
+        hat: null,
+      },
     ],
     issues: [{ id: 'issue-1', title: 'Login', status: 'VOTING', finalEstimate: null }],
     currentRound: {
@@ -156,6 +163,18 @@ describe('gameEventsReducer', () => {
     };
     const next = gameEventsReducer(state, event);
     expect(next?.issues[0]).toMatchObject({ status: 'ESTIMATED', finalEstimate: '5' });
+  });
+
+  it('participant_hat_changed cambia solo el sombrero de ese participante', () => {
+    const event: ServerEvent = {
+      type: 'participant_hat_changed',
+      version: 2,
+      participantId: 'p2',
+      hat: 'wizard',
+    };
+    const next = gameEventsReducer(baseState(), event);
+    expect(next?.participants.map((participant) => participant.hat)).toEqual([null, 'wizard']);
+    expect(needsResync('participant_hat_changed')).toBe(false);
   });
 
   it('deck_changed reemplaza la baraja de la partida', () => {

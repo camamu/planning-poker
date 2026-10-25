@@ -1,4 +1,4 @@
-# 0016 — Panel de gestión (`/admin`)
+# 0019 — Panel de gestión (`/admin`)
 
 ## Contexto
 
