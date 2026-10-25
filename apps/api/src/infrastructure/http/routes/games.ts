@@ -3,8 +3,11 @@ import {
   changeGameDeckCommandSchema,
   changeParticipantHatCommandSchema,
   createGameCommandSchema,
+  editIssueCommandSchema,
   joinGameCommandSchema,
+  removeIssueCommandSchema,
   removeParticipantCommandSchema,
+  reorderIssuesCommandSchema,
   updateGameSettingsCommandSchema,
 } from '@pp/contracts';
 import type { FastifyInstance } from 'fastify';
@@ -12,10 +15,13 @@ import type { AddIssue } from '../../../application/use-cases/AddIssue.js';
 import type { ChangeGameDeck } from '../../../application/use-cases/ChangeGameDeck.js';
 import type { ChangeParticipantHat } from '../../../application/use-cases/ChangeParticipantHat.js';
 import type { CreateGame } from '../../../application/use-cases/CreateGame.js';
+import type { EditIssue } from '../../../application/use-cases/EditIssue.js';
 import type { GetGameState } from '../../../application/use-cases/GetGameState.js';
 import type { JoinGame } from '../../../application/use-cases/JoinGame.js';
 import type { ListGameDecks } from '../../../application/use-cases/ListGameDecks.js';
+import type { RemoveIssue } from '../../../application/use-cases/RemoveIssue.js';
 import type { RemoveParticipant } from '../../../application/use-cases/RemoveParticipant.js';
+import type { ReorderIssues } from '../../../application/use-cases/ReorderIssues.js';
 import type { UpdateGameSettings } from '../../../application/use-cases/UpdateGameSettings.js';
 import { GameId } from '../../../domain/game/ids.js';
 import type { GameVersionTracker } from '../../realtime/GameVersionTracker.js';
@@ -26,6 +32,9 @@ export interface GameRoutesDependencies {
   readonly joinGame: JoinGame;
   readonly removeParticipant: RemoveParticipant;
   readonly addIssue: AddIssue;
+  readonly editIssue: EditIssue;
+  readonly removeIssue: RemoveIssue;
+  readonly reorderIssues: ReorderIssues;
   readonly getGameState: GetGameState;
   readonly updateGameSettings: UpdateGameSettings;
   readonly changeGameDeck: ChangeGameDeck;
@@ -40,6 +49,10 @@ interface GameIdParams {
 
 interface ParticipantParams extends GameIdParams {
   readonly participantId: string;
+}
+
+interface IssueParams extends GameIdParams {
+  readonly issueId: string;
 }
 
 interface ViewerQuery {
@@ -134,6 +147,51 @@ export function registerGameRoutes(app: FastifyInstance, deps: GameRoutesDepende
         title: command.title,
       });
       await reply.code(201).send({ issueId });
+    } catch (error) {
+      sendError(reply, error);
+    }
+  });
+
+  app.patch<{ Params: IssueParams }>('/api/games/:id/issues/:issueId', async (request, reply) => {
+    try {
+      const command = editIssueCommandSchema.parse(request.body);
+      await deps.editIssue.execute({
+        gameId: request.params.id,
+        issueId: request.params.issueId,
+        participantId: command.participantId,
+        title: command.title,
+        ...(command.description !== undefined ? { description: command.description } : {}),
+        ...(command.externalUrl !== undefined ? { externalUrl: command.externalUrl } : {}),
+      });
+      await reply.code(204).send();
+    } catch (error) {
+      sendError(reply, error);
+    }
+  });
+
+  app.delete<{ Params: IssueParams }>('/api/games/:id/issues/:issueId', async (request, reply) => {
+    try {
+      const command = removeIssueCommandSchema.parse(request.body);
+      await deps.removeIssue.execute({
+        gameId: request.params.id,
+        issueId: request.params.issueId,
+        participantId: command.participantId,
+      });
+      await reply.code(204).send();
+    } catch (error) {
+      sendError(reply, error);
+    }
+  });
+
+  app.put<{ Params: GameIdParams }>('/api/games/:id/issues/order', async (request, reply) => {
+    try {
+      const command = reorderIssuesCommandSchema.parse(request.body);
+      await deps.reorderIssues.execute({
+        gameId: request.params.id,
+        participantId: command.participantId,
+        issueIds: command.issueIds,
+      });
+      await reply.code(204).send();
     } catch (error) {
       sendError(reply, error);
     }

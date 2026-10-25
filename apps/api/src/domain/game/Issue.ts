@@ -4,10 +4,22 @@ import type { IssueId } from './ids.js';
 
 export type IssueStatus = 'PENDING' | 'VOTING' | 'ESTIMATED';
 
+export interface IssueChanges {
+  readonly title: string;
+  readonly description?: string | undefined;
+  readonly externalUrl?: string | undefined;
+}
+
 export class InvalidIssueTitleError extends DomainError {
   constructor(raw: string) {
     super(`"${raw}" no es un título de issue válido: no puede estar vacío.`);
   }
+}
+
+function validTitle(raw: string): string {
+  const trimmed = raw.trim();
+  if (trimmed.length === 0) throw new InvalidIssueTitleError(raw);
+  return trimmed;
 }
 
 export class Issue {
@@ -16,15 +28,13 @@ export class Issue {
 
   private constructor(
     readonly id: IssueId,
-    readonly title: string,
-    readonly description: string | undefined,
-    readonly externalUrl: string | undefined,
+    public title: string,
+    public description: string | undefined,
+    public externalUrl: string | undefined,
   ) {}
 
   static create(id: IssueId, title: string, description?: string, externalUrl?: string): Issue {
-    const trimmed = title.trim();
-    if (trimmed.length === 0) throw new InvalidIssueTitleError(title);
-    return new Issue(id, trimmed, description, externalUrl);
+    return new Issue(id, validTitle(title), description, externalUrl);
   }
 
   /** Reconstruye una issue desde su estado persistido, sin repasar `create()`/`startVoting()`/`estimate()`. */
@@ -48,6 +58,13 @@ export class Issue {
 
   currentFinalEstimate(): CardValue | null {
     return this.finalEstimate;
+  }
+
+  /** Un `description` o `externalUrl` ausente deja el valor que había: renombrar no borra los datos. */
+  rename(title: string, description?: string, externalUrl?: string): void {
+    this.title = validTitle(title);
+    if (description !== undefined) this.description = description;
+    if (externalUrl !== undefined) this.externalUrl = externalUrl;
   }
 
   startVoting(): void {

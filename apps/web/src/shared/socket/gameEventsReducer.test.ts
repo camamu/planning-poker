@@ -196,6 +196,86 @@ describe('gameEventsReducer', () => {
     expect(gameEventsReducer(state, event)?.settings.countdownSeconds).toBe(45);
   });
 
+  describe('gestión de tareas', () => {
+    function withQueue(): GameView {
+      return baseState({
+        issues: [
+          { id: 'issue-1', title: 'Login', status: 'VOTING', finalEstimate: null },
+          { id: 'issue-2', title: 'Pagos', status: 'PENDING', finalEstimate: null },
+          { id: 'issue-3', title: 'Informes', status: 'PENDING', finalEstimate: null },
+        ],
+      });
+    }
+
+    it('issue_edited sustituye solo esa tarea por la vista que trae el evento', () => {
+      const event: ServerEvent = {
+        type: 'issue_edited',
+        version: 2,
+        issue: {
+          id: 'issue-2',
+          title: 'Pagos con tarjeta',
+          status: 'PENDING',
+          finalEstimate: null,
+        },
+      };
+      const next = gameEventsReducer(withQueue(), event);
+      expect(next?.issues.map((issue) => issue.title)).toEqual([
+        'Login',
+        'Pagos con tarjeta',
+        'Informes',
+      ]);
+      expect(needsResync('issue_edited')).toBe(false);
+    });
+
+    it('issue_removed quita la tarea y adopta el dealer que manda el servidor', () => {
+      const event: ServerEvent = {
+        type: 'issue_removed',
+        version: 2,
+        issueId: 'issue-2',
+        dealerId: 'p2',
+      };
+      const next = gameEventsReducer(withQueue(), event);
+      expect(next?.issues.map((issue) => issue.id)).toEqual(['issue-1', 'issue-3']);
+      expect(next?.currentRound?.dealerId).toBe('p2');
+      expect(needsResync('issue_removed')).toBe(false);
+    });
+
+    it('issues_reordered aplica el orden del evento y el dealer que manda el servidor', () => {
+      const event: ServerEvent = {
+        type: 'issues_reordered',
+        version: 2,
+        issueIds: ['issue-1', 'issue-3', 'issue-2'],
+        dealerId: 'p2',
+      };
+      const next = gameEventsReducer(withQueue(), event);
+      expect(next?.issues.map((issue) => issue.id)).toEqual(['issue-1', 'issue-3', 'issue-2']);
+      expect(next?.currentRound?.dealerId).toBe('p2');
+      expect(needsResync('issues_reordered')).toBe(false);
+    });
+
+    it('issues_reordered no pierde una tarea que el evento no nombra', () => {
+      const event: ServerEvent = {
+        type: 'issues_reordered',
+        version: 2,
+        issueIds: ['issue-3', 'issue-1'],
+        dealerId: null,
+      };
+      const next = gameEventsReducer(withQueue(), event);
+      expect(next?.issues.map((issue) => issue.id)).toEqual(['issue-3', 'issue-1', 'issue-2']);
+    });
+
+    it('sin ronda, borrar o reordenar no inventa una ronda para guardar el dealer', () => {
+      const state = { ...withQueue(), currentRound: null };
+      const event: ServerEvent = {
+        type: 'issues_reordered',
+        version: 2,
+        issueIds: ['issue-3', 'issue-2', 'issue-1'],
+        dealerId: null,
+      };
+      expect(gameEventsReducer(state, event)?.currentRound).toBeNull();
+    });
+  });
+
   it('ningún evento sobre estado null distinto de state_sync produce estado', () => {
     const event: ServerEvent = {
       type: 'participant_role_changed',
