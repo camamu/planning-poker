@@ -108,9 +108,8 @@ describe('gestionar las tareas de una partida en vivo', () => {
       status: 'PENDING',
       finalEstimate: null,
     });
-    const state = await fetch(`${server.baseUrl}/api/games/${gameId}?participantId=${voterId}`);
-    const body = (await state.json()) as { state: { issues: Array<{ title: string }> } };
-    expect(body.state.issues[0]?.title).toBe('Primera, corregida');
+    const state = await getGameStateOverHttp(server.baseUrl, gameId, voterId);
+    expect(state.state.issues[0]?.title).toBe('Primera, corregida');
   }, 10000);
 
   it('avisa a la sala con issue_removed cuando se borra una tarea sin rondas', async () => {
