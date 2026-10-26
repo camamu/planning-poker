@@ -5,11 +5,11 @@ import { TeamId } from '../../../src/domain/team/TeamId.js';
 import { TeamName } from '../../../src/domain/team/TeamName.js';
 import { TeamSlug } from '../../../src/domain/team/TeamSlug.js';
 
-function newTeam(id: string, slug: string): Team {
+function newTeam(id: string, slug: string, name = 'Backend Team'): Team {
   return Team.create({
     id: TeamId.of(id),
     slug: TeamSlug.of(slug),
-    name: TeamName.of('Backend Team'),
+    name: TeamName.of(name),
     tokenHash: 'hash-1',
   });
 }
@@ -48,6 +48,36 @@ export function defineTeamRepositoryContractTests(
       const reloaded = await repository.findBySlug(TeamSlug.of('design-team'));
       expect(reloaded?.name.value).toBe('Design Team (renombrado)');
       expect(reloaded?.hasTokenHash('hash-2')).toBe(true);
+    });
+    it('findById() recupera un equipo por su id', async () => {
+      const repository = await makeRepository();
+      await repository.save(newTeam('team-1', 'backend-team'));
+
+      const reloaded = await repository.findById(TeamId.of('team-1'));
+
+      expect(reloaded?.slug.value).toBe('backend-team');
+      await expect(repository.findById(TeamId.of('inexistente'))).resolves.toBeUndefined();
+    });
+
+    it('listAll() devuelve todos los equipos ordenados por nombre', async () => {
+      const repository = await makeRepository();
+      await repository.save(newTeam('team-1', 'zeta', 'Zeta'));
+      await repository.save(newTeam('team-2', 'alfa', 'Alfa'));
+
+      const teams = await repository.listAll();
+
+      expect(teams.map((team) => team.name.value)).toEqual(['Alfa', 'Zeta']);
+    });
+
+    it('delete() borra el equipo y deja de resolverlo por slug', async () => {
+      const repository = await makeRepository();
+      await repository.save(newTeam('team-1', 'backend-team'));
+      await repository.save(newTeam('team-2', 'design-team'));
+
+      await repository.delete(TeamId.of('team-1'));
+
+      await expect(repository.findBySlug(TeamSlug.of('backend-team'))).resolves.toBeUndefined();
+      expect((await repository.listAll()).map((team) => team.id.value)).toEqual(['team-2']);
     });
   });
 }
