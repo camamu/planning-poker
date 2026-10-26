@@ -269,6 +269,7 @@ export function GameTablePage({
         >
           <ResultsPanel
             round={round}
+            participants={game.participants}
             onStartQuickRound={table.startQuickRound}
             celebrate={game.settings.celebrate}
             votedCount={table.votedCount}

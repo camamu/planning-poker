@@ -36,6 +36,7 @@ function baseState(overrides: Partial<GameView> = {}): GameView {
       status: 'OPEN',
       votes: [],
       result: null,
+      previousRounds: [],
       dealerId: 'p1',
       timerDeadline: null,
     },
@@ -116,6 +117,7 @@ describe('gameEventsReducer', () => {
         status: 'OPEN',
         votes: [{ participantId: 'p1', card: null, hasVoted: true }],
         result: null,
+        previousRounds: [],
         dealerId: 'p1',
         timerDeadline: null,
       },
@@ -151,6 +153,42 @@ describe('gameEventsReducer', () => {
     expect(next?.currentRound?.status).toBe('REVEALED');
     expect(next?.currentRound?.votes.map((v) => v.card)).toEqual(['5', '5']);
     expect(next?.currentRound?.result?.isUnanimous).toBe(true);
+  });
+
+  it('round_revealed conserva las rondas anteriores de la tarea para compararlas', () => {
+    const previousRounds = [
+      {
+        id: 'round-0',
+        roundNumber: 1,
+        votes: [{ participantId: 'p1', card: '3' }],
+        result: {
+          distribution: { '3': 1 },
+          average: 3,
+          agreementPercentage: 100,
+          mostVoted: '3',
+          isUnanimous: true,
+        },
+      },
+    ];
+    const base = baseState();
+    const state = base.currentRound
+      ? { ...base, currentRound: { ...base.currentRound, roundNumber: 2, previousRounds } }
+      : base;
+    const event: ServerEvent = {
+      type: 'round_revealed',
+      version: 3,
+      roundId: 'round-1',
+      votes: [{ participantId: 'p1', card: '5' }],
+      result: {
+        distribution: { '5': 1 },
+        average: 5,
+        agreementPercentage: 100,
+        mostVoted: '5',
+        isUnanimous: true,
+      },
+    };
+
+    expect(gameEventsReducer(state, event)?.currentRound?.previousRounds).toEqual(previousRounds);
   });
 
   it('issue_estimated marca la issue como estimada', () => {

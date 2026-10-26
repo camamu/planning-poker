@@ -219,6 +219,11 @@ export class Game {
     return [...this.rounds];
   }
 
+  /** Las rondas de una tarea en el orden en que se abrieron, para compararlas entre sí. */
+  roundsOf(issueId: IssueId): ReadonlyArray<Round> {
+    return this.rounds.filter((round) => round.issueId.equals(issueId));
+  }
+
   addParticipant(
     id: ParticipantId,
     displayName: DisplayName,
