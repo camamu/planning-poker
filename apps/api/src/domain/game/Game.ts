@@ -38,6 +38,32 @@ export class FacilitatorCannotLeaveError extends DomainError {
   }
 }
 
+export class FacilitatorTransferNotAllowedError extends DomainError {
+  constructor(readonly participantId: ParticipantId) {
+    super(`El participante ${participantId.value} no es el facilitador y no puede cederlo.`);
+  }
+}
+
+export class FacilitatorStillPresentError extends DomainError {
+  constructor(readonly facilitatorId: ParticipantId) {
+    super(`El facilitador ${facilitatorId.value} sigue conectado: no se puede tomar su relevo.`);
+  }
+}
+
+export class FacilitatorPresenceUnknownError extends DomainError {
+  constructor(readonly gameId: GameId) {
+    super(
+      `Todavía no se sabe quién está conectado a la partida ${gameId.value}: inténtalo de nuevo en unos segundos.`,
+    );
+  }
+}
+
+export class GameWithoutFacilitatorError extends DomainError {
+  constructor(readonly gameId: GameId) {
+    super(`La partida ${gameId.value} no tiene facilitador.`);
+  }
+}
+
 export class SpectatorCannotVoteError extends DomainError {
   constructor(readonly participantId: ParticipantId) {
     super(`El participante ${participantId.value} es espectador y no puede votar.`);
@@ -451,6 +477,41 @@ export class Game {
     return this.participants.get(id.value)?.hasLeft() ?? false;
   }
 
+  /**
+   * Solo el facilitador actual, y a alguien que siga en la partida. Cederse el rol a uno mismo no
+   * hace nada (ni evento). Sigue habiendo exactamente un facilitador: lo que uno pierde lo gana el
+   * otro en el mismo gesto (ADR 0021).
+   */
+  transferFacilitator(toId: ParticipantId, requestedBy: ParticipantId, now: Date): void {
+    const requester = this.requireParticipant(requestedBy);
+    if (!requester.isFacilitator) throw new FacilitatorTransferNotAllowedError(requestedBy);
+    const target = this.requireParticipant(toId);
+    if (requestedBy.equals(toId)) return;
+    this.handOverFacilitator(requester, target, now);
+  }
+
+  /**
+   * Cualquier participante puede tomar el relevo de un facilitador que no está conectado, para que
+   * la sala no se quede sin quien toque ajustes o, con `FACILITATOR_ONLY`, revele. La presencia
+   * sigue fuera del dominio (ADR 0015): llega como dato. `present` ausente = todavía no se sabe
+   * quién está (la API acaba de arrancar), y se rechaza para no quitarle el rol a quien solo está
+   * reconectando. Quien pide cuenta como presente: si es el propio facilitador, no hay relevo que tomar.
+   */
+  claimFacilitator(
+    requestedBy: ParticipantId,
+    now: Date,
+    present?: ReadonlyArray<ParticipantId>,
+  ): void {
+    const claimer = this.requireParticipant(requestedBy);
+    const current = this.requireFacilitator();
+    if (current.id.equals(requestedBy)) throw new FacilitatorStillPresentError(current.id);
+    if (!present) throw new FacilitatorPresenceUnknownError(this.id);
+    if (present.some((id) => id.equals(current.id))) {
+      throw new FacilitatorStillPresentError(current.id);
+    }
+    this.handOverFacilitator(current, claimer, now);
+  }
+
   // autoReveal es una acción del sistema: se dispara directamente y no pasa por canReveal(), que
   // solo aplica al reveal manual iniciado por un participante.
   private autoRevealIfComplete(
@@ -605,6 +666,26 @@ export class Game {
     const participant = this.participants.get(id.value);
     if (!participant || participant.hasLeft()) throw new ParticipantNotFoundError(id);
     return participant;
+  }
+
+  private requireFacilitator(): Participant {
+    const facilitator = [...this.participants.values()].find(
+      (participant) => participant.isFacilitator && !participant.hasLeft(),
+    );
+    if (!facilitator) throw new GameWithoutFacilitatorError(this.id);
+    return facilitator;
+  }
+
+  private handOverFacilitator(from: Participant, to: Participant, now: Date): void {
+    from.demote();
+    to.promote();
+    this.record({
+      type: 'FacilitatorChanged',
+      occurredAt: now,
+      gameId: this.id,
+      previousId: from.id,
+      nextId: to.id,
+    });
   }
 
   private requireIssue(id: IssueId): Issue {

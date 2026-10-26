@@ -6,6 +6,7 @@ export type ParticipantRole = 'VOTER' | 'SPECTATOR';
 
 export class Participant {
   private role: ParticipantRole;
+  private facilitator: boolean;
   private left: boolean;
   private hat: Hat | null;
 
@@ -13,13 +14,14 @@ export class Participant {
     readonly id: ParticipantId,
     readonly displayName: DisplayName,
     role: ParticipantRole,
-    readonly isFacilitator: boolean,
+    facilitator: boolean,
     /** Orden de entrada a la partida, estable entre reconstituciones. Base de `Game.currentDealer()`. */
     readonly joinOrder: number,
     left: boolean,
     hat: Hat | null,
   ) {
     this.role = role;
+    this.facilitator = facilitator;
     this.left = left;
     this.hat = hat;
   }
@@ -34,6 +36,19 @@ export class Participant {
     hat: Hat | null = null,
   ): Participant {
     return new Participant(id, displayName, role, isFacilitator, joinOrder, left, hat);
+  }
+
+  get isFacilitator(): boolean {
+    return this.facilitator;
+  }
+
+  /** Solo `Game` los llama, de dos en dos, para que siga habiendo exactamente un facilitador. */
+  promote(): void {
+    this.facilitator = true;
+  }
+
+  demote(): void {
+    this.facilitator = false;
   }
 
   /**

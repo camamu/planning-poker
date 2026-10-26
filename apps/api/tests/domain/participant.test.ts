@@ -40,4 +40,20 @@ describe('Participant', () => {
     expect(participant.currentRole()).toBe('SPECTATOR');
     expect(participant.isSpectator()).toBe(true);
   });
+
+  it('promote() y demote() cambian si es facilitador', () => {
+    const participant = Participant.join(
+      ParticipantId.of('p1'),
+      DisplayName.of('Ada'),
+      'VOTER',
+      false,
+      0,
+    );
+
+    participant.promote();
+    expect(participant.isFacilitator).toBe(true);
+
+    participant.demote();
+    expect(participant.isFacilitator).toBe(false);
+  });
 });
