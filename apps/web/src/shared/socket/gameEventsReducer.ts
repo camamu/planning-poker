@@ -38,6 +38,19 @@ export function gameEventsReducer(state: GameView | null, event: ServerEvent): G
         ),
       };
 
+    case 'facilitator_changed':
+      if (!state) return state;
+      return {
+        ...state,
+        participants: state.participants.map((participant) =>
+          participant.id === event.previousId
+            ? { ...participant, isFacilitator: false }
+            : participant.id === event.nextId
+              ? { ...participant, isFacilitator: true }
+              : participant,
+        ),
+      };
+
     case 'participant_voted':
       return patchRound(state, event.roundId, (round) => ({
         ...round,

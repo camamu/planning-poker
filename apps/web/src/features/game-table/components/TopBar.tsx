@@ -17,7 +17,7 @@ export interface TopBarProps {
   readonly onChangeHat: (hat: HatIdView | null) => void | Promise<void>;
   readonly onToggleIssues: () => void;
   readonly onToggleSettings: () => void;
-  /** Ausente para el facilitador: no puede salir de su propia partida. */
+  /** El facilitador también sale, pero antes cede el rol (ADR 0021): lo resuelve quien lo pasa. */
   readonly onLeave?: (() => void) | undefined;
 }
 
