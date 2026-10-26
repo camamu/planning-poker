@@ -61,6 +61,12 @@ export class WsEventPublisher implements EventPublisher {
           participantId: event.participantId.value,
           hat: event.hat?.id ?? null,
         };
+      case 'FacilitatorChanged':
+        return {
+          type: 'facilitator_changed',
+          previousId: event.previousId.value,
+          nextId: event.nextId.value,
+        };
       case 'IssueAdded':
         return { type: 'issue_added', issueId: event.issueId.value };
       case 'IssueEdited':

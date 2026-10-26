@@ -25,6 +25,7 @@ import { ReconcileAutoReveal } from './application/use-cases/ReconcileAutoReveal
 import { RemoveIssue } from './application/use-cases/RemoveIssue.js';
 import { RemoveParticipant } from './application/use-cases/RemoveParticipant.js';
 import { ReorderIssues } from './application/use-cases/ReorderIssues.js';
+import { TransferFacilitator } from './application/use-cases/TransferFacilitator.js';
 import { RevealRound } from './application/use-cases/RevealRound.js';
 import { SaveCustomDeck } from './application/use-cases/SaveCustomDeck.js';
 import { StartQuickRound } from './application/use-cases/StartQuickRound.js';
@@ -34,6 +35,7 @@ import { TimeoutReveal } from './application/use-cases/TimeoutReveal.js';
 import { UpdateCustomDeck } from './application/use-cases/UpdateCustomDeck.js';
 import { ChangeGameDeck } from './application/use-cases/ChangeGameDeck.js';
 import { ChangeParticipantHat } from './application/use-cases/ChangeParticipantHat.js';
+import { ClaimFacilitator } from './application/use-cases/ClaimFacilitator.js';
 import { ListGameDecks } from './application/use-cases/ListGameDecks.js';
 import { UpdateGameSettings } from './application/use-cases/UpdateGameSettings.js';
 import { loadEnv } from './infrastructure/config/env.js';
@@ -111,6 +113,8 @@ const startVotingRound = new StartVotingRound(games, events, clock, ids);
 const startQuickRound = new StartQuickRound(games, events, clock, ids);
 const castVote = new CastVote(games, events, clock, presence);
 const removeParticipant = new RemoveParticipant(games, events, clock, presence);
+const transferFacilitator = new TransferFacilitator(games, events, clock);
+const claimFacilitator = new ClaimFacilitator(games, events, clock, presence);
 const revealRound = new RevealRound(games, events, clock);
 const timeoutReveal = new TimeoutReveal(games, events, clock);
 const setFinalEstimate = new SetFinalEstimate(games, events, clock);
@@ -131,6 +135,8 @@ registerGameRoutes(app, {
   createGame,
   joinGame,
   removeParticipant,
+  transferFacilitator,
+  claimFacilitator,
   addIssue,
   editIssue,
   removeIssue,
