@@ -4,7 +4,6 @@ import type { EventPublisher } from '../ports/EventPublisher.js';
 import type { GameRepository } from '../ports/GameRepository.js';
 import { UNKNOWN_PRESENCE } from '../ports/PresenceReader.js';
 import type { PresenceReader } from '../ports/PresenceReader.js';
-import { loadGame } from './loadGame.js';
 
 export interface ReconcileAutoRevealCommand {
   readonly gameId: string;
@@ -21,7 +20,10 @@ export class ReconcileAutoReveal {
 
   async execute(command: ReconcileAutoRevealCommand): Promise<void> {
     const gameId = GameId.of(command.gameId);
-    const game = await loadGame(this.games, gameId);
+    // Una sala borrada desde el panel de gestión puede seguir con sockets abiertos: cuando alguien
+    // se desconecta de ella no hay nada que reconciliar, y no es un error.
+    const game = await this.games.findById(gameId);
+    if (!game) return;
 
     game.reconcileAutoReveal(this.clock.now(), this.presence.votingPresence(gameId));
 
