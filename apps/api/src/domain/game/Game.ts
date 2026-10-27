@@ -8,7 +8,7 @@ import type { GameSettings } from './GameSettings.js';
 import type { Hat } from './Hat.js';
 import type { GameId, IssueId, ParticipantId, RoundId } from './ids.js';
 import { Issue } from './Issue.js';
-import type { IssueChanges } from './Issue.js';
+import type { IssueChanges, IssueDetails, IssueDraft } from './Issue.js';
 import { Participant } from './Participant.js';
 import type { ParticipantRole } from './Participant.js';
 import { Round } from './Round.js';
@@ -275,9 +275,28 @@ export class Game {
     });
   }
 
-  addIssue(id: IssueId, title: string, now: Date): void {
-    this.issues.push(Issue.create(id, title));
+  addIssue(id: IssueId, title: string, now: Date, details: IssueDetails = {}): void {
+    this.issues.push(Issue.create(id, title, details.description, details.externalUrl));
     this.record({ type: 'IssueAdded', occurredAt: now, gameId: this.id, issueId: id });
+  }
+
+  /**
+   * Todas o ninguna: se crean primero (un título vacío lanza antes de tocar la cola) y se añaden
+   * de golpe. Registra un único evento en vez de un `IssueAdded` por tarea: con N eventos cada
+   * cliente haría N `resync` (ADR 0023). Una lista vacía no cambia nada y no emite nada.
+   */
+  importIssues(entries: ReadonlyArray<IssueDraft>, now: Date): void {
+    const imported = entries.map((entry) =>
+      Issue.create(entry.id, entry.title, entry.description, entry.externalUrl),
+    );
+    if (imported.length === 0) return;
+    this.issues.push(...imported);
+    this.record({
+      type: 'IssuesImported',
+      occurredAt: now,
+      gameId: this.id,
+      issueIds: imported.map((issue) => issue.id),
+    });
   }
 
   /**

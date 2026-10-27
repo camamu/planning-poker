@@ -10,6 +10,17 @@ export interface IssueChanges {
   readonly externalUrl?: string | undefined;
 }
 
+/** Lo opcional de una tarea al crearla; `IssueChanges` es lo mismo pero al editar (el título es obligatorio). */
+export interface IssueDetails {
+  readonly description?: string | undefined;
+  readonly externalUrl?: string | undefined;
+}
+
+export interface IssueDraft extends IssueDetails {
+  readonly id: IssueId;
+  readonly title: string;
+}
+
 export class InvalidIssueTitleError extends DomainError {
   constructor(raw: string) {
     super(`"${raw}" no es un título de issue válido: no puede estar vacío.`);
