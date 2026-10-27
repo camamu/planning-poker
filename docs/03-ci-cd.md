@@ -15,6 +15,7 @@
 | `publish.yml`   | `release: published`                       | Construir y publicar imágenes Docker en GHCR con la versión                                                |
 | `deploy.yml`    | manual, elige un tag                       | Migrar la BD y decirle a Render qué imagen desplegar; el front en Cloudflare Pages va en el mismo workflow |
 | `heartbeat.yml` | `schedule` diario + manual                 | Hacer una consulta trivial a Supabase para que no pause el proyecto por inactividad                        |
+| `warmup.yml`    | manual (`schedule` comentado)              | Despertar la API de Render con `/health` antes de una sesión; desactivado por defecto                      |
 
 Separar release de publish importa: la versión se decide una vez y las imágenes se construyen a partir de un tag inmutable, no de "lo que hubiera en main en ese momento".
 
@@ -503,6 +504,12 @@ jobs:
 
 `SUPABASE_DATABASE_URL` puede ser el mismo connection string que usa la API en producción; no hace falta un usuario aparte para esto en un proyecto interno.
 
+### 6.3 `warmup.yml` — despertar la API antes de una sesión (opcional)
+
+Render free duerme la API tras un rato sin tráfico (`06-despliegue.md` §2.2). La app ya la despierta sola cuando alguien abre el enlace y explica la espera (`docs/adr/0022-despertar-la-api.md`); este workflow es para que, además, esté despierta _antes_ de que llegue nadie. Hace `curl` a `https://$API_HOST/health` (la misma variable `API_HOST` de `deploy.yml`) con reintentos hasta tres minutos.
+
+Solo tiene `workflow_dispatch`: se lanza a mano desde la pestaña Actions diez minutos antes de la sesión. El `schedule` va comentado en el fichero con un ejemplo; descomentarlo es decisión del equipo, no del bloque, porque cada ejecución consume horas del cupo gratis de Render.
+
 ---
 
 ## 7. Protección de ramas y flujo de trabajo
@@ -600,4 +607,5 @@ Bloque N — <nombre>
 - [ ] Un push directo a `develop` es rechazado
 - [ ] Un push directo a `main` es rechazado salvo el merge `develop` → `main` de una release
 - [ ] `heartbeat.yml` lanzado a mano (`workflow_dispatch`) termina en verde
+- [ ] `warmup.yml` lanzado a mano con la API dormida termina en verde y `/health` responde
 - [ ] Un `deploy.yml` a un tag real aplica las migraciones, y `/health` de la API y el front en Cloudflare Pages coinciden en versión
