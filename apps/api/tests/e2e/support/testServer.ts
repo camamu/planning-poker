@@ -15,6 +15,7 @@ import { DeleteGame } from '../../../src/application/use-cases/DeleteGame.js';
 import { DeleteTeam } from '../../../src/application/use-cases/DeleteTeam.js';
 import { EditIssue } from '../../../src/application/use-cases/EditIssue.js';
 import { GetGameState } from '../../../src/application/use-cases/GetGameState.js';
+import { ImportIssues } from '../../../src/application/use-cases/ImportIssues.js';
 import { JoinGame } from '../../../src/application/use-cases/JoinGame.js';
 import { ListDecks } from '../../../src/application/use-cases/ListDecks.js';
 import { ListDecksForAdmin } from '../../../src/application/use-cases/ListDecksForAdmin.js';
@@ -104,6 +105,7 @@ export async function startTestServer(options: TestServerOptions = {}): Promise<
   const createGame = new CreateGame(games, decks, teams, events, clock, ids);
   const joinGame = new JoinGame(games, events, clock, ids);
   const addIssue = new AddIssue(games, events, clock, ids);
+  const importIssues = new ImportIssues(games, events, clock, ids);
   const editIssue = new EditIssue(games, events, clock);
   const removeIssue = new RemoveIssue(games, events, clock);
   const reorderIssues = new ReorderIssues(games, events, clock);
@@ -136,6 +138,7 @@ export async function startTestServer(options: TestServerOptions = {}): Promise<
     transferFacilitator,
     claimFacilitator,
     addIssue,
+    importIssues,
     editIssue,
     removeIssue,
     reorderIssues,

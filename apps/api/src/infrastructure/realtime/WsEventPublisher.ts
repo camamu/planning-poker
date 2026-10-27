@@ -69,6 +69,8 @@ export class WsEventPublisher implements EventPublisher {
         };
       case 'IssueAdded':
         return { type: 'issue_added', issueId: event.issueId.value };
+      case 'IssuesImported':
+        return { type: 'issues_imported', issueIds: event.issueIds.map((id) => id.value) };
       case 'IssueEdited':
         return this.toIssueEditedEvent(event.gameId, event.issueId);
       case 'IssueRemoved':

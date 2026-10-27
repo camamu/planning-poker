@@ -105,6 +105,8 @@ describe('gestionar las tareas de una partida en vivo', () => {
     expect((await edited).issue).toEqual({
       id: first,
       title: 'Primera, corregida',
+      description: null,
+      externalUrl: null,
       status: 'PENDING',
       finalEstimate: null,
     });

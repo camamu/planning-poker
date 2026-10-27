@@ -13,6 +13,7 @@ import { DeleteGame } from './application/use-cases/DeleteGame.js';
 import { DeleteTeam } from './application/use-cases/DeleteTeam.js';
 import { EditIssue } from './application/use-cases/EditIssue.js';
 import { GetGameState } from './application/use-cases/GetGameState.js';
+import { ImportIssues } from './application/use-cases/ImportIssues.js';
 import { JoinGame } from './application/use-cases/JoinGame.js';
 import { ListDecks } from './application/use-cases/ListDecks.js';
 import { ListDecksForAdmin } from './application/use-cases/ListDecksForAdmin.js';
@@ -106,6 +107,7 @@ presence.onChange(
 const createGame = new CreateGame(games, decks, teams, events, clock, ids);
 const joinGame = new JoinGame(games, events, clock, ids);
 const addIssue = new AddIssue(games, events, clock, ids);
+const importIssues = new ImportIssues(games, events, clock, ids);
 const editIssue = new EditIssue(games, events, clock);
 const removeIssue = new RemoveIssue(games, events, clock);
 const reorderIssues = new ReorderIssues(games, events, clock);
@@ -138,6 +140,7 @@ registerGameRoutes(app, {
   transferFacilitator,
   claimFacilitator,
   addIssue,
+  importIssues,
   editIssue,
   removeIssue,
   reorderIssues,

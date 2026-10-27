@@ -81,6 +81,32 @@ export function defineGameRepositoryContractTests(
       expect(reloaded?.allIssues().map((issue) => issue.title)).toEqual(['Primero', 'Segundo']);
     });
 
+    it('conserva la descripción y el enlace de las tareas importadas, y que otras no los tienen, tras recargar', async () => {
+      const repository = await makeRepository();
+      const { game } = newGame('game-import');
+      game.importIssues(
+        [
+          {
+            id: IssueId.of('issue-1'),
+            title: 'ABC-123',
+            description: 'Con OAuth',
+            externalUrl: 'https://jira.test/browse/ABC-123',
+          },
+          { id: IssueId.of('issue-2'), title: 'Sin extras' },
+        ],
+        NOW,
+      );
+      await repository.save(game);
+
+      const reloaded = await repository.findById(GameId.of('game-import'));
+      const withLink = reloaded?.findIssue(IssueId.of('issue-1'));
+      expect(withLink?.description).toBe('Con OAuth');
+      expect(withLink?.externalUrl).toBe('https://jira.test/browse/ABC-123');
+      const plain = reloaded?.findIssue(IssueId.of('issue-2'));
+      expect(plain?.description).toBeUndefined();
+      expect(plain?.externalUrl).toBeUndefined();
+    });
+
     it('conserva el orden y el título de las tareas tras reordenarlas, editarlas y borrar una', async () => {
       const repository = await makeRepository();
       const { game, facilitatorId } = newGame('game-issues-edit');
