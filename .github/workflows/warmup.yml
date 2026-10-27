@@ -1,0 +1,26 @@
+name: Warmup API
+
+# Desactivado por defecto: solo se lanza a mano. Activar el `schedule` para el día de la
+# planificación es decisión del equipo (docs/adr/0022-despertar-la-api.md).
+on:
+  workflow_dispatch:
+  # schedule:
+  #   # Ejemplo: los lunes a las 08:50 UTC, diez minutos antes de una planificación a las 09:00 UTC.
+  #   # cron no sabe de «cada dos semanas»: si el equipo se reúne quincenalmente, o se deja pasar el
+  #   # lunes sin reunión o se activa y desactiva a mano.
+  #   - cron: '50 8 * * 1'
+
+permissions:
+  contents: read
+
+jobs:
+  warmup:
+    name: Despertar la API de Render
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      # Render free tarda hasta ~1 min en arrancar en frío: se insiste hasta que /health conteste.
+      - name: Pedir /health hasta que responda
+        env:
+          API_HOST: ${{ vars.API_HOST }}
+        run: timeout 180 bash -c 'until curl -sf --max-time 10 "https://$API_HOST/health"; do sleep 5; done'
