@@ -1,5 +1,28 @@
 # Changelog
 
+## [1.9.0](https://github.com/camamu/planning-poker/compare/planning-poker-v1.8.0...planning-poker-v1.9.0) (2026-10-27)
+
+
+### Features
+
+* **app:** casos de uso EditIssue, RemoveIssue y ReorderIssues ([1f73893](https://github.com/camamu/planning-poker/commit/1f7389342a5e9b9b84af9ffd7e5aa434edfee691))
+* **app:** casos de uso TransferFacilitator y ClaimFacilitator ([9615d15](https://github.com/camamu/planning-poker/commit/9615d152f623dc16aafd22d811799798f5d5d61e))
+* **app:** toGameView rellena previousRounds solo con rondas reveladas de la misma tarea ([1a76480](https://github.com/camamu/planning-poker/commit/1a7648092197f8727ffcd1bfed78299a05dbb2d1))
+* **ci:** workflow manual warmup.yml para despertar la API antes de una sesión ([30ed050](https://github.com/camamu/planning-poker/commit/30ed050dacdb461ac5c180b35655eda75abc4bc8))
+* **contracts:** comandos y evento para ceder y tomar el relevo del facilitador ([e9c8e50](https://github.com/camamu/planning-poker/commit/e9c8e50c105f0791385e69bb7f3b060dbad314bc))
+* **contracts:** comandos y eventos para editar, borrar y reordenar tareas ([05b854e](https://github.com/camamu/planning-poker/commit/05b854e6d621717af476ddf50b4db26c07e4e7e3))
+* **contracts:** previousRounds en RoundView con las rondas reveladas de la misma tarea ([5194d9c](https://github.com/camamu/planning-poker/commit/5194d9c4c1bca9c8f5ba062eb1dc546cf0acc5f9))
+* **domain:** ceder y tomar el relevo del facilitador con transferFacilitator y claimFacilitator ([d9d8485](https://github.com/camamu/planning-poker/commit/d9d8485a9ca635af7b0c353ca8759070c76933e0))
+* **domain:** editar, borrar y reordenar tareas con editIssue, removeIssue y reorderIssues ([d834f51](https://github.com/camamu/planning-poker/commit/d834f51363241c8ba6ced255575ebf9d11731c25))
+* **domain:** roundsOf devuelve las rondas de una tarea en orden ([9393388](https://github.com/camamu/planning-poker/commit/9393388cfd32236037ffafe73cbbb1cbb775089f))
+* **infra:** rutas REST y evento en vivo del traspaso de facilitador ([b390127](https://github.com/camamu/planning-poker/commit/b3901272606bd2018187c97c0d9b4cbe70999909))
+* **infra:** rutas REST y eventos en vivo para gestionar tareas ([9a1004b](https://github.com/camamu/planning-poker/commit/9a1004b671e55a4b08aaa491dca6687735aa4a3d))
+* panel de gestión /admin para salas, equipos y barajas ([f003efb](https://github.com/camamu/planning-poker/commit/f003efb3dc6c45d5a284c48ef7b6ea3812bd8713))
+* **web:** ceder el facilitador, tomar el relevo y salir cediéndolo ([fc753b5](https://github.com/camamu/planning-poker/commit/fc753b5cabb45d16d12c76bf37b26d40765e00f5))
+* **web:** comparar con la ronda anterior en el panel de resultados ([80f4ff8](https://github.com/camamu/planning-poker/commit/80f4ff8d2ec644a4ba8cf5ce336d05d55b2284c0))
+* **web:** despierta la API al cargar y deshabilita lo que la necesita hasta que responde ([e175f24](https://github.com/camamu/planning-poker/commit/e175f24f21d56c533b3d51e3f9869d24d5ec3904))
+* **web:** editar, borrar y reordenar tareas desde el panel de la cola ([886149b](https://github.com/camamu/planning-poker/commit/886149b2b31b0b6514e67f9c8edfb7957032c58a))
+
 ## [1.8.0](https://github.com/camamu/planning-poker/compare/planning-poker-v1.7.0...planning-poker-v1.8.0) (2026-10-22)
 
 
