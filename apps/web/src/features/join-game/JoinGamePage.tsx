@@ -3,8 +3,10 @@ import type { JSX, SubmitEvent } from 'react';
 import type { ParticipantRoleView } from '@pp/contracts';
 import { Button, Input, Logo, SegmentedControl } from '../../design-system/index.js';
 import { joinGame } from '../../shared/api/gamesClient.js';
+import { useServerReady } from '../../shared/store/serverStatusStore.js';
 import { saveParticipantIdentity } from '../../shared/viewer/ParticipantIdProvider.js';
 import type { ParticipantIdentity } from '../../shared/viewer/ParticipantIdProvider.js';
+import { ServerNotReadyNote } from '../server-status/ServerNotReadyNote.js';
 
 export interface JoinGamePageProps {
   readonly gameId: string;
@@ -21,6 +23,7 @@ export function JoinGamePage({ gameId, onJoined }: JoinGamePageProps): JSX.Eleme
   const [role, setRole] = useState<ParticipantRoleView>('VOTER');
   const [error, setError] = useState<string | null>(null);
   const [submitting, setSubmitting] = useState(false);
+  const serverReady = useServerReady();
 
   async function handleSubmit(event: SubmitEvent<HTMLFormElement>): Promise<void> {
     event.preventDefault();
@@ -65,9 +68,10 @@ export function JoinGamePage({ gameId, onJoined }: JoinGamePageProps): JSX.Eleme
           />
         </div>
         {error ? <p style={{ color: '#e5484d' }}>{error}</p> : null}
-        <Button type="submit" variant="primary" block disabled={submitting}>
+        <Button type="submit" variant="primary" block disabled={submitting || !serverReady}>
           {submitting ? 'Entrando…' : 'Sentarme a la mesa'}
         </Button>
+        <ServerNotReadyNote />
       </form>
     </div>
   );
