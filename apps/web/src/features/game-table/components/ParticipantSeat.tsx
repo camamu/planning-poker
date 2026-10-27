@@ -14,8 +14,11 @@ export interface ParticipantSeatProps {
   /** Conectado ahora mismo; si no, el asiento se atenúa (ADR 0015). */
   readonly online: boolean;
   readonly hat?: HatIdView | null | undefined;
+  readonly isFacilitator?: boolean | undefined;
   /** Solo lo recibe el facilitador, y nunca para su propio asiento. */
   readonly onRemove?: (() => void) | undefined;
+  /** Igual que `onRemove`: solo el facilitador puede ceder el rol a otro asiento. */
+  readonly onMakeFacilitator?: (() => void) | undefined;
   /** null = no ha votado (hueco vacío). */
   readonly card: { readonly hasVoted: boolean; readonly value: string | null } | null;
   readonly badge?: SeatBadge | undefined;
@@ -41,6 +44,21 @@ export function ParticipantSeat(props: ParticipantSeatProps): JSX.Element {
       onClick={props.onClick}
       role={props.onClick ? 'button' : undefined}
     >
+      {props.onMakeFacilitator ? (
+        <button
+          type="button"
+          className="absolute right-7 top-1 flex h-5 w-5 items-center justify-center rounded-full text-[10px]"
+          style={{ background: 'rgba(22,24,38,.85)', color: 'var(--color-neutral-100)' }}
+          aria-label={`Hacer facilitador a ${props.displayName}`}
+          title={`Hacer facilitador a ${props.displayName}`}
+          onClick={(event) => {
+            event.stopPropagation();
+            props.onMakeFacilitator?.();
+          }}
+        >
+          🔑
+        </button>
+      ) : null}
       {props.onRemove ? (
         <button
           type="button"
@@ -77,6 +95,16 @@ export function ParticipantSeat(props: ParticipantSeatProps): JSX.Element {
         <span className="truncate text-xs" style={{ color: 'var(--color-neutral-100)' }}>
           {props.isViewer ? 'Tú' : props.displayName}
         </span>
+        {props.isFacilitator ? (
+          <span
+            className="flex-none text-[11px]"
+            role="img"
+            aria-label="Facilitador"
+            title="Facilitador"
+          >
+            👑
+          </span>
+        ) : null}
         {props.isDealer ? (
           <span
             className="flex h-[17px] w-[17px] flex-none items-center justify-center rounded-full text-[9px] font-bold"

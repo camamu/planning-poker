@@ -290,6 +290,26 @@ export function defineGameRepositoryContractTests(
       expect(reloaded?.currentRound()?.hasVoted(anaId)).toBe(true);
     });
 
+    it('conserva quién es el facilitador tras cederlo y recargar', async () => {
+      const repository = await makeRepository();
+      const { game, facilitatorId } = newGame('game-facilitator');
+      const guestId = ParticipantId.of('game-facilitator-guest');
+      game.addParticipant(guestId, DisplayName.of('Grace'), 'VOTER', NOW);
+      await repository.save(game);
+
+      game.transferFacilitator(guestId, facilitatorId, NOW);
+      await repository.save(game);
+      const reloaded = await repository.findById(GameId.of('game-facilitator'));
+
+      const facilitators = reloaded
+        ?.allParticipants()
+        .filter((participant) => participant.isFacilitator)
+        .map((participant) => participant.id.value);
+      expect(facilitators).toEqual([guestId.value]);
+      expect(reloaded?.canReveal(guestId)).toBe(true);
+      expect(reloaded?.canReveal(facilitatorId)).toBe(false);
+    });
+
     it('conserva el sombrero de cada participante tras recargar', async () => {
       const repository = await makeRepository();
       const { game, facilitatorId } = newGame('game-13');

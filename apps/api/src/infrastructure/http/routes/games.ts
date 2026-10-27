@@ -2,18 +2,21 @@ import {
   addIssueCommandSchema,
   changeGameDeckCommandSchema,
   changeParticipantHatCommandSchema,
+  claimFacilitatorCommandSchema,
   createGameCommandSchema,
   editIssueCommandSchema,
   joinGameCommandSchema,
   removeIssueCommandSchema,
   removeParticipantCommandSchema,
   reorderIssuesCommandSchema,
+  transferFacilitatorCommandSchema,
   updateGameSettingsCommandSchema,
 } from '@pp/contracts';
 import type { FastifyInstance } from 'fastify';
 import type { AddIssue } from '../../../application/use-cases/AddIssue.js';
 import type { ChangeGameDeck } from '../../../application/use-cases/ChangeGameDeck.js';
 import type { ChangeParticipantHat } from '../../../application/use-cases/ChangeParticipantHat.js';
+import type { ClaimFacilitator } from '../../../application/use-cases/ClaimFacilitator.js';
 import type { CreateGame } from '../../../application/use-cases/CreateGame.js';
 import type { EditIssue } from '../../../application/use-cases/EditIssue.js';
 import type { GetGameState } from '../../../application/use-cases/GetGameState.js';
@@ -22,6 +25,7 @@ import type { ListGameDecks } from '../../../application/use-cases/ListGameDecks
 import type { RemoveIssue } from '../../../application/use-cases/RemoveIssue.js';
 import type { RemoveParticipant } from '../../../application/use-cases/RemoveParticipant.js';
 import type { ReorderIssues } from '../../../application/use-cases/ReorderIssues.js';
+import type { TransferFacilitator } from '../../../application/use-cases/TransferFacilitator.js';
 import type { UpdateGameSettings } from '../../../application/use-cases/UpdateGameSettings.js';
 import { GameId } from '../../../domain/game/ids.js';
 import type { GameVersionTracker } from '../../realtime/GameVersionTracker.js';
@@ -31,6 +35,8 @@ export interface GameRoutesDependencies {
   readonly createGame: CreateGame;
   readonly joinGame: JoinGame;
   readonly removeParticipant: RemoveParticipant;
+  readonly transferFacilitator: TransferFacilitator;
+  readonly claimFacilitator: ClaimFacilitator;
   readonly addIssue: AddIssue;
   readonly editIssue: EditIssue;
   readonly removeIssue: RemoveIssue;
@@ -138,6 +144,33 @@ export function registerGameRoutes(app: FastifyInstance, deps: GameRoutesDepende
       }
     },
   );
+
+  app.post<{ Params: GameIdParams }>('/api/games/:id/facilitator', async (request, reply) => {
+    try {
+      const command = transferFacilitatorCommandSchema.parse(request.body);
+      await deps.transferFacilitator.execute({
+        gameId: request.params.id,
+        participantId: command.participantId,
+        toParticipantId: command.toParticipantId,
+      });
+      await reply.code(204).send();
+    } catch (error) {
+      sendError(reply, error);
+    }
+  });
+
+  app.post<{ Params: GameIdParams }>('/api/games/:id/facilitator/claim', async (request, reply) => {
+    try {
+      const command = claimFacilitatorCommandSchema.parse(request.body);
+      await deps.claimFacilitator.execute({
+        gameId: request.params.id,
+        participantId: command.participantId,
+      });
+      await reply.code(204).send();
+    } catch (error) {
+      sendError(reply, error);
+    }
+  });
 
   app.post<{ Params: GameIdParams }>('/api/games/:id/issues', async (request, reply) => {
     try {

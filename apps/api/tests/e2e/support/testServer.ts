@@ -6,6 +6,7 @@ import { AuthenticateTeam } from '../../../src/application/use-cases/Authenticat
 import { CastVote } from '../../../src/application/use-cases/CastVote.js';
 import { ChangeGameDeck } from '../../../src/application/use-cases/ChangeGameDeck.js';
 import { ChangeParticipantHat } from '../../../src/application/use-cases/ChangeParticipantHat.js';
+import { ClaimFacilitator } from '../../../src/application/use-cases/ClaimFacilitator.js';
 import { CreateGame } from '../../../src/application/use-cases/CreateGame.js';
 import { CreateTeam } from '../../../src/application/use-cases/CreateTeam.js';
 import { DeleteCustomDeck } from '../../../src/application/use-cases/DeleteCustomDeck.js';
@@ -27,6 +28,7 @@ import { ReconcileAutoReveal } from '../../../src/application/use-cases/Reconcil
 import { RemoveIssue } from '../../../src/application/use-cases/RemoveIssue.js';
 import { RemoveParticipant } from '../../../src/application/use-cases/RemoveParticipant.js';
 import { ReorderIssues } from '../../../src/application/use-cases/ReorderIssues.js';
+import { TransferFacilitator } from '../../../src/application/use-cases/TransferFacilitator.js';
 import { RevealRound } from '../../../src/application/use-cases/RevealRound.js';
 import { SaveCustomDeck } from '../../../src/application/use-cases/SaveCustomDeck.js';
 import { StartQuickRound } from '../../../src/application/use-cases/StartQuickRound.js';
@@ -109,6 +111,8 @@ export async function startTestServer(options: TestServerOptions = {}): Promise<
   const startQuickRound = new StartQuickRound(games, events, clock, ids);
   const castVote = new CastVote(games, events, clock, presence);
   const removeParticipant = new RemoveParticipant(games, events, clock, presence);
+  const transferFacilitator = new TransferFacilitator(games, events, clock);
+  const claimFacilitator = new ClaimFacilitator(games, events, clock, presence);
   const revealRound = new RevealRound(games, events, clock);
   const timeoutReveal = new TimeoutReveal(games, events, clock);
   const setFinalEstimate = new SetFinalEstimate(games, events, clock);
@@ -129,6 +133,8 @@ export async function startTestServer(options: TestServerOptions = {}): Promise<
     createGame,
     joinGame,
     removeParticipant,
+    transferFacilitator,
+    claimFacilitator,
     addIssue,
     editIssue,
     removeIssue,

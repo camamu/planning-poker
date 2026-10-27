@@ -30,6 +30,12 @@ export type ServerEvent =
       readonly participantId: string;
       readonly hat: HatIdView | null;
     })
+  // Lleva a los dos: el cliente solo tiene que mover `isFacilitator` de uno a otro, sin `resync`.
+  | (ServerEventBase & {
+      readonly type: 'facilitator_changed';
+      readonly previousId: string;
+      readonly nextId: string;
+    })
   | (ServerEventBase & { readonly type: 'issue_added'; readonly issueId: string })
   | (ServerEventBase & { readonly type: 'issue_edited'; readonly issue: IssueView })
   // `dealerId` acompaña a los dos eventos que mueven la posición de la tarea actual en la cola

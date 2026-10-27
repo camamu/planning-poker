@@ -2,6 +2,7 @@ import type {
   AddIssueCommandInput,
   ChangeGameDeckCommandInput,
   ChangeParticipantHatCommandInput,
+  ClaimFacilitatorCommandInput,
   CreateGameCommandInput,
   DeckSummaryView,
   EditIssueCommandInput,
@@ -9,6 +10,7 @@ import type {
   JoinGameCommandInput,
   RemoveIssueCommandInput,
   ReorderIssuesCommandInput,
+  TransferFacilitatorCommandInput,
   UpdateGameSettingsCommandInput,
 } from '@pp/contracts';
 
@@ -140,5 +142,25 @@ export function removeParticipant(
   return requestJson(`/api/games/${gameId}/participants/${participantId}`, {
     method: 'DELETE',
     body: JSON.stringify({ participantId: requestedBy }),
+  });
+}
+
+export function transferFacilitator(
+  gameId: string,
+  input: TransferFacilitatorCommandInput,
+): Promise<void> {
+  return requestJson(`/api/games/${gameId}/facilitator`, {
+    method: 'POST',
+    body: JSON.stringify(input),
+  });
+}
+
+export function claimFacilitator(
+  gameId: string,
+  input: ClaimFacilitatorCommandInput,
+): Promise<void> {
+  return requestJson(`/api/games/${gameId}/facilitator/claim`, {
+    method: 'POST',
+    body: JSON.stringify(input),
   });
 }

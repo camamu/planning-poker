@@ -215,6 +215,35 @@ describe('gameEventsReducer', () => {
     expect(needsResync('participant_hat_changed')).toBe(false);
   });
 
+  describe('traspaso de facilitador', () => {
+    const event: ServerEvent = {
+      type: 'facilitator_changed',
+      version: 2,
+      previousId: 'p1',
+      nextId: 'p2',
+    };
+
+    it('facilitator_changed pasa el rol de uno a otro sin tocar el resto', () => {
+      const state = baseState();
+      const next = gameEventsReducer(state, event);
+
+      expect(next?.participants.map((participant) => participant.isFacilitator)).toEqual([
+        false,
+        true,
+      ]);
+      expect(next?.participants.map((participant) => participant.displayName)).toEqual([
+        'Ada',
+        'Grace',
+      ]);
+      expect(next?.currentRound).toBe(state.currentRound);
+      expect(needsResync('facilitator_changed')).toBe(false);
+    });
+
+    it('facilitator_changed sin estado no inventa uno', () => {
+      expect(gameEventsReducer(null, event)).toBeNull();
+    });
+  });
+
   it('deck_changed reemplaza la baraja de la partida', () => {
     const event: ServerEvent = {
       type: 'deck_changed',

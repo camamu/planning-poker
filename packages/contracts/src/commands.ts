@@ -99,6 +99,25 @@ export const removeParticipantCommandSchema = z.object({
 });
 export type RemoveParticipantCommandInput = z.infer<typeof removeParticipantCommandSchema>;
 
+/**
+ * REST — `POST /api/games/:id/facilitator`. `participantId` es quien cede el rol (solo vale si es
+ * el facilitador actual) y `toParticipantId` quien lo recibe.
+ */
+export const transferFacilitatorCommandSchema = z.object({
+  participantId: z.string().trim().min(1),
+  toParticipantId: z.string().trim().min(1),
+});
+export type TransferFacilitatorCommandInput = z.infer<typeof transferFacilitatorCommandSchema>;
+
+/**
+ * REST — `POST /api/games/:id/facilitator/claim`. `participantId` es quien toma el relevo; solo
+ * prospera si el facilitador actual no está conectado (`Game.claimFacilitator`).
+ */
+export const claimFacilitatorCommandSchema = z.object({
+  participantId: z.string().trim().min(1),
+});
+export type ClaimFacilitatorCommandInput = z.infer<typeof claimFacilitatorCommandSchema>;
+
 /** REST — `POST /api/games/:id/issues` */
 export const addIssueCommandSchema = z.object({
   title: z.string().trim().min(1),
