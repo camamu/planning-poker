@@ -20,6 +20,28 @@ describe('AddIssue', () => {
     expect(stored?.findIssue(IssueId.of(issueId))?.title).toBe('Implementar login');
   });
 
+  it('guarda la descripción y el enlace si se envían', async () => {
+    const seeded = await seedGame();
+    const useCase = new AddIssue(
+      seeded.context.games,
+      seeded.context.events,
+      seeded.context.clock,
+      seeded.context.ids,
+    );
+
+    const issueId = await useCase.execute({
+      gameId: seeded.gameId,
+      title: 'ABC-123',
+      description: 'Con OAuth',
+      externalUrl: 'https://jira.test/browse/ABC-123',
+    });
+
+    const stored = await seeded.context.games.findById(GameId.of(seeded.gameId));
+    const issue = stored?.findIssue(IssueId.of(issueId));
+    expect(issue?.description).toBe('Con OAuth');
+    expect(issue?.externalUrl).toBe('https://jira.test/browse/ABC-123');
+  });
+
   it('publica IssueAdded', async () => {
     const seeded = await seedGame();
     const useCase = new AddIssue(
