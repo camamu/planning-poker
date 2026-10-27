@@ -28,7 +28,16 @@ function baseState(overrides: Partial<GameView> = {}): GameView {
         hat: null,
       },
     ],
-    issues: [{ id: 'issue-1', title: 'Login', status: 'VOTING', finalEstimate: null }],
+    issues: [
+      {
+        id: 'issue-1',
+        title: 'Login',
+        description: null,
+        externalUrl: null,
+        status: 'VOTING',
+        finalEstimate: null,
+      },
+    ],
     currentRound: {
       id: 'round-1',
       issueId: 'issue-1',
@@ -62,6 +71,17 @@ describe('gameEventsReducer', () => {
     const event: ServerEvent = { type: 'participant_left', version: 2, participantId: 'p2' };
     expect(gameEventsReducer(state, event)).toBe(state);
     expect(needsResync('participant_left')).toBe(true);
+  });
+
+  it('issues_imported no fabrica las tareas: deja el estado igual y pide un único resync', () => {
+    const state = baseState();
+    const event: ServerEvent = {
+      type: 'issues_imported',
+      version: 2,
+      issueIds: ['issue-2', 'issue-3', 'issue-4'],
+    };
+    expect(gameEventsReducer(state, event)).toBe(state);
+    expect(needsResync('issues_imported')).toBe(true);
   });
 
   it('issue_added no fabrica una issue: deja el estado igual (hace falta resync)', () => {
@@ -267,9 +287,30 @@ describe('gameEventsReducer', () => {
     function withQueue(): GameView {
       return baseState({
         issues: [
-          { id: 'issue-1', title: 'Login', status: 'VOTING', finalEstimate: null },
-          { id: 'issue-2', title: 'Pagos', status: 'PENDING', finalEstimate: null },
-          { id: 'issue-3', title: 'Informes', status: 'PENDING', finalEstimate: null },
+          {
+            id: 'issue-1',
+            title: 'Login',
+            description: null,
+            externalUrl: null,
+            status: 'VOTING',
+            finalEstimate: null,
+          },
+          {
+            id: 'issue-2',
+            title: 'Pagos',
+            description: null,
+            externalUrl: null,
+            status: 'PENDING',
+            finalEstimate: null,
+          },
+          {
+            id: 'issue-3',
+            title: 'Informes',
+            description: null,
+            externalUrl: null,
+            status: 'PENDING',
+            finalEstimate: null,
+          },
         ],
       });
     }
@@ -281,6 +322,8 @@ describe('gameEventsReducer', () => {
         issue: {
           id: 'issue-2',
           title: 'Pagos con tarjeta',
+          description: null,
+          externalUrl: null,
           status: 'PENDING',
           finalEstimate: null,
         },

@@ -2,6 +2,8 @@ import type { IssueView } from '@pp/contracts';
 import { useState } from 'react';
 import type { JSX, SubmitEvent } from 'react';
 import { Button, Input } from '../../design-system/index.js';
+import { ImportIssuesDialog } from '../issue-import/ImportIssuesDialog.js';
+import type { ParsedIssue } from '../issue-import/parseIssueInput.js';
 import { IssueRow } from './IssueRow.js';
 import { moveItem, queueWithPendingOrder } from './issueOrder.js';
 
@@ -10,6 +12,8 @@ export interface IssueListPanelProps {
   readonly currentIssueId: string | null;
   readonly canStartRound: boolean;
   readonly onAddIssue: (title: string) => void;
+  /** Rechaza con el motivo si la API no acepta el lote (ADR 0023). */
+  readonly onImportIssues: (issues: ReadonlyArray<ParsedIssue>) => Promise<void>;
   readonly onRenameIssue: (issueId: string, title: string) => void;
   readonly onDeleteIssue: (issueId: string) => void;
   /** Recibe la cola entera en el orden nuevo (la API exige una permutación exacta, ADR 0019). */
@@ -22,6 +26,7 @@ export function IssueListPanel(props: IssueListPanelProps): JSX.Element {
   const [title, setTitle] = useState('');
   const [draggingId, setDraggingId] = useState<string | null>(null);
   const [dropTargetId, setDropTargetId] = useState<string | null>(null);
+  const [importing, setImporting] = useState(false);
   const current = props.issues.find((issue) => issue.id === props.currentIssueId);
   const pending = props.issues.filter(
     (issue) => issue.status === 'PENDING' && issue.id !== props.currentIssueId,
@@ -153,22 +158,39 @@ export function IssueListPanel(props: IssueListPanelProps): JSX.Element {
         )}
       </div>
 
-      <form
-        className="flex gap-2 p-3"
+      <div
+        className="flex flex-col gap-2 p-3"
         style={{ borderTop: '1px solid var(--color-divider)' }}
-        onSubmit={handleAdd}
       >
-        <Input
-          value={title}
-          placeholder="Añadir una tarea…"
-          onChange={(event) => {
-            setTitle(event.target.value);
+        <form className="flex gap-2" onSubmit={handleAdd}>
+          <Input
+            value={title}
+            placeholder="Añadir una tarea…"
+            onChange={(event) => {
+              setTitle(event.target.value);
+            }}
+          />
+          <Button type="submit" variant="primary">
+            Añadir
+          </Button>
+        </form>
+        <Button
+          variant="ghost"
+          onClick={() => {
+            setImporting(true);
           }}
-        />
-        <Button type="submit" variant="primary">
-          Añadir
+        >
+          Importar tareas…
         </Button>
-      </form>
+      </div>
+
+      <ImportIssuesDialog
+        open={importing}
+        onClose={() => {
+          setImporting(false);
+        }}
+        onImport={props.onImportIssues}
+      />
     </div>
   );
 }
