@@ -1,5 +1,6 @@
-import type { EphemeralEvent, GameView, ServerEvent } from '@pp/contracts';
+import type { EphemeralEvent, GameView, IssueView, ServerEvent } from '@pp/contracts';
 import { create } from 'zustand';
+import { editIssue, removeIssue, reorderIssues } from '../api/gamesClient.js';
 import { getSocket } from '../socket/connection.js';
 import { gameEventsReducer, needsResync } from '../socket/gameEventsReducer.js';
 
@@ -50,6 +51,11 @@ interface GameStoreState {
   reveal: () => void;
   timeoutReveal: () => void;
   setFinalEstimate: (card: string) => void;
+  /** Optimista: pinta el cambio ya y lo revierte con un aviso si la API lo rechaza. */
+  renameIssue: (issueId: string, title: string) => Promise<void>;
+  deleteIssue: (issueId: string) => Promise<void>;
+  /** `issueIds` es la cola entera en el orden nuevo, no solo las tareas que se han movido. */
+  reorderIssueQueue: (issueIds: ReadonlyArray<string>) => Promise<void>;
   toggleTheme: () => void;
   toggleMuted: () => void;
   setEmojiMode: (mode: 'throw' | 'react') => void;
@@ -141,6 +147,35 @@ export const useGameStore = create<GameStoreState>((set, get) => ({
     getSocket().emit('set_estimate', { gameId, participantId, card });
   },
 
+  renameIssue(issueId, title) {
+    const trimmed = title.trim();
+    return changeIssues(
+      (issues) =>
+        issues.map((issue) => (issue.id === issueId ? { ...issue, title: trimmed } : issue)),
+      (gameId, participantId) => editIssue(gameId, issueId, { participantId, title: trimmed }),
+      'No se pudo renombrar la tarea.',
+    );
+  },
+
+  deleteIssue(issueId) {
+    return changeIssues(
+      (issues) => issues.filter((issue) => issue.id !== issueId),
+      (gameId, participantId) => removeIssue(gameId, issueId, { participantId }),
+      'No se pudo borrar la tarea.',
+    );
+  },
+
+  reorderIssueQueue(issueIds) {
+    return changeIssues(
+      (issues) => {
+        const byId = new Map(issues.map((issue) => [issue.id, issue]));
+        return issueIds.flatMap((id) => byId.get(id) ?? []);
+      },
+      (gameId, participantId) => reorderIssues(gameId, { participantId, issueIds: [...issueIds] }),
+      'No se pudo reordenar las tareas.',
+    );
+  },
+
   toggleTheme() {
     set((state) => ({ theme: state.theme === 'dark' ? 'light' : 'dark' }));
   },
@@ -180,6 +215,40 @@ export const useGameStore = create<GameStoreState>((set, get) => ({
     });
   },
 }));
+
+/**
+ * Pinta `patch` sobre la cola de tareas antes de que conteste la API. Si la API falla, deshace el
+ * cambio solo si nadie más ha tocado la cola mientras tanto (si lo hizo, el servidor ya manda) y
+ * pide un `state_sync`: un 422 por un orden obsoleto significa que este cliente iba desfasado.
+ */
+async function changeIssues(
+  patch: (issues: ReadonlyArray<IssueView>) => ReadonlyArray<IssueView>,
+  request: (gameId: string, participantId: string) => Promise<void>,
+  fallbackMessage: string,
+): Promise<void> {
+  const { game, gameId, participantId } = useGameStore.getState();
+  if (!game || !gameId || !participantId) return;
+
+  const previous = game.issues;
+  const optimistic = patch(previous);
+  useGameStore.setState({ game: { ...game, issues: optimistic } });
+
+  try {
+    await request(gameId, participantId);
+  } catch (cause) {
+    const current = useGameStore.getState().game;
+    useGameStore.setState({
+      ...(current?.issues === optimistic ? { game: { ...current, issues: previous } } : {}),
+      errorMessage: messageOf(cause, fallbackMessage),
+    });
+    const socket = getSocket();
+    if (socket.connected) socket.emit('join', { gameId, participantId });
+  }
+}
+
+function messageOf(cause: unknown, fallback: string): string {
+  return cause instanceof Error ? cause.message : fallback;
+}
 
 function currentRoundId(game: GameView | null): string | null {
   return game?.currentRound?.id ?? null;
@@ -253,7 +322,19 @@ socket.on(
     applyEvent(event);
   },
 );
+socket.on('facilitator_changed', (event: Extract<ServerEvent, { type: 'facilitator_changed' }>) => {
+  applyEvent(event);
+});
 socket.on('issue_added', (event: Extract<ServerEvent, { type: 'issue_added' }>) => {
+  applyEvent(event);
+});
+socket.on('issue_edited', (event: Extract<ServerEvent, { type: 'issue_edited' }>) => {
+  applyEvent(event);
+});
+socket.on('issue_removed', (event: Extract<ServerEvent, { type: 'issue_removed' }>) => {
+  applyEvent(event);
+});
+socket.on('issues_reordered', (event: Extract<ServerEvent, { type: 'issues_reordered' }>) => {
   applyEvent(event);
 });
 socket.on('round_started', (event: Extract<ServerEvent, { type: 'round_started' }>) => {
@@ -321,6 +402,15 @@ socket.on('emoji_thrown', (event: Extract<EphemeralEvent, { type: 'emoji_thrown'
   setTimeout(() => {
     useGameStore.getState().dismissEmoji(id);
   }, 2500);
+});
+// El servidor ya ha sacado al socket de la room: sin `game`, la mesa muestra el mensaje y la salida.
+socket.on('game_closed', () => {
+  useGameStore.setState({
+    game: null,
+    selectedCard: null,
+    discussionTimer: null,
+    errorMessage: 'Esta sala ya no existe: la ha cerrado un administrador.',
+  });
 });
 socket.on(
   'discussion_timer_sync',

@@ -2,6 +2,7 @@ import type {
   GameSettingsView,
   GameView,
   HatIdView,
+  IssueView,
   ParticipantRoleView,
   RoundResultView,
 } from './views.js';
@@ -29,7 +30,26 @@ export type ServerEvent =
       readonly participantId: string;
       readonly hat: HatIdView | null;
     })
+  // Lleva a los dos: el cliente solo tiene que mover `isFacilitator` de uno a otro, sin `resync`.
+  | (ServerEventBase & {
+      readonly type: 'facilitator_changed';
+      readonly previousId: string;
+      readonly nextId: string;
+    })
   | (ServerEventBase & { readonly type: 'issue_added'; readonly issueId: string })
+  | (ServerEventBase & { readonly type: 'issue_edited'; readonly issue: IssueView })
+  // `dealerId` acompaña a los dos eventos que mueven la posición de la tarea actual en la cola
+  // (Game.currentDealer()): sin él los clientes pintarían un dealer que ya no es el del servidor.
+  | (ServerEventBase & {
+      readonly type: 'issue_removed';
+      readonly issueId: string;
+      readonly dealerId: string | null;
+    })
+  | (ServerEventBase & {
+      readonly type: 'issues_reordered';
+      readonly issueIds: ReadonlyArray<string>;
+      readonly dealerId: string | null;
+    })
   | (ServerEventBase & {
       readonly type: 'round_started';
       readonly roundId: string;
@@ -96,4 +116,6 @@ export type EphemeralEvent =
       readonly roundId: string;
       readonly running: boolean;
       readonly remainingMs: number;
-    };
+    }
+  // La partida se ha borrado desde el panel de gestión: no hay estado que sincronizar después.
+  | { readonly type: 'game_closed' };

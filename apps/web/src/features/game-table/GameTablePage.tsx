@@ -14,7 +14,9 @@ import { DeckSettingsPanel } from '../deck-settings/DeckSettingsPanel.js';
 import { IssueListPanel } from '../issue-list/IssueListPanel.js';
 import { ResultsPanel } from '../results-panel/ResultsPanel.js';
 import { THROW_FLIGHT_MS } from './components/EmojiThrowLayer.js';
+import { FacilitatorAbsentBanner } from './components/FacilitatorAbsentBanner.js';
 import { Hand } from './components/Hand.js';
+import { LeaveFacilitatorDialog } from './components/LeaveFacilitatorDialog.js';
 import { Table } from './components/Table.js';
 import { TopBar } from './components/TopBar.js';
 import { useDiscussionTimer } from './hooks/useDiscussionTimer.js';
@@ -38,6 +40,7 @@ export function GameTablePage({
   const discussionTimer = useDiscussionTimer();
   const [issuesOpen, setIssuesOpen] = useState(false);
   const [settingsOpen, setSettingsOpen] = useState(false);
+  const [leaveDialogOpen, setLeaveDialogOpen] = useState(false);
 
   const previousEmojiCountRef = useRef(0);
   const pendingImpactTimeoutsRef = useRef(new Set<ReturnType<typeof setTimeout>>());
@@ -137,6 +140,13 @@ export function GameTablePage({
   const me = game.participants.find((p) => p.id === participantId);
   const isMyTurnToVote = me?.role === 'VOTER';
 
+  function confirmTransfer(targetId: string): void {
+    const name = game.participants.find((p) => p.id === targetId)?.displayName ?? 'esta persona';
+    if (window.confirm(`¿Hacer facilitador a ${name}? Dejarás de serlo.`)) {
+      void table.transferFacilitator(targetId);
+    }
+  }
+
   function confirmRemove(targetId: string): void {
     const name = game.participants.find((p) => p.id === targetId)?.displayName ?? 'esta persona';
     if (window.confirm(`¿Quitar a ${name} de la partida?`)) void table.removeParticipant(targetId);
@@ -160,20 +170,25 @@ export function GameTablePage({
           Reconectando…
         </div>
       ) : null}
+      {table.facilitatorAbsent ? (
+        <FacilitatorAbsentBanner
+          facilitatorName={table.facilitatorName}
+          onClaim={() => {
+            void table.claimFacilitator();
+          }}
+        />
+      ) : null}
       <TopBar
         gameName={game.name}
         meta={`${(game.deck.cards.length - 2).toString()} valores · ${table.totalVoters.toString()} votantes · ${table.spectators.length.toString()} mirones`}
         remainingMs={round?.status === 'OPEN' ? table.remainingMs : null}
         muted={table.muted}
         onToggleMuted={table.toggleMuted}
-        onLeave={
-          table.isFacilitator
-            ? undefined
-            : () => {
-                if (window.confirm('¿Salir de la partida?'))
-                  void table.removeParticipant(participantId);
-              }
-        }
+        onLeave={() => {
+          if (table.isFacilitator) setLeaveDialogOpen(true);
+          else if (window.confirm('¿Salir de la partida?'))
+            void table.removeParticipant(participantId);
+        }}
         viewerId={participantId}
         viewerHat={me?.hat ?? null}
         onChangeHat={table.changeHat}
@@ -202,6 +217,7 @@ export function GameTablePage({
                 seatCursor={emoji.armedEmoji ? 'crosshair' : undefined}
                 onSeatClick={emoji.armedEmoji ? emoji.throwAtSeat : undefined}
                 onRemoveSeat={table.isFacilitator ? confirmRemove : undefined}
+                onMakeFacilitatorSeat={table.isFacilitator ? confirmTransfer : undefined}
               />
             )}
           </div>
@@ -225,6 +241,29 @@ export function GameTablePage({
                   <span className="text-[11px]" style={{ color: 'var(--pp-muted)' }}>
                     {spectator.displayName}
                   </span>
+                  {spectator.isFacilitator ? (
+                    <span
+                      className="text-[11px]"
+                      role="img"
+                      aria-label="Facilitador"
+                      title="Facilitador"
+                    >
+                      👑
+                    </span>
+                  ) : null}
+                  {table.isFacilitator ? (
+                    <button
+                      type="button"
+                      className="text-[10px]"
+                      aria-label={`Hacer facilitador a ${spectator.displayName}`}
+                      title={`Hacer facilitador a ${spectator.displayName}`}
+                      onClick={() => {
+                        confirmTransfer(spectator.id);
+                      }}
+                    >
+                      🔑
+                    </button>
+                  ) : null}
                   {table.isFacilitator ? (
                     <button
                       type="button"
@@ -269,6 +308,7 @@ export function GameTablePage({
         >
           <ResultsPanel
             round={round}
+            participants={game.participants}
             onStartQuickRound={table.startQuickRound}
             celebrate={game.settings.celebrate}
             votedCount={table.votedCount}
@@ -316,6 +356,9 @@ export function GameTablePage({
               onAddIssue={(title) => {
                 void addIssue(gameId, { title });
               }}
+              onRenameIssue={table.renameIssue}
+              onDeleteIssue={table.deleteIssue}
+              onReorderIssues={table.reorderIssues}
               onStartRound={table.startRound}
               onClose={() => {
                 setIssuesOpen(false);
@@ -354,6 +397,18 @@ export function GameTablePage({
           </div>
         </div>
       ) : null}
+
+      <LeaveFacilitatorDialog
+        open={leaveDialogOpen}
+        candidates={game.participants.filter((participant) => participant.id !== participantId)}
+        onConfirm={(successorId) => {
+          setLeaveDialogOpen(false);
+          void table.leaveAsFacilitator(successorId);
+        }}
+        onClose={() => {
+          setLeaveDialogOpen(false);
+        }}
+      />
 
       {table.errorMessage ? (
         <div className="fixed bottom-5 left-1/2 z-[60] w-[calc(100%-2.5rem)] max-w-sm -translate-x-1/2">

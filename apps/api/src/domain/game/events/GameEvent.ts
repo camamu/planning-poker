@@ -31,7 +31,20 @@ export type GameEvent = DomainEvent &
         readonly participantId: ParticipantId;
         readonly hat: Hat | null;
       }
+    | {
+        readonly type: 'FacilitatorChanged';
+        readonly gameId: GameId;
+        readonly previousId: ParticipantId;
+        readonly nextId: ParticipantId;
+      }
     | { readonly type: 'IssueAdded'; readonly gameId: GameId; readonly issueId: IssueId }
+    | { readonly type: 'IssueEdited'; readonly gameId: GameId; readonly issueId: IssueId }
+    | { readonly type: 'IssueRemoved'; readonly gameId: GameId; readonly issueId: IssueId }
+    | {
+        readonly type: 'IssuesReordered';
+        readonly gameId: GameId;
+        readonly issueIds: ReadonlyArray<IssueId>;
+      }
     | {
         readonly type: 'VotingRoundStarted';
         readonly gameId: GameId;

@@ -42,6 +42,7 @@ const baseGame: GameView = {
     status: 'OPEN',
     votes: [{ participantId: 'p1', card: '5', hasVoted: true }],
     result: null,
+    previousRounds: [],
     dealerId: null,
     timerDeadline: null,
   },
@@ -59,9 +60,16 @@ function renderWith(
   return rendered;
 }
 
-const { removeParticipantRequest } = vi.hoisted(() => ({ removeParticipantRequest: vi.fn() }));
+const { removeParticipantRequest, transferFacilitatorRequest, claimFacilitatorRequest } =
+  vi.hoisted(() => ({
+    removeParticipantRequest: vi.fn(),
+    transferFacilitatorRequest: vi.fn(),
+    claimFacilitatorRequest: vi.fn(),
+  }));
 vi.mock('../../../shared/api/gamesClient.js', () => ({
   removeParticipant: removeParticipantRequest,
+  transferFacilitator: transferFacilitatorRequest,
+  claimFacilitator: claimFacilitatorRequest,
 }));
 
 describe('useGameTable', () => {
@@ -173,5 +181,121 @@ describe('useGameTable', () => {
 
     expect(result.current.hasLeft).toBe(false);
     expect(result.current.errorMessage).toBe('No puedes quitar a otro.');
+  });
+
+  describe('traspaso de facilitador', () => {
+    function withFacilitatorOnline(online: boolean, status: 'connected' | 'disconnected'): void {
+      act(() => {
+        useGameStore.setState({
+          status,
+          game: {
+            ...baseGame,
+            participants: baseGame.participants.map((participant) =>
+              participant.isFacilitator ? { ...participant, online } : participant,
+            ),
+          },
+        });
+      });
+    }
+
+    it('ofrece tomar el relevo a quien mira cuando el facilitador está desconectado', () => {
+      const { result } = renderWith('p2', null);
+      withFacilitatorOnline(false, 'connected');
+
+      expect(result.current.facilitatorAbsent).toBe(true);
+      expect(result.current.facilitatorName).toBe('Yo');
+    });
+
+    it('no ofrece el relevo si el facilitador está conectado', () => {
+      const { result } = renderWith('p2', null);
+      withFacilitatorOnline(true, 'connected');
+
+      expect(result.current.facilitatorAbsent).toBe(false);
+    });
+
+    it('no se ofrece el relevo a sí mismo el propio facilitador', () => {
+      const { result } = renderWith('p1', null);
+      withFacilitatorOnline(false, 'connected');
+
+      expect(result.current.facilitatorAbsent).toBe(false);
+    });
+
+    it('no ofrece el relevo con el socket propio caído, porque la presencia que ve está obsoleta', () => {
+      const { result } = renderWith('p2', null);
+      withFacilitatorOnline(false, 'disconnected');
+
+      expect(result.current.facilitatorAbsent).toBe(false);
+    });
+
+    it('tomar el relevo pide al servidor el relevo en nombre de quien mira', async () => {
+      claimFacilitatorRequest.mockResolvedValue(undefined);
+      const { result } = renderWith('p2', null);
+
+      await act(async () => {
+        await result.current.claimFacilitator();
+      });
+
+      expect(claimFacilitatorRequest).toHaveBeenCalledWith('game-1', { participantId: 'p2' });
+    });
+
+    it('si el servidor rechaza el relevo muestra el motivo', async () => {
+      claimFacilitatorRequest.mockRejectedValue(new Error('El facilitador sigue conectado.'));
+      const { result } = renderWith('p2', null);
+
+      await act(async () => {
+        await result.current.claimFacilitator();
+      });
+
+      expect(result.current.errorMessage).toBe('El facilitador sigue conectado.');
+    });
+
+    it('ceder el rol manda quién lo cede y quién lo recibe', async () => {
+      transferFacilitatorRequest.mockResolvedValue(undefined);
+      const { result } = renderWith('p1', null);
+
+      await act(async () => {
+        await result.current.transferFacilitator('p2');
+      });
+
+      expect(transferFacilitatorRequest).toHaveBeenCalledWith('game-1', {
+        participantId: 'p1',
+        toParticipantId: 'p2',
+      });
+    });
+
+    it('el facilitador que sale cede el rol primero y solo entonces se marca como salido', async () => {
+      const calls: string[] = [];
+      transferFacilitatorRequest.mockImplementation(() => {
+        calls.push('transfer');
+        return Promise.resolve();
+      });
+      removeParticipantRequest.mockImplementation(() => {
+        calls.push('remove');
+        return Promise.resolve();
+      });
+      const { result } = renderWith('p1', null);
+
+      await act(async () => {
+        await result.current.leaveAsFacilitator('p2');
+      });
+
+      expect(calls).toEqual(['transfer', 'remove']);
+      expect(removeParticipantRequest).toHaveBeenCalledWith('game-1', 'p1', 'p1');
+      expect(result.current.hasLeft).toBe(true);
+    });
+
+    it('si no se puede ceder el rol, el facilitador no sale y ve el motivo', async () => {
+      transferFacilitatorRequest.mockRejectedValue(new Error('No existe el participante p9.'));
+      removeParticipantRequest.mockClear();
+      const { result } = renderWith('p1', null);
+
+      await act(async () => {
+        await result.current.leaveAsFacilitator('p9');
+      });
+
+      expect(removeParticipantRequest).not.toHaveBeenCalled();
+      expect(result.current.hasLeft).toBe(false);
+      expect(result.current.errorMessage).toBe('No existe el participante p9.');
+    });
   });
 });

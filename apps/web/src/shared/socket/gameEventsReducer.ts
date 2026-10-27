@@ -1,4 +1,4 @@
-import type { GameView, RoundVoteView, ServerEvent } from '@pp/contracts';
+import type { GameView, IssueView, RoundVoteView, ServerEvent } from '@pp/contracts';
 
 /**
  * Espejo cliente de la invariante 7: nunca fabrica un valor de voto que el servidor no le haya
@@ -38,6 +38,19 @@ export function gameEventsReducer(state: GameView | null, event: ServerEvent): G
         ),
       };
 
+    case 'facilitator_changed':
+      if (!state) return state;
+      return {
+        ...state,
+        participants: state.participants.map((participant) =>
+          participant.id === event.previousId
+            ? { ...participant, isFacilitator: false }
+            : participant.id === event.nextId
+              ? { ...participant, isFacilitator: true }
+              : participant,
+        ),
+      };
+
     case 'participant_voted':
       return patchRound(state, event.roundId, (round) => ({
         ...round,
@@ -69,6 +82,27 @@ export function gameEventsReducer(state: GameView | null, event: ServerEvent): G
         ),
       };
 
+    case 'issue_edited':
+      if (!state) return state;
+      return {
+        ...state,
+        issues: state.issues.map((issue) => (issue.id === event.issue.id ? event.issue : issue)),
+      };
+
+    case 'issue_removed':
+      if (!state) return state;
+      return withDealer(
+        { ...state, issues: state.issues.filter((issue) => issue.id !== event.issueId) },
+        event.dealerId,
+      );
+
+    case 'issues_reordered':
+      if (!state) return state;
+      return withDealer(
+        { ...state, issues: inOrder(state.issues, event.issueIds) },
+        event.dealerId,
+      );
+
     case 'settings_changed':
       if (!state) return state;
       return { ...state, settings: event.settings };
@@ -96,6 +130,23 @@ function patchRound(
 ): GameView | null {
   if (!state?.currentRound || state.currentRound.id !== roundId) return state;
   return { ...state, currentRound: patch(state.currentRound) };
+}
+
+/**
+ * Borrar o reordenar tareas mueve la posición de la tarea actual en la cola, y con ella el dealer
+ * (`Game.currentDealer()` en el servidor). El cliente no puede recalcularlo: el evento lo trae.
+ */
+function withDealer(state: GameView, dealerId: string | null): GameView {
+  if (!state.currentRound) return state;
+  return { ...state, currentRound: { ...state.currentRound, dealerId } };
+}
+
+/** Las tareas que el evento no nombra (no deberían existir) se quedan al final en vez de perderse. */
+function inOrder(issues: ReadonlyArray<IssueView>, orderedIds: ReadonlyArray<string>): IssueView[] {
+  const byId = new Map(issues.map((issue) => [issue.id, issue]));
+  const ordered = orderedIds.flatMap((id) => byId.get(id) ?? []);
+  const named = new Set(orderedIds);
+  return [...ordered, ...issues.filter((issue) => !named.has(issue.id))];
 }
 
 function withVote(votes: ReadonlyArray<RoundVoteView>, participantId: string): RoundVoteView[] {

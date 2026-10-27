@@ -99,11 +99,59 @@ export const removeParticipantCommandSchema = z.object({
 });
 export type RemoveParticipantCommandInput = z.infer<typeof removeParticipantCommandSchema>;
 
+/**
+ * REST — `POST /api/games/:id/facilitator`. `participantId` es quien cede el rol (solo vale si es
+ * el facilitador actual) y `toParticipantId` quien lo recibe.
+ */
+export const transferFacilitatorCommandSchema = z.object({
+  participantId: z.string().trim().min(1),
+  toParticipantId: z.string().trim().min(1),
+});
+export type TransferFacilitatorCommandInput = z.infer<typeof transferFacilitatorCommandSchema>;
+
+/**
+ * REST — `POST /api/games/:id/facilitator/claim`. `participantId` es quien toma el relevo; solo
+ * prospera si el facilitador actual no está conectado (`Game.claimFacilitator`).
+ */
+export const claimFacilitatorCommandSchema = z.object({
+  participantId: z.string().trim().min(1),
+});
+export type ClaimFacilitatorCommandInput = z.infer<typeof claimFacilitatorCommandSchema>;
+
 /** REST — `POST /api/games/:id/issues` */
 export const addIssueCommandSchema = z.object({
   title: z.string().trim().min(1),
 });
 export type AddIssueCommandInput = z.infer<typeof addIssueCommandSchema>;
+
+/**
+ * REST — `PATCH /api/games/:id/issues/:issueId`. `description` y `externalUrl` ausentes dejan lo
+ * que había (ADR 0019). `externalUrl` solo admite http(s): se pintará como enlace (bloque 15).
+ */
+export const editIssueCommandSchema = z.object({
+  participantId: z.string().trim().min(1),
+  title: z.string().trim().min(1),
+  description: z.string().trim().optional(),
+  externalUrl: z
+    .string()
+    .trim()
+    .pipe(z.url({ protocol: /^https?$/ }))
+    .optional(),
+});
+export type EditIssueCommandInput = z.infer<typeof editIssueCommandSchema>;
+
+/** REST — `DELETE /api/games/:id/issues/:issueId` */
+export const removeIssueCommandSchema = z.object({
+  participantId: z.string().trim().min(1),
+});
+export type RemoveIssueCommandInput = z.infer<typeof removeIssueCommandSchema>;
+
+/** REST — `PUT /api/games/:id/issues/order`. Tiene que ser una permutación de TODAS las tareas. */
+export const reorderIssuesCommandSchema = z.object({
+  participantId: z.string().trim().min(1),
+  issueIds: z.array(z.string().trim().min(1)),
+});
+export type ReorderIssuesCommandInput = z.infer<typeof reorderIssuesCommandSchema>;
 
 /** WS cliente→servidor — `join` (entra en la room de la partida y pide `state_sync`) */
 export const wsJoinCommandSchema = z.object({
@@ -175,3 +223,16 @@ export const wsDiscussionTimerControlCommandSchema = z.object({
 export type WsDiscussionTimerControlCommandInput = z.infer<
   typeof wsDiscussionTimerControlCommandSchema
 >;
+
+/** REST — `POST /api/admin/session` */
+export const adminLoginCommandSchema = z.object({
+  username: z.string().min(1),
+  password: z.string().min(1),
+});
+export type AdminLoginCommandInput = z.infer<typeof adminLoginCommandSchema>;
+
+/** REST — `PATCH /api/admin/teams/:teamId` */
+export const renameTeamCommandSchema = z.object({
+  name: z.string().trim().min(1),
+});
+export type RenameTeamCommandInput = z.infer<typeof renameTeamCommandSchema>;

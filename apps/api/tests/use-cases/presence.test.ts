@@ -120,4 +120,19 @@ describe('presencia', () => {
       [anaId, true],
     ]);
   });
+
+  it('ReconcileAutoReveal ignora una sala que ya no existe, p. ej. borrada desde el panel', async () => {
+    const seeded = await seedGameWithOpenRound({ autoReveal: true });
+    await seeded.context.games.delete(GameId.of(seeded.gameId));
+
+    await expect(
+      new ReconcileAutoReveal(
+        seeded.context.games,
+        seeded.context.events,
+        seeded.context.clock,
+        presenceOf([]),
+      ).execute({ gameId: seeded.gameId }),
+    ).resolves.toBeUndefined();
+    expect(seeded.context.events.published).toEqual([]);
+  });
 });

@@ -1,14 +1,17 @@
-import type { RoundView } from '@pp/contracts';
+import type { ParticipantView, RoundView } from '@pp/contracts';
 import type { JSX } from 'react';
 import { Badge, Button, Tooltip } from '../../design-system/index.js';
 import type { DiscussionTimerState } from '../../shared/store/gameStore.js';
 import { formatCountdown } from '../game-table/hooks/useCountdown.js';
 import { Confetti } from './Confetti.js';
 import { DiscussionTimerControls } from './DiscussionTimerControls.js';
-import { DistributionBar } from './DistributionBar.js';
+import { Distribution } from './Distribution.js';
+import { RoundComparison } from './RoundComparison.js';
 
 export interface ResultsPanelProps {
   readonly round: RoundView | null;
+  /** Para nombrar a quien cambió su voto en la comparación entre rondas. */
+  readonly participants: ReadonlyArray<Pick<ParticipantView, 'id' | 'displayName'>>;
   readonly onStartQuickRound: () => void;
   readonly celebrate: boolean;
   readonly votedCount: number;
@@ -118,7 +121,7 @@ function RevealedPanel(props: ResultsPanelProps & { round: RoundView }): JSX.Ele
     return <p className="text-sm">Sin resultado.</p>;
   }
   const total = round.votes.filter((vote) => vote.card !== null).length;
-  const entries = Object.entries(result.distribution).sort(([, a], [, b]) => b - a);
+  const previous = round.previousRounds.at(-1);
   // La media puede no ser una carta de la baraja (0.5 y 1 promedian 0.75): se cierra con la más
   // votada, que siempre lo es. El dominio rechazaría cualquier otra cosa (CardNotInDeckError).
   const acceptedCard = result.mostVoted;
@@ -142,18 +145,19 @@ function RevealedPanel(props: ResultsPanelProps & { round: RoundView }): JSX.Ele
         <StatTile label="Acuerdo" value={`${result.agreementPercentage.toString()}%`} />
       </div>
 
-      <div className="flex flex-col gap-2">
-        <span className="pp-kicker">Distribución</span>
-        {entries.map(([label, count]) => (
-          <DistributionBar
-            key={label}
-            label={label}
-            count={count}
-            total={total}
-            isMostVoted={label === result.mostVoted}
-          />
-        ))}
-      </div>
+      {previous ? (
+        <RoundComparison
+          previous={previous}
+          round={round}
+          result={result}
+          participants={props.participants}
+        />
+      ) : (
+        <div className="flex flex-col gap-2">
+          <span className="pp-kicker">Distribución</span>
+          <Distribution result={result} total={total} />
+        </div>
+      )}
 
       <p className="text-xs" style={{ color: 'var(--pp-muted)' }}>
         {result.isUnanimous

@@ -2,6 +2,7 @@ import type {
   GameView,
   IssueView,
   ParticipantView,
+  PastRoundView,
   RoundResultView,
   RoundView,
 } from '@pp/contracts';
@@ -55,7 +56,9 @@ export function toGameView(
         ),
       ),
     issues: game.allIssues().map(toIssueView),
-    currentRound: round ? toRoundView(round, viewerId, dealerId) : null,
+    currentRound: round
+      ? toRoundView(round, viewerId, dealerId, previousRoundsOf(game, round))
+      : null,
   };
 }
 
@@ -70,7 +73,7 @@ function toParticipantView(participant: Participant, online: boolean): Participa
   };
 }
 
-function toIssueView(issue: Issue): IssueView {
+export function toIssueView(issue: Issue): IssueView {
   return {
     id: issue.id.value,
     title: issue.title,
@@ -79,10 +82,34 @@ function toIssueView(issue: Issue): IssueView {
   };
 }
 
+/**
+ * Segunda vía por la que un voto puede salir del servidor (ADR 0020): se filtra por `isRevealed()`
+ * antes de leer ninguno y `revealedVotes()` lo vuelve a exigir, así que una ronda abierta nunca
+ * llega a `toPastRoundView` ni siquiera si un día `roundsOf` devolviera algo de más.
+ */
+function previousRoundsOf(game: Game, current: Round): PastRoundView[] {
+  return game
+    .roundsOf(current.issueId)
+    .filter((round) => round.roundNumber < current.roundNumber && round.isRevealed())
+    .map(toPastRoundView);
+}
+
+function toPastRoundView(round: Round): PastRoundView {
+  return {
+    id: round.id.value,
+    roundNumber: round.roundNumber,
+    votes: round
+      .revealedVotes()
+      .map((vote) => ({ participantId: vote.participantId.value, card: vote.card.raw })),
+    result: toRoundResultView(round.revealedResult()),
+  };
+}
+
 function toRoundView(
   round: Round,
   viewerId: ParticipantId,
   dealerId: ParticipantId | null,
+  previousRounds: PastRoundView[],
 ): RoundView {
   const revealed = round.isRevealed();
 
@@ -97,6 +124,7 @@ function toRoundView(
       hasVoted: true,
     })),
     result: revealed ? toRoundResultView(round.revealedResult()) : null,
+    previousRounds,
     dealerId: dealerId?.value ?? null,
     timerDeadline: round.currentTimerDeadline()?.toISOString() ?? null,
   };

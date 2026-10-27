@@ -1,10 +1,10 @@
 import type { ServerEvent } from '@pp/contracts';
-import { toRoundResultView } from '../../application/read-models/toGameView.js';
+import { toIssueView, toRoundResultView } from '../../application/read-models/toGameView.js';
 import type { EventPublisher } from '../../application/ports/EventPublisher.js';
 import type { GameRepository } from '../../application/ports/GameRepository.js';
 import type { RealtimeBroadcaster } from '../../application/ports/RealtimeBroadcaster.js';
 import type { GameEvent } from '../../domain/game/events/GameEvent.js';
-import type { GameId } from '../../domain/game/ids.js';
+import type { GameId, IssueId } from '../../domain/game/ids.js';
 import type { GameVersionTracker } from './GameVersionTracker.js';
 
 // `Omit` no distribuye sobre uniones: aplicado directo a `ServerEvent` colapsaría las variantes
@@ -61,8 +61,28 @@ export class WsEventPublisher implements EventPublisher {
           participantId: event.participantId.value,
           hat: event.hat?.id ?? null,
         };
+      case 'FacilitatorChanged':
+        return {
+          type: 'facilitator_changed',
+          previousId: event.previousId.value,
+          nextId: event.nextId.value,
+        };
       case 'IssueAdded':
         return { type: 'issue_added', issueId: event.issueId.value };
+      case 'IssueEdited':
+        return this.toIssueEditedEvent(event.gameId, event.issueId);
+      case 'IssueRemoved':
+        return {
+          type: 'issue_removed',
+          issueId: event.issueId.value,
+          dealerId: await this.currentDealerId(event.gameId),
+        };
+      case 'IssuesReordered':
+        return {
+          type: 'issues_reordered',
+          issueIds: event.issueIds.map((id) => id.value),
+          dealerId: await this.currentDealerId(event.gameId),
+        };
       case 'VotingRoundStarted':
         return {
           type: 'round_started',
@@ -109,6 +129,24 @@ export class WsEventPublisher implements EventPublisher {
           deck: { cards: event.deck.values().map((card) => card.raw) },
         };
     }
+  }
+
+  private async toIssueEditedEvent(
+    gameId: GameId,
+    issueId: IssueId,
+  ): Promise<OutboundEvent | null> {
+    const issue = (await this.games.findById(gameId))?.findIssue(issueId);
+    // Borrada entre el guardado y esta lectura: el `issue_removed` que sigue ya lo cubre.
+    return issue ? { type: 'issue_edited', issue: toIssueView(issue) } : null;
+  }
+
+  /**
+   * Borrar o reordenar tareas mueve la posición de la tarea actual en la cola y, con ella, el
+   * dealer de la ronda (`Game.currentDealer()`). Los clientes no pueden recalcularlo.
+   */
+  private async currentDealerId(gameId: GameId): Promise<string | null> {
+    const game = await this.games.findById(gameId);
+    return game?.currentDealer()?.value ?? null;
   }
 
   private async toRoundRevealedEvent(gameId: GameId): Promise<OutboundEvent | null> {

@@ -3,7 +3,9 @@ import type { JSX, SubmitEvent } from 'react';
 import { Link } from 'react-router-dom';
 import { Button, Input } from '../../design-system/index.js';
 import { createTeam } from '../../shared/api/teamsClient.js';
+import { useServerReady } from '../../shared/store/serverStatusStore.js';
 import { rememberTeam } from '../../shared/team/rememberedTeams.js';
+import { ServerNotReadyNote } from '../server-status/ServerNotReadyNote.js';
 
 interface CreatedTeam {
   readonly slug: string;
@@ -15,6 +17,7 @@ export function CreateTeamPage(): JSX.Element {
   const [submitting, setSubmitting] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [created, setCreated] = useState<CreatedTeam | null>(null);
+  const serverReady = useServerReady();
 
   async function handleSubmit(event: SubmitEvent<HTMLFormElement>): Promise<void> {
     event.preventDefault();
@@ -83,9 +86,10 @@ export function CreateTeamPage(): JSX.Element {
           required
         />
         {error ? <p style={{ color: '#e5484d' }}>{error}</p> : null}
-        <Button type="submit" variant="primary" block disabled={submitting}>
+        <Button type="submit" variant="primary" block disabled={submitting || !serverReady}>
           {submitting ? 'Creando…' : 'Crear equipo'}
         </Button>
+        <ServerNotReadyNote />
       </form>
     </div>
   );

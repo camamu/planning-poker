@@ -7,6 +7,7 @@ import {
   DeckNotOwnedByTeamError,
   SavedDeck,
   SYSTEM_DECKS,
+  SystemDeckNotDeletableError,
 } from '../../src/domain/deck/SavedDeck.js';
 import { TeamId } from '../../src/domain/team/TeamId.js';
 
@@ -99,5 +100,24 @@ describe('SavedDeck.assertAvailableTo', () => {
     expect(() => {
       custom.assertAvailableTo(null);
     }).toThrow(DeckNotAvailableError);
+  });
+});
+
+describe('SavedDeck.assertDeletable', () => {
+  it('no permite borrar una baraja de sistema', () => {
+    const [fibonacci] = SYSTEM_DECKS;
+    expect(() => fibonacci?.assertDeletable()).toThrow(SystemDeckNotDeletableError);
+  });
+
+  it('permite borrar una baraja personalizada', () => {
+    const deck = SavedDeck.createCustom({
+      id: DeckId.of('deck-1'),
+      teamId: TeamId.of('team-1'),
+      name: DeckName.of('Mi baraja'),
+      rawCards: ['1', '2'],
+    });
+    expect(() => {
+      deck.assertDeletable();
+    }).not.toThrow();
   });
 });

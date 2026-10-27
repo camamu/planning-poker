@@ -2,10 +2,15 @@ import type {
   AddIssueCommandInput,
   ChangeGameDeckCommandInput,
   ChangeParticipantHatCommandInput,
+  ClaimFacilitatorCommandInput,
   CreateGameCommandInput,
   DeckSummaryView,
+  EditIssueCommandInput,
   GameView,
   JoinGameCommandInput,
+  RemoveIssueCommandInput,
+  ReorderIssuesCommandInput,
+  TransferFacilitatorCommandInput,
   UpdateGameSettingsCommandInput,
 } from '@pp/contracts';
 
@@ -62,6 +67,35 @@ export function addIssue(gameId: string, input: AddIssueCommandInput): Promise<A
   });
 }
 
+export function editIssue(
+  gameId: string,
+  issueId: string,
+  input: EditIssueCommandInput,
+): Promise<void> {
+  return requestJson(`/api/games/${gameId}/issues/${issueId}`, {
+    method: 'PATCH',
+    body: JSON.stringify(input),
+  });
+}
+
+export function removeIssue(
+  gameId: string,
+  issueId: string,
+  input: RemoveIssueCommandInput,
+): Promise<void> {
+  return requestJson(`/api/games/${gameId}/issues/${issueId}`, {
+    method: 'DELETE',
+    body: JSON.stringify(input),
+  });
+}
+
+export function reorderIssues(gameId: string, input: ReorderIssuesCommandInput): Promise<void> {
+  return requestJson(`/api/games/${gameId}/issues/order`, {
+    method: 'PUT',
+    body: JSON.stringify(input),
+  });
+}
+
 export function getGameState(gameId: string, participantId: string): Promise<GameStateResult> {
   const query = new URLSearchParams({ participantId }).toString();
   return requestJson(`/api/games/${gameId}?${query}`);
@@ -108,5 +142,25 @@ export function removeParticipant(
   return requestJson(`/api/games/${gameId}/participants/${participantId}`, {
     method: 'DELETE',
     body: JSON.stringify({ participantId: requestedBy }),
+  });
+}
+
+export function transferFacilitator(
+  gameId: string,
+  input: TransferFacilitatorCommandInput,
+): Promise<void> {
+  return requestJson(`/api/games/${gameId}/facilitator`, {
+    method: 'POST',
+    body: JSON.stringify(input),
+  });
+}
+
+export function claimFacilitator(
+  gameId: string,
+  input: ClaimFacilitatorCommandInput,
+): Promise<void> {
+  return requestJson(`/api/games/${gameId}/facilitator/claim`, {
+    method: 'POST',
+    body: JSON.stringify(input),
   });
 }

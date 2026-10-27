@@ -6,15 +6,29 @@ import { AuthenticateTeam } from '../../../src/application/use-cases/Authenticat
 import { CastVote } from '../../../src/application/use-cases/CastVote.js';
 import { ChangeGameDeck } from '../../../src/application/use-cases/ChangeGameDeck.js';
 import { ChangeParticipantHat } from '../../../src/application/use-cases/ChangeParticipantHat.js';
+import { ClaimFacilitator } from '../../../src/application/use-cases/ClaimFacilitator.js';
 import { CreateGame } from '../../../src/application/use-cases/CreateGame.js';
 import { CreateTeam } from '../../../src/application/use-cases/CreateTeam.js';
 import { DeleteCustomDeck } from '../../../src/application/use-cases/DeleteCustomDeck.js';
+import { DeleteDeckAsAdmin } from '../../../src/application/use-cases/DeleteDeckAsAdmin.js';
+import { DeleteGame } from '../../../src/application/use-cases/DeleteGame.js';
+import { DeleteTeam } from '../../../src/application/use-cases/DeleteTeam.js';
+import { EditIssue } from '../../../src/application/use-cases/EditIssue.js';
 import { GetGameState } from '../../../src/application/use-cases/GetGameState.js';
 import { JoinGame } from '../../../src/application/use-cases/JoinGame.js';
 import { ListDecks } from '../../../src/application/use-cases/ListDecks.js';
+import { ListDecksForAdmin } from '../../../src/application/use-cases/ListDecksForAdmin.js';
+import { ListGamesForAdmin } from '../../../src/application/use-cases/ListGamesForAdmin.js';
+import { ListTeamsForAdmin } from '../../../src/application/use-cases/ListTeamsForAdmin.js';
+import { LogInAdmin } from '../../../src/application/use-cases/LogInAdmin.js';
+import { RegenerateTeamToken } from '../../../src/application/use-cases/RegenerateTeamToken.js';
+import { RenameTeam } from '../../../src/application/use-cases/RenameTeam.js';
 import { ListGameDecks } from '../../../src/application/use-cases/ListGameDecks.js';
 import { ReconcileAutoReveal } from '../../../src/application/use-cases/ReconcileAutoReveal.js';
+import { RemoveIssue } from '../../../src/application/use-cases/RemoveIssue.js';
 import { RemoveParticipant } from '../../../src/application/use-cases/RemoveParticipant.js';
+import { ReorderIssues } from '../../../src/application/use-cases/ReorderIssues.js';
+import { TransferFacilitator } from '../../../src/application/use-cases/TransferFacilitator.js';
 import { RevealRound } from '../../../src/application/use-cases/RevealRound.js';
 import { SaveCustomDeck } from '../../../src/application/use-cases/SaveCustomDeck.js';
 import { StartQuickRound } from '../../../src/application/use-cases/StartQuickRound.js';
@@ -23,6 +37,8 @@ import { SetFinalEstimate } from '../../../src/application/use-cases/SetFinalEst
 import { TimeoutReveal } from '../../../src/application/use-cases/TimeoutReveal.js';
 import { UpdateCustomDeck } from '../../../src/application/use-cases/UpdateCustomDeck.js';
 import { UpdateGameSettings } from '../../../src/application/use-cases/UpdateGameSettings.js';
+import { LoginThrottle } from '../../../src/infrastructure/http/LoginThrottle.js';
+import { registerAdminRoutes } from '../../../src/infrastructure/http/routes/admin.js';
 import { registerGameRoutes } from '../../../src/infrastructure/http/routes/games.js';
 import { registerTeamRoutes } from '../../../src/infrastructure/http/routes/teams.js';
 import { UuidGenerator } from '../../../src/infrastructure/ids/UuidGenerator.js';
@@ -36,8 +52,20 @@ import { createPresenceListener } from '../../../src/infrastructure/realtime/pre
 import { registerSocketGateway } from '../../../src/infrastructure/realtime/SocketIoGateway.js';
 import { SocketIoBroadcaster } from '../../../src/infrastructure/realtime/SocketIoBroadcaster.js';
 import { WsEventPublisher } from '../../../src/infrastructure/realtime/WsEventPublisher.js';
+import { HmacAdminSessions } from '../../../src/infrastructure/security/HmacAdminSessions.js';
 import { HmacTokenHasher } from '../../../src/infrastructure/security/HmacTokenHasher.js';
+import { ScryptAdminCredentials } from '../../../src/infrastructure/security/ScryptAdminCredentials.js';
 import { SystemClock } from '../../../src/infrastructure/time/SystemClock.js';
+
+/** Credenciales del panel en el servidor de test; el hash se pasa a `startTestServer`. */
+export const TEST_ADMIN = { username: 'admin', password: 'contraseña-de-test' } as const;
+
+export interface TestServerOptions {
+  /** Resultado de `hashAdminPassword(TEST_ADMIN.password)`, calculado una vez por suite. */
+  readonly adminPasswordHash?: string;
+  /** Margen de gracia de presencia; corto en los tests para no esperar 30 s reales. */
+  readonly presenceGraceMs?: number;
+}
 
 export interface TestServer {
   readonly app: FastifyInstance;
@@ -50,11 +78,6 @@ export interface TestServer {
  * `InMemoryGameRepository`: este test ejercita HTTP+WS de punta a punta, no la persistencia
  * (eso ya lo cubre `tests/contract` contra Postgres real).
  */
-export interface TestServerOptions {
-  /** Margen de gracia de presencia; corto en los tests para no esperar 30 s reales. */
-  readonly presenceGraceMs?: number;
-}
-
 export async function startTestServer(options: TestServerOptions = {}): Promise<TestServer> {
   const app = Fastify({ logger: false });
 
@@ -81,10 +104,15 @@ export async function startTestServer(options: TestServerOptions = {}): Promise<
   const createGame = new CreateGame(games, decks, teams, events, clock, ids);
   const joinGame = new JoinGame(games, events, clock, ids);
   const addIssue = new AddIssue(games, events, clock, ids);
+  const editIssue = new EditIssue(games, events, clock);
+  const removeIssue = new RemoveIssue(games, events, clock);
+  const reorderIssues = new ReorderIssues(games, events, clock);
   const startVotingRound = new StartVotingRound(games, events, clock, ids);
   const startQuickRound = new StartQuickRound(games, events, clock, ids);
   const castVote = new CastVote(games, events, clock, presence);
   const removeParticipant = new RemoveParticipant(games, events, clock, presence);
+  const transferFacilitator = new TransferFacilitator(games, events, clock);
+  const claimFacilitator = new ClaimFacilitator(games, events, clock, presence);
   const revealRound = new RevealRound(games, events, clock);
   const timeoutReveal = new TimeoutReveal(games, events, clock);
   const setFinalEstimate = new SetFinalEstimate(games, events, clock);
@@ -105,7 +133,12 @@ export async function startTestServer(options: TestServerOptions = {}): Promise<
     createGame,
     joinGame,
     removeParticipant,
+    transferFacilitator,
+    claimFacilitator,
     addIssue,
+    editIssue,
+    removeIssue,
+    reorderIssues,
     getGameState,
     updateGameSettings,
     changeGameDeck,
@@ -121,6 +154,27 @@ export async function startTestServer(options: TestServerOptions = {}): Promise<
     updateCustomDeck,
     deleteCustomDeck,
   });
+  if (options.adminPasswordHash !== undefined) {
+    const adminSessions = new HmacAdminSessions('test-session-secret', 60 * 60 * 1000);
+    await registerAdminRoutes(app, {
+      logInAdmin: new LogInAdmin(
+        new ScryptAdminCredentials(TEST_ADMIN.username, options.adminPasswordHash),
+        adminSessions,
+        clock,
+      ),
+      sessions: adminSessions,
+      throttle: new LoginThrottle(5, 15 * 60 * 1000),
+      clock,
+      listGamesForAdmin: new ListGamesForAdmin(games, teams),
+      deleteGame: new DeleteGame(games, broadcaster),
+      listTeamsForAdmin: new ListTeamsForAdmin(teams, decks, games),
+      renameTeam: new RenameTeam(teams),
+      regenerateTeamToken: new RegenerateTeamToken(teams, tokenHasher, ids),
+      deleteTeam: new DeleteTeam(teams, decks),
+      listDecksForAdmin: new ListDecksForAdmin(decks, teams),
+      deleteDeckAsAdmin: new DeleteDeckAsAdmin(decks),
+    });
+  }
   registerSocketGateway(io, {
     getGameState,
     castVote,

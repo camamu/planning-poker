@@ -81,6 +81,43 @@ export function defineGameRepositoryContractTests(
       expect(reloaded?.allIssues().map((issue) => issue.title)).toEqual(['Primero', 'Segundo']);
     });
 
+    it('conserva el orden y el título de las tareas tras reordenarlas, editarlas y borrar una', async () => {
+      const repository = await makeRepository();
+      const { game, facilitatorId } = newGame('game-issues-edit');
+      game.addIssue(IssueId.of('issue-1'), 'Primero', NOW);
+      game.addIssue(IssueId.of('issue-2'), 'Segundo', NOW);
+      game.addIssue(IssueId.of('issue-3'), 'Tercero', NOW);
+      game.addIssue(IssueId.of('issue-4'), 'Cuarto', NOW);
+      await repository.save(game);
+
+      const loaded = await repository.findById(GameId.of('game-issues-edit'));
+      if (!loaded) throw new Error('la partida guardada no se ha podido recargar');
+      loaded.reorderIssues(
+        ['issue-3', 'issue-1', 'issue-4', 'issue-2'].map((id) => IssueId.of(id)),
+        facilitatorId,
+        NOW,
+      );
+      loaded.editIssue(
+        IssueId.of('issue-1'),
+        { title: 'Primero, corregido', description: 'Detalle', externalUrl: 'https://t/1' },
+        facilitatorId,
+        NOW,
+      );
+      loaded.removeIssue(IssueId.of('issue-4'), facilitatorId, NOW);
+      await repository.save(loaded);
+
+      const reloaded = await repository.findById(GameId.of('game-issues-edit'));
+      expect(reloaded?.allIssues().map((issue) => issue.id.value)).toEqual([
+        'issue-3',
+        'issue-1',
+        'issue-2',
+      ]);
+      const edited = reloaded?.findIssue(IssueId.of('issue-1'));
+      expect(edited?.title).toBe('Primero, corregido');
+      expect(edited?.description).toBe('Detalle');
+      expect(edited?.externalUrl).toBe('https://t/1');
+    });
+
     it('conserva los votos de una ronda abierta sin revelar, sin exponerlos como revelados', async () => {
       const repository = await makeRepository();
       const { game, facilitatorId } = newGame('game-4');
@@ -253,6 +290,26 @@ export function defineGameRepositoryContractTests(
       expect(reloaded?.currentRound()?.hasVoted(anaId)).toBe(true);
     });
 
+    it('conserva quién es el facilitador tras cederlo y recargar', async () => {
+      const repository = await makeRepository();
+      const { game, facilitatorId } = newGame('game-facilitator');
+      const guestId = ParticipantId.of('game-facilitator-guest');
+      game.addParticipant(guestId, DisplayName.of('Grace'), 'VOTER', NOW);
+      await repository.save(game);
+
+      game.transferFacilitator(guestId, facilitatorId, NOW);
+      await repository.save(game);
+      const reloaded = await repository.findById(GameId.of('game-facilitator'));
+
+      const facilitators = reloaded
+        ?.allParticipants()
+        .filter((participant) => participant.isFacilitator)
+        .map((participant) => participant.id.value);
+      expect(facilitators).toEqual([guestId.value]);
+      expect(reloaded?.canReveal(guestId)).toBe(true);
+      expect(reloaded?.canReveal(facilitatorId)).toBe(false);
+    });
+
     it('conserva el sombrero de cada participante tras recargar', async () => {
       const repository = await makeRepository();
       const { game, facilitatorId } = newGame('game-13');
@@ -291,6 +348,72 @@ export function defineGameRepositoryContractTests(
       expect(reloaded?.currentRound()?.currentTimerDeadline()).toEqual(
         new Date(NOW.getTime() + 45_000),
       );
+    });
+    it('listSummaries() cuenta participantes, issues e issues estimadas de cada partida', async () => {
+      const repository = await makeRepository();
+      const { game, facilitatorId } = newGame('game-summary');
+      game.addIssue(IssueId.of('summary-issue-1'), 'Implementar login', NOW);
+      game.addIssue(IssueId.of('summary-issue-2'), 'Implementar logout', NOW);
+      game.startVotingRound(RoundId.of('summary-round-1'), IssueId.of('summary-issue-1'), NOW);
+      game.castVote(facilitatorId, CardValue.of('8'), NOW);
+      game.reveal(facilitatorId, NOW);
+      game.setFinalEstimate(CardValue.of('8'), facilitatorId, NOW);
+      await repository.save(game);
+
+      const [summary] = await repository.listSummaries();
+
+      expect(summary).toMatchObject({
+        id: 'game-summary',
+        name: 'Sprint 42',
+        teamId: null,
+        participantCount: 1,
+        issueCount: 2,
+        estimatedIssueCount: 1,
+      });
+      expect(summary?.createdAt).toBeInstanceOf(Date);
+    });
+
+    it('listSummaries() no cuenta como participantes a quienes ya han salido de la partida', async () => {
+      const repository = await makeRepository();
+      const { game, facilitatorId } = newGame('game-left');
+      const leaverId = ParticipantId.of('game-left-leaver');
+      game.addParticipant(leaverId, DisplayName.of('Bea'), 'VOTER', NOW);
+      game.removeParticipant(leaverId, leaverId, NOW);
+      await repository.save(game);
+
+      const [summary] = await repository.listSummaries();
+
+      expect(summary?.participantCount).toBe(1);
+      expect(
+        game.allParticipants().some((participant) => participant.id.equals(facilitatorId)),
+      ).toBe(true);
+    });
+
+    it('listSummaries() devuelve las partidas más recientes primero', async () => {
+      const repository = await makeRepository();
+      await repository.save(newGame('game-older').game);
+      await repository.save(newGame('game-newer').game);
+
+      const summaries = await repository.listSummaries();
+
+      expect(summaries.map((summary) => summary.id)).toEqual(['game-newer', 'game-older']);
+    });
+
+    it('delete() borra la partida junto con sus participantes, issues y rondas', async () => {
+      const repository = await makeRepository();
+      const { game, facilitatorId } = newGame('game-deleted');
+      game.addIssue(IssueId.of('deleted-issue-1'), 'Implementar login', NOW);
+      game.startVotingRound(RoundId.of('deleted-round-1'), IssueId.of('deleted-issue-1'), NOW);
+      game.castVote(facilitatorId, CardValue.of('5'), NOW);
+      await repository.save(game);
+      await repository.save(newGame('game-kept').game);
+
+      await repository.delete(GameId.of('game-deleted'));
+
+      await expect(repository.findById(GameId.of('game-deleted'))).resolves.toBeUndefined();
+      expect((await repository.listSummaries()).map((summary) => summary.id)).toEqual([
+        'game-kept',
+      ]);
     });
   });
 }

@@ -8,6 +8,7 @@ import type { GameSettings } from './GameSettings.js';
 import type { Hat } from './Hat.js';
 import type { GameId, IssueId, ParticipantId, RoundId } from './ids.js';
 import { Issue } from './Issue.js';
+import type { IssueChanges } from './Issue.js';
 import { Participant } from './Participant.js';
 import type { ParticipantRole } from './Participant.js';
 import { Round } from './Round.js';
@@ -34,6 +35,32 @@ export class ParticipantRemovalNotAllowedError extends DomainError {
 export class FacilitatorCannotLeaveError extends DomainError {
   constructor(readonly participantId: ParticipantId) {
     super(`El facilitador ${participantId.value} no puede salir de la partida.`);
+  }
+}
+
+export class FacilitatorTransferNotAllowedError extends DomainError {
+  constructor(readonly participantId: ParticipantId) {
+    super(`El participante ${participantId.value} no es el facilitador y no puede cederlo.`);
+  }
+}
+
+export class FacilitatorStillPresentError extends DomainError {
+  constructor(readonly facilitatorId: ParticipantId) {
+    super(`El facilitador ${facilitatorId.value} sigue conectado: no se puede tomar su relevo.`);
+  }
+}
+
+export class FacilitatorPresenceUnknownError extends DomainError {
+  constructor(readonly gameId: GameId) {
+    super(
+      `Todavía no se sabe quién está conectado a la partida ${gameId.value}: inténtalo de nuevo en unos segundos.`,
+    );
+  }
+}
+
+export class GameWithoutFacilitatorError extends DomainError {
+  constructor(readonly gameId: GameId) {
+    super(`La partida ${gameId.value} no tiene facilitador.`);
   }
 }
 
@@ -64,6 +91,20 @@ export class AnotherRoundOpenError extends DomainError {
 export class IssueNotFoundError extends DomainError {
   constructor(readonly issueId: IssueId) {
     super(`No existe la issue ${issueId.value} en esta partida.`);
+  }
+}
+
+export class IssueHasRoundsError extends DomainError {
+  constructor(readonly issueId: IssueId) {
+    super(
+      `La issue ${issueId.value} ya tiene rondas: solo se puede borrar una tarea que nunca se ha votado.`,
+    );
+  }
+}
+
+export class InvalidIssueOrderError extends DomainError {
+  constructor(readonly gameId: GameId) {
+    super(`El orden recibido no contiene exactamente las tareas de la partida ${gameId.value}.`);
   }
 }
 
@@ -204,6 +245,11 @@ export class Game {
     return [...this.rounds];
   }
 
+  /** Las rondas de una tarea en el orden en que se abrieron, para compararlas entre sí. */
+  roundsOf(issueId: IssueId): ReadonlyArray<Round> {
+    return this.rounds.filter((round) => round.issueId.equals(issueId));
+  }
+
   addParticipant(
     id: ParticipantId,
     displayName: DisplayName,
@@ -232,6 +278,61 @@ export class Game {
   addIssue(id: IssueId, title: string, now: Date): void {
     this.issues.push(Issue.create(id, title));
     this.record({ type: 'IssueAdded', occurredAt: now, gameId: this.id, issueId: id });
+  }
+
+  /**
+   * Cualquier participante que no haya salido, mismo criterio que `addIssue`: la cola es de toda la
+   * sala. También vale para una tarea ya votada — es la forma de corregirla (ADR 0019).
+   */
+  editIssue(issueId: IssueId, changes: IssueChanges, requestedBy: ParticipantId, now: Date): void {
+    this.requireParticipant(requestedBy);
+    this.requireIssue(issueId).rename(changes.title, changes.description, changes.externalUrl);
+    this.record({ type: 'IssueEdited', occurredAt: now, gameId: this.id, issueId });
+  }
+
+  /**
+   * Solo una tarea que nunca ha tenido ronda: las rondas y sus votos son histórico (F7) y
+   * `currentRound()` podría acabar apuntando a otra ronda. Cubre también la tarea de la ronda abierta.
+   */
+  removeIssue(issueId: IssueId, requestedBy: ParticipantId, now: Date): void {
+    this.requireParticipant(requestedBy);
+    this.requireIssue(issueId);
+    if (this.rounds.some((round) => round.issueId.equals(issueId))) {
+      throw new IssueHasRoundsError(issueId);
+    }
+    this.issues.splice(
+      this.issues.findIndex((issue) => issue.id.equals(issueId)),
+      1,
+    );
+    this.record({ type: 'IssueRemoved', occurredAt: now, gameId: this.id, issueId });
+  }
+
+  /**
+   * Exige una permutación exacta de las tareas actuales. Un orden parcial obligaría a decidir dónde
+   * van las que faltan, y dos clientes reordenando a la vez darían resultados distintos según quién
+   * llegue primero. Valida todo antes de tocar la cola, para no dejarla a medias.
+   */
+  reorderIssues(orderedIds: ReadonlyArray<IssueId>, requestedBy: ParticipantId, now: Date): void {
+    this.requireParticipant(requestedBy);
+
+    const remaining = new Map(this.issues.map((issue) => [issue.id.value, issue]));
+    const reordered: Issue[] = [];
+    for (const id of orderedIds) {
+      const issue = remaining.get(id.value);
+      // Un id repetido ya no está en `remaining` la segunda vez, así que cae aquí igual que uno ajeno.
+      if (!issue) throw new InvalidIssueOrderError(this.id);
+      remaining.delete(id.value);
+      reordered.push(issue);
+    }
+    if (remaining.size > 0) throw new InvalidIssueOrderError(this.id);
+
+    this.issues.splice(0, this.issues.length, ...reordered);
+    this.record({
+      type: 'IssuesReordered',
+      occurredAt: now,
+      gameId: this.id,
+      issueIds: orderedIds,
+    });
   }
 
   /**
@@ -374,6 +475,41 @@ export class Game {
 
   hasParticipantLeft(id: ParticipantId): boolean {
     return this.participants.get(id.value)?.hasLeft() ?? false;
+  }
+
+  /**
+   * Solo el facilitador actual, y a alguien que siga en la partida. Cederse el rol a uno mismo no
+   * hace nada (ni evento). Sigue habiendo exactamente un facilitador: lo que uno pierde lo gana el
+   * otro en el mismo gesto (ADR 0021).
+   */
+  transferFacilitator(toId: ParticipantId, requestedBy: ParticipantId, now: Date): void {
+    const requester = this.requireParticipant(requestedBy);
+    if (!requester.isFacilitator) throw new FacilitatorTransferNotAllowedError(requestedBy);
+    const target = this.requireParticipant(toId);
+    if (requestedBy.equals(toId)) return;
+    this.handOverFacilitator(requester, target, now);
+  }
+
+  /**
+   * Cualquier participante puede tomar el relevo de un facilitador que no está conectado, para que
+   * la sala no se quede sin quien toque ajustes o, con `FACILITATOR_ONLY`, revele. La presencia
+   * sigue fuera del dominio (ADR 0015): llega como dato. `present` ausente = todavía no se sabe
+   * quién está (la API acaba de arrancar), y se rechaza para no quitarle el rol a quien solo está
+   * reconectando. Quien pide cuenta como presente: si es el propio facilitador, no hay relevo que tomar.
+   */
+  claimFacilitator(
+    requestedBy: ParticipantId,
+    now: Date,
+    present?: ReadonlyArray<ParticipantId>,
+  ): void {
+    const claimer = this.requireParticipant(requestedBy);
+    const current = this.requireFacilitator();
+    if (current.id.equals(requestedBy)) throw new FacilitatorStillPresentError(current.id);
+    if (!present) throw new FacilitatorPresenceUnknownError(this.id);
+    if (present.some((id) => id.equals(current.id))) {
+      throw new FacilitatorStillPresentError(current.id);
+    }
+    this.handOverFacilitator(current, claimer, now);
   }
 
   // autoReveal es una acción del sistema: se dispara directamente y no pasa por canReveal(), que
@@ -530,6 +666,26 @@ export class Game {
     const participant = this.participants.get(id.value);
     if (!participant || participant.hasLeft()) throw new ParticipantNotFoundError(id);
     return participant;
+  }
+
+  private requireFacilitator(): Participant {
+    const facilitator = [...this.participants.values()].find(
+      (participant) => participant.isFacilitator && !participant.hasLeft(),
+    );
+    if (!facilitator) throw new GameWithoutFacilitatorError(this.id);
+    return facilitator;
+  }
+
+  private handOverFacilitator(from: Participant, to: Participant, now: Date): void {
+    from.demote();
+    to.promote();
+    this.record({
+      type: 'FacilitatorChanged',
+      occurredAt: now,
+      gameId: this.id,
+      previousId: from.id,
+      nextId: to.id,
+    });
   }
 
   private requireIssue(id: IssueId): Issue {

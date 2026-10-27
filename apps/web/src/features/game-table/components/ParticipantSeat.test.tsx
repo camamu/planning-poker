@@ -40,4 +40,24 @@ describe('ParticipantSeat', () => {
 
     expect(onRemove).toHaveBeenCalledOnce();
   });
+
+  it('solo ofrece ceder el rol de facilitador cuando se le pasa onMakeFacilitator', () => {
+    const { rerender } = render(<ParticipantSeat {...baseProps} />);
+    expect(screen.queryByRole('button', { name: 'Hacer facilitador a Grace' })).toBeNull();
+
+    const onMakeFacilitator = vi.fn();
+    rerender(<ParticipantSeat {...baseProps} onMakeFacilitator={onMakeFacilitator} />);
+    screen.getByRole('button', { name: 'Hacer facilitador a Grace' }).click();
+
+    expect(onMakeFacilitator).toHaveBeenCalledOnce();
+  });
+
+  it('marca el asiento del facilitador', () => {
+    const { rerender } = render(<ParticipantSeat {...baseProps} />);
+    expect(screen.queryByRole('img', { name: 'Facilitador' })).toBeNull();
+
+    rerender(<ParticipantSeat {...baseProps} isFacilitator />);
+
+    expect(screen.getByRole('img', { name: 'Facilitador' })).toBeInTheDocument();
+  });
 });

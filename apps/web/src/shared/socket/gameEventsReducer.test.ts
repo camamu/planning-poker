@@ -36,6 +36,7 @@ function baseState(overrides: Partial<GameView> = {}): GameView {
       status: 'OPEN',
       votes: [],
       result: null,
+      previousRounds: [],
       dealerId: 'p1',
       timerDeadline: null,
     },
@@ -116,6 +117,7 @@ describe('gameEventsReducer', () => {
         status: 'OPEN',
         votes: [{ participantId: 'p1', card: null, hasVoted: true }],
         result: null,
+        previousRounds: [],
         dealerId: 'p1',
         timerDeadline: null,
       },
@@ -153,6 +155,42 @@ describe('gameEventsReducer', () => {
     expect(next?.currentRound?.result?.isUnanimous).toBe(true);
   });
 
+  it('round_revealed conserva las rondas anteriores de la tarea para compararlas', () => {
+    const previousRounds = [
+      {
+        id: 'round-0',
+        roundNumber: 1,
+        votes: [{ participantId: 'p1', card: '3' }],
+        result: {
+          distribution: { '3': 1 },
+          average: 3,
+          agreementPercentage: 100,
+          mostVoted: '3',
+          isUnanimous: true,
+        },
+      },
+    ];
+    const base = baseState();
+    const state = base.currentRound
+      ? { ...base, currentRound: { ...base.currentRound, roundNumber: 2, previousRounds } }
+      : base;
+    const event: ServerEvent = {
+      type: 'round_revealed',
+      version: 3,
+      roundId: 'round-1',
+      votes: [{ participantId: 'p1', card: '5' }],
+      result: {
+        distribution: { '5': 1 },
+        average: 5,
+        agreementPercentage: 100,
+        mostVoted: '5',
+        isUnanimous: true,
+      },
+    };
+
+    expect(gameEventsReducer(state, event)?.currentRound?.previousRounds).toEqual(previousRounds);
+  });
+
   it('issue_estimated marca la issue como estimada', () => {
     const state = baseState();
     const event: ServerEvent = {
@@ -177,6 +215,35 @@ describe('gameEventsReducer', () => {
     expect(needsResync('participant_hat_changed')).toBe(false);
   });
 
+  describe('traspaso de facilitador', () => {
+    const event: ServerEvent = {
+      type: 'facilitator_changed',
+      version: 2,
+      previousId: 'p1',
+      nextId: 'p2',
+    };
+
+    it('facilitator_changed pasa el rol de uno a otro sin tocar el resto', () => {
+      const state = baseState();
+      const next = gameEventsReducer(state, event);
+
+      expect(next?.participants.map((participant) => participant.isFacilitator)).toEqual([
+        false,
+        true,
+      ]);
+      expect(next?.participants.map((participant) => participant.displayName)).toEqual([
+        'Ada',
+        'Grace',
+      ]);
+      expect(next?.currentRound).toBe(state.currentRound);
+      expect(needsResync('facilitator_changed')).toBe(false);
+    });
+
+    it('facilitator_changed sin estado no inventa uno', () => {
+      expect(gameEventsReducer(null, event)).toBeNull();
+    });
+  });
+
   it('deck_changed reemplaza la baraja de la partida', () => {
     const event: ServerEvent = {
       type: 'deck_changed',
@@ -194,6 +261,86 @@ describe('gameEventsReducer', () => {
       settings: { ...baseState().settings, countdownSeconds: 45 },
     };
     expect(gameEventsReducer(state, event)?.settings.countdownSeconds).toBe(45);
+  });
+
+  describe('gestión de tareas', () => {
+    function withQueue(): GameView {
+      return baseState({
+        issues: [
+          { id: 'issue-1', title: 'Login', status: 'VOTING', finalEstimate: null },
+          { id: 'issue-2', title: 'Pagos', status: 'PENDING', finalEstimate: null },
+          { id: 'issue-3', title: 'Informes', status: 'PENDING', finalEstimate: null },
+        ],
+      });
+    }
+
+    it('issue_edited sustituye solo esa tarea por la vista que trae el evento', () => {
+      const event: ServerEvent = {
+        type: 'issue_edited',
+        version: 2,
+        issue: {
+          id: 'issue-2',
+          title: 'Pagos con tarjeta',
+          status: 'PENDING',
+          finalEstimate: null,
+        },
+      };
+      const next = gameEventsReducer(withQueue(), event);
+      expect(next?.issues.map((issue) => issue.title)).toEqual([
+        'Login',
+        'Pagos con tarjeta',
+        'Informes',
+      ]);
+      expect(needsResync('issue_edited')).toBe(false);
+    });
+
+    it('issue_removed quita la tarea y adopta el dealer que manda el servidor', () => {
+      const event: ServerEvent = {
+        type: 'issue_removed',
+        version: 2,
+        issueId: 'issue-2',
+        dealerId: 'p2',
+      };
+      const next = gameEventsReducer(withQueue(), event);
+      expect(next?.issues.map((issue) => issue.id)).toEqual(['issue-1', 'issue-3']);
+      expect(next?.currentRound?.dealerId).toBe('p2');
+      expect(needsResync('issue_removed')).toBe(false);
+    });
+
+    it('issues_reordered aplica el orden del evento y el dealer que manda el servidor', () => {
+      const event: ServerEvent = {
+        type: 'issues_reordered',
+        version: 2,
+        issueIds: ['issue-1', 'issue-3', 'issue-2'],
+        dealerId: 'p2',
+      };
+      const next = gameEventsReducer(withQueue(), event);
+      expect(next?.issues.map((issue) => issue.id)).toEqual(['issue-1', 'issue-3', 'issue-2']);
+      expect(next?.currentRound?.dealerId).toBe('p2');
+      expect(needsResync('issues_reordered')).toBe(false);
+    });
+
+    it('issues_reordered no pierde una tarea que el evento no nombra', () => {
+      const event: ServerEvent = {
+        type: 'issues_reordered',
+        version: 2,
+        issueIds: ['issue-3', 'issue-1'],
+        dealerId: null,
+      };
+      const next = gameEventsReducer(withQueue(), event);
+      expect(next?.issues.map((issue) => issue.id)).toEqual(['issue-3', 'issue-1', 'issue-2']);
+    });
+
+    it('sin ronda, borrar o reordenar no inventa una ronda para guardar el dealer', () => {
+      const state = { ...withQueue(), currentRound: null };
+      const event: ServerEvent = {
+        type: 'issues_reordered',
+        version: 2,
+        issueIds: ['issue-3', 'issue-2', 'issue-1'],
+        dealerId: null,
+      };
+      expect(gameEventsReducer(state, event)?.currentRound).toBeNull();
+    });
   });
 
   it('ningún evento sobre estado null distinto de state_sync produce estado', () => {

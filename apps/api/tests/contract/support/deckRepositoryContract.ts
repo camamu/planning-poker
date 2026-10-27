@@ -96,5 +96,27 @@ export function defineDeckRepositoryContractTests(
 
       await expect(repository.findById(DeckId.of('deck-6'))).resolves.toBeUndefined();
     });
+    it('listCustom() devuelve las personalizadas de todos los equipos y ninguna de sistema', async () => {
+      const repository = await makeRepository();
+      await repository.save(newCustomDeck('deck-a', 'team-1'));
+      await repository.save(newCustomDeck('deck-b', 'team-2'));
+
+      const custom = await repository.listCustom();
+
+      expect(custom.map((deck) => deck.id.value).sort()).toEqual(['deck-a', 'deck-b']);
+      expect(custom.every((deck) => deck.isCustom())).toBe(true);
+    });
+
+    it('deleteOwnedBy() borra solo las barajas de ese equipo', async () => {
+      const repository = await makeRepository();
+      await repository.save(newCustomDeck('deck-c', 'team-1'));
+      await repository.save(newCustomDeck('deck-d', 'team-2'));
+
+      await repository.deleteOwnedBy(TeamId.of('team-1'));
+
+      await expect(repository.findById(DeckId.of('deck-c'))).resolves.toBeUndefined();
+      expect((await repository.findById(DeckId.of('deck-d')))?.name.value).toBe('Mi baraja');
+      expect(await repository.findById(SYSTEM_DECK_IDS.fibonacci)).toBeDefined();
+    });
   });
 }

@@ -1,6 +1,11 @@
 import type { GameView, HatIdView, ParticipantView, RoundView } from '@pp/contracts';
 import { useEffect } from 'react';
-import { changeParticipantHat, removeParticipant } from '../../../shared/api/gamesClient.js';
+import {
+  changeParticipantHat,
+  claimFacilitator,
+  removeParticipant,
+  transferFacilitator,
+} from '../../../shared/api/gamesClient.js';
 import { useGameStore } from '../../../shared/store/gameStore.js';
 import type { ConnectionStatus } from '../../../shared/store/gameStore.js';
 import type { SeatPosition } from '../seatLayout.js';
@@ -18,6 +23,15 @@ export interface UseGameTableResult {
   readonly totalVoters: number;
   readonly hasLeft: boolean;
   readonly isFacilitator: boolean;
+  /** El facilitador está desconectado y quien mira puede tomar el relevo (ADR 0021). */
+  readonly facilitatorAbsent: boolean;
+  readonly facilitatorName: string | null;
+  /** Solo el facilitador: pasa el rol a otro participante. */
+  readonly transferFacilitator: (toParticipantId: string) => Promise<void>;
+  /** Cualquiera: toma el relevo de un facilitador desconectado; el servidor lo comprueba. */
+  readonly claimFacilitator: () => Promise<void>;
+  /** El facilitador cede el rol y sale de la partida en un solo gesto. */
+  readonly leaveAsFacilitator: (successorId: string) => Promise<void>;
   /** El facilitador quita a otro, o cualquiera sale él mismo (`targetId === participantId`). */
   readonly removeParticipant: (targetId: string) => Promise<void>;
   /** `null` = quitarse el sombrero. Solo el propio: nadie le pone sombrero a otro (ADR 0017). */
@@ -28,6 +42,9 @@ export interface UseGameTableResult {
   readonly startQuickRound: () => void;
   readonly reveal: () => void;
   readonly setFinalEstimate: (card: string) => void;
+  readonly renameIssue: (issueId: string, title: string) => void;
+  readonly deleteIssue: (issueId: string) => void;
+  readonly reorderIssues: (issueIds: ReadonlyArray<string>) => void;
   readonly remainingMs: number | null;
   readonly theme: 'dark' | 'light';
   readonly muted: boolean;
@@ -51,6 +68,9 @@ export function useGameTable(gameId: string, participantId: string): UseGameTabl
   const reveal = useGameStore((state) => state.reveal);
   const setFinalEstimate = useGameStore((state) => state.setFinalEstimate);
   const timeoutReveal = useGameStore((state) => state.timeoutReveal);
+  const renameIssue = useGameStore((state) => state.renameIssue);
+  const deleteIssue = useGameStore((state) => state.deleteIssue);
+  const reorderIssueQueue = useGameStore((state) => state.reorderIssueQueue);
   const theme = useGameStore((state) => state.theme);
   const muted = useGameStore((state) => state.muted);
   const toggleTheme = useGameStore((state) => state.toggleTheme);
@@ -84,6 +104,8 @@ export function useGameTable(gameId: string, participantId: string): UseGameTabl
   // confirmación, y `participant_voted` no reenvía la carta al cambiar de voto.
   const confirmedCard =
     round?.votes.find((vote) => vote.participantId === participantId)?.card ?? null;
+  const me = game?.participants.find((participant) => participant.id === participantId);
+  const facilitator = game?.participants.find((participant) => participant.isFacilitator);
 
   return {
     game,
@@ -95,9 +117,35 @@ export function useGameTable(gameId: string, participantId: string): UseGameTabl
     votedCount,
     totalVoters: presentVoters.length,
     hasLeft,
-    isFacilitator:
-      game?.participants.find((participant) => participant.id === participantId)?.isFacilitator ??
-      false,
+    isFacilitator: me?.isFacilitator ?? false,
+    // Con el socket caído la presencia que se ve está obsoleta: no se ofrece un relevo que el
+    // servidor rechazaría o, peor, que se pediría por un corte propio.
+    facilitatorAbsent:
+      status === 'connected' && !!me && !me.isFacilitator && !!facilitator && !facilitator.online,
+    facilitatorName: facilitator?.displayName ?? null,
+    transferFacilitator: async (toParticipantId) => {
+      try {
+        await transferFacilitator(gameId, { participantId, toParticipantId });
+      } catch (cause) {
+        reportFailure(cause, 'No se pudo ceder el rol de facilitador.');
+      }
+    },
+    claimFacilitator: async () => {
+      try {
+        await claimFacilitator(gameId, { participantId });
+      } catch (cause) {
+        reportFailure(cause, 'No se pudo tomar el relevo.');
+      }
+    },
+    leaveAsFacilitator: async (successorId) => {
+      try {
+        await transferFacilitator(gameId, { participantId, toParticipantId: successorId });
+        await removeParticipant(gameId, participantId, participantId);
+        useGameStore.setState({ hasLeft: true });
+      } catch (cause) {
+        reportFailure(cause, 'No se pudo ceder el rol y salir de la partida.');
+      }
+    },
     removeParticipant: async (targetId) => {
       try {
         await removeParticipant(gameId, targetId, participantId);
@@ -123,6 +171,9 @@ export function useGameTable(gameId: string, participantId: string): UseGameTabl
     startQuickRound,
     reveal,
     setFinalEstimate,
+    renameIssue: (issueId, title) => void renameIssue(issueId, title),
+    deleteIssue: (issueId) => void deleteIssue(issueId),
+    reorderIssues: (issueIds) => void reorderIssueQueue(issueIds),
     remainingMs,
     theme,
     muted,
@@ -131,6 +182,10 @@ export function useGameTable(gameId: string, participantId: string): UseGameTabl
     canReveal: game ? canParticipantReveal(game, participantId) : false,
     clearError,
   };
+}
+
+function reportFailure(cause: unknown, fallback: string): void {
+  useGameStore.setState({ errorMessage: cause instanceof Error ? cause.message : fallback });
 }
 
 function canParticipantReveal(game: GameView, participantId: string): boolean {

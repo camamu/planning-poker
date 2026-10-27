@@ -17,6 +17,7 @@ export interface TableProps {
     readonly displayName: string;
     readonly online: boolean;
     readonly hat: HatIdView | null;
+    readonly isFacilitator: boolean;
     readonly seat: SeatPosition;
   }>;
   readonly viewerId: string;
@@ -26,6 +27,8 @@ export interface TableProps {
   readonly seatCursor?: string | undefined;
   /** Solo para el facilitador: quitar a otro participante de la mesa. */
   readonly onRemoveSeat?: ((participantId: string) => void) | undefined;
+  /** Solo para el facilitador: ceder el rol al participante de ese asiento. */
+  readonly onMakeFacilitatorSeat?: ((participantId: string) => void) | undefined;
 }
 
 export function Table({
@@ -38,6 +41,7 @@ export function Table({
   onSeatClick,
   seatCursor,
   onRemoveSeat,
+  onMakeFacilitatorSeat,
 }: TableProps): JSX.Element {
   const issue = round ? game.issues.find((candidate) => candidate.id === round.issueId) : undefined;
   const revealed = round?.status === 'REVEALED' || round?.status === 'CLOSED';
@@ -125,6 +129,14 @@ export function Table({
             isViewer={seat.id === viewerId}
             online={seat.online}
             hat={seat.hat}
+            isFacilitator={seat.isFacilitator}
+            onMakeFacilitator={
+              onMakeFacilitatorSeat && seat.id !== viewerId
+                ? () => {
+                    onMakeFacilitatorSeat(seat.id);
+                  }
+                : undefined
+            }
             onRemove={
               onRemoveSeat && seat.id !== viewerId
                 ? () => {
