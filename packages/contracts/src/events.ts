@@ -37,6 +37,11 @@ export type ServerEvent =
       readonly nextId: string;
     })
   | (ServerEventBase & { readonly type: 'issue_added'; readonly issueId: string })
+  // Un solo evento para toda la importación (ADR 0023): el cliente hace un único `resync`.
+  | (ServerEventBase & {
+      readonly type: 'issues_imported';
+      readonly issueIds: ReadonlyArray<string>;
+    })
   | (ServerEventBase & { readonly type: 'issue_edited'; readonly issue: IssueView })
   // `dealerId` acompaña a los dos eventos que mueven la posición de la tarea actual en la cola
   // (Game.currentDealer()): sin él los clientes pintarían un dealer que ya no es el del servidor.

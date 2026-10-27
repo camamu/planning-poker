@@ -118,25 +118,41 @@ export const claimFacilitatorCommandSchema = z.object({
 });
 export type ClaimFacilitatorCommandInput = z.infer<typeof claimFacilitatorCommandSchema>;
 
+/** `externalUrl` solo admite http(s): se pinta como enlace y no debe poder ser `javascript:`. */
+const externalUrlSchema = z
+  .string()
+  .trim()
+  .pipe(z.url({ protocol: /^https?$/ }));
+
 /** REST — `POST /api/games/:id/issues` */
 export const addIssueCommandSchema = z.object({
   title: z.string().trim().min(1),
+  description: z.string().trim().optional(),
+  externalUrl: externalUrlSchema.optional(),
 });
 export type AddIssueCommandInput = z.infer<typeof addIssueCommandSchema>;
 
 /**
+ * Tope de tareas por importación (ADR 0023): `PostgresGameRepository.save()` reescribe todas las
+ * issues de la partida, y una importación enorme alargaría cada guardado posterior.
+ */
+export const MAX_IMPORTED_ISSUES = 200;
+
+/** REST — `POST /api/games/:id/issues/batch`. Todas o ninguna: un título vacío rechaza el lote entero. */
+export const importIssuesCommandSchema = z.object({
+  issues: z.array(addIssueCommandSchema).min(1).max(MAX_IMPORTED_ISSUES),
+});
+export type ImportIssuesCommandInput = z.infer<typeof importIssuesCommandSchema>;
+
+/**
  * REST — `PATCH /api/games/:id/issues/:issueId`. `description` y `externalUrl` ausentes dejan lo
- * que había (ADR 0019). `externalUrl` solo admite http(s): se pintará como enlace (bloque 15).
+ * que había (ADR 0019).
  */
 export const editIssueCommandSchema = z.object({
   participantId: z.string().trim().min(1),
   title: z.string().trim().min(1),
   description: z.string().trim().optional(),
-  externalUrl: z
-    .string()
-    .trim()
-    .pipe(z.url({ protocol: /^https?$/ }))
-    .optional(),
+  externalUrl: externalUrlSchema.optional(),
 });
 export type EditIssueCommandInput = z.infer<typeof editIssueCommandSchema>;
 
