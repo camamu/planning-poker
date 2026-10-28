@@ -1,5 +1,47 @@
 # Changelog
 
+## [1.8.0](https://github.com/camamu/planning-poker/compare/planning-poker-v1.7.0...planning-poker-v1.8.0) (2026-10-22)
+
+
+### Features
+
+* **contracts:** throwEmojis activado por defecto ([6cd1094](https://github.com/camamu/planning-poker/commit/6cd1094b846143dfa42b5e4181089b5717b2ddbb))
+* **domain:** cualquier participante puede cambiar la baraja y emojis activados por defecto ([16def25](https://github.com/camamu/planning-poker/commit/16def2582a933e83fed5a6821767c288256bf1d7))
+* **web:** logo de la app en la pantalla de entrar a la sala ([7211c5e](https://github.com/camamu/planning-poker/commit/7211c5ef466814e625590921ed1b6d656bb9cbce))
+* **web:** selector de baraja para toda la sala y emojis activados al crear ([32e723f](https://github.com/camamu/planning-poker/commit/32e723f2668bb7854d6e9130d3e4d9616beb0a63))
+
+## [1.7.0](https://github.com/camamu/planning-poker/compare/planning-poker-v1.6.0...planning-poker-v1.7.0) (2026-10-21)
+
+
+### Features
+
+* **app:** caso de uso ChangeParticipantHat y sombrero en la vista ([0711d26](https://github.com/camamu/planning-poker/commit/0711d26f7797d8fc7985fc69a56a8a41b33f42b5))
+* **contracts:** sombrero en ParticipantView, comando y evento participant_hat_changed ([6eb2fbd](https://github.com/camamu/planning-poker/commit/6eb2fbdcf199b97a60af1682c068c73edd1ca842))
+* **domain:** sombrero de avatar con Game.changeParticipantHat (cada uno el suyo) ([63a9acc](https://github.com/camamu/planning-poker/commit/63a9acc58c3ef385aa4141c0be2abc2a10584e58))
+* **infra:** persistencia, PATCH y evento en vivo del sombrero de avatar ([d701225](https://github.com/camamu/planning-poker/commit/d7012257dbc327607aef557c419322dbd4376f7f))
+* **web:** sombreros de avatar dibujados y selector en la sala ([7b029ac](https://github.com/camamu/planning-poker/commit/7b029ac673c27fdbaaee535a11dcd76beb8707ad))
+
+## [1.6.0](https://github.com/camamu/planning-poker/compare/planning-poker-v1.5.0...planning-poker-v1.6.0) (2026-10-16)
+
+
+### Features
+
+* **web:** logo de ficha y carta, favicon y token de marca ([360dd85](https://github.com/camamu/planning-poker/commit/360dd859ffd8de73514b9489db18777f68d7f806))
+
+## [1.5.0](https://github.com/camamu/planning-poker/compare/planning-poker-v1.4.2...planning-poker-v1.5.0) (2026-10-15)
+
+
+### Features
+
+* **app:** presencia en tiempo real y salida de participantes ([7d7dd31](https://github.com/camamu/planning-poker/commit/7d7dd31916815b61ceb18483d0bef4d3e092bb11))
+* **app:** presencia en tiempo real y salida de participantes ([ee22bb1](https://github.com/camamu/planning-poker/commit/ee22bb1225cd0b1797b5d3e6c7351946c1d629ef))
+
+
+### Bug Fixes
+
+* **web:** hace visible que la baraja está bloqueada con una ronda abierta ([279f9a0](https://github.com/camamu/planning-poker/commit/279f9a05ad245c908d8bae189080d6099742af9d))
+* **web:** hace visible que la baraja está bloqueada con una ronda abierta ([78f49ab](https://github.com/camamu/planning-poker/commit/78f49abb40d95d14ebee00d09d85dd4d593fdfc9))
+
 ## [1.4.2](https://github.com/camamu/planning-poker/compare/planning-poker-v1.4.1...planning-poker-v1.4.2) (2026-10-05)
 
 
