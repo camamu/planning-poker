@@ -10,6 +10,7 @@ import {
   saveCustomDeck,
   updateCustomDeck,
 } from '../../shared/api/teamsClient.js';
+import { useServerReady } from '../../shared/store/serverStatusStore.js';
 import { rememberTeam } from '../../shared/team/rememberedTeams.js';
 import { CustomDeckForm } from './components/CustomDeckForm.js';
 import type { CustomDeckFormValue } from './components/CustomDeckForm.js';
@@ -27,13 +28,14 @@ export function TeamPage(): JSX.Element {
   const [error, setError] = useState<string | null>(null);
   const [editing, setEditing] = useState<Editing | null>(null);
   const [submitting, setSubmitting] = useState(false);
+  const serverReady = useServerReady();
 
   async function reloadDecks(teamSlug: string): Promise<void> {
     setDecks(await listDecks(teamSlug));
   }
 
   useEffect(() => {
-    if (!slug || !token) return;
+    if (!slug || !token || !serverReady) return;
     let cancelled = false;
     authenticateTeam(slug, token)
       .then(async (resolved) => {
@@ -51,7 +53,7 @@ export function TeamPage(): JSX.Element {
     return () => {
       cancelled = true;
     };
-  }, [slug, token]);
+  }, [slug, token, serverReady]);
 
   if (!slug || !token) {
     return (

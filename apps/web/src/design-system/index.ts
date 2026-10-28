@@ -4,6 +4,8 @@ export { Hat, HAT_LABELS } from './components/Hat/Hat.js';
 export type { HatProps } from './components/Hat/Hat.js';
 export { Badge } from './components/Badge/Badge.js';
 export type { BadgeProps, BadgeVariant } from './components/Badge/Badge.js';
+export { Banner } from './components/Banner/Banner.js';
+export type { BannerAction, BannerProps, BannerVariant } from './components/Banner/Banner.js';
 export { Button } from './components/Button/Button.js';
 export type { ButtonProps, ButtonVariant } from './components/Button/Button.js';
 export { Card } from './components/Card/Card.js';

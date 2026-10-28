@@ -314,6 +314,27 @@ h4 {
   animation: ppPop 0.25s ease-out;
 }
 
+/* — banner — */
+.pp-banner {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: center;
+  gap: 4px 12px;
+  padding: 8px 16px;
+  border-radius: var(--radius-md);
+  box-shadow: var(--shadow-lg);
+  font-size: 13px;
+}
+.pp-banner-info {
+  background: var(--color-accent-900);
+  color: var(--color-accent-200);
+}
+.pp-banner-error {
+  background: #5a1d20;
+  color: #ffd9da;
+}
+
 /* — tabs — */
 .pp-tabs {
   display: flex;

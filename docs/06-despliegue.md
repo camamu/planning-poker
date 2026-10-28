@@ -44,7 +44,9 @@ El primer request tras un rato sin tráfico tarda en despertar (varios segundos,
 más). Una vez hay tráfico — alguien conectado por WebSocket — se mantiene despierto solo.
 
 **Mitigación aceptada, no técnica:** abrir el enlace de la partida un par de minutos antes de empezar
-la sesión. Añadir un ping automático que mantenga la API siempre despierta consume horas del cupo
+la sesión. Desde el bloque 14 la app lo hace más llevadero: al cargar pide `/health` con reintentos,
+muestra «Despertando el servidor…» y deshabilita crear partida, unirse y crear equipo hasta que la API
+responde (`docs/adr/0022-despertar-la-api.md`). Sigue sin ser un ping permanente. Añadir un ping automático que mantenga la API siempre despierta consume horas del cupo
 gratis de Render sin necesidad real — no compensa para una app que se usa un rato cada dos semanas.
 Si en algún momento molesta de verdad, es la señal de pasar a un plan de pago o volver a la opción de
 VPS, no de parchear con más automatismos.

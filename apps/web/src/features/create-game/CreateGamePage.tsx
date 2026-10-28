@@ -5,6 +5,7 @@ import { Link, useNavigate, useSearchParams } from 'react-router-dom';
 import { Button, Input, QrCode } from '../../design-system/index.js';
 import { createGame } from '../../shared/api/gamesClient.js';
 import { listDecks } from '../../shared/api/teamsClient.js';
+import { useServerReady } from '../../shared/store/serverStatusStore.js';
 import type { RememberedTeam } from '../../shared/team/rememberedTeams.js';
 import { rememberedTeams } from '../../shared/team/rememberedTeams.js';
 import { saveParticipantIdentity } from '../../shared/viewer/ParticipantIdProvider.js';
@@ -13,6 +14,7 @@ import {
   GameSettingsForm,
 } from '../deck-settings/components/GameSettingsForm.js';
 import type { GameSettingsFormValue } from '../deck-settings/components/GameSettingsForm.js';
+import { ServerNotReadyNote } from '../server-status/ServerNotReadyNote.js';
 
 interface CreatedGame {
   readonly gameId: string;
@@ -34,8 +36,10 @@ export function CreateGamePage(): JSX.Element {
   const [submitting, setSubmitting] = useState(false);
   const [created, setCreated] = useState<CreatedGame | null>(null);
   const [teams] = useState<ReadonlyArray<RememberedTeam>>(rememberedTeams);
+  const serverReady = useServerReady();
 
   useEffect(() => {
+    if (!serverReady) return;
     let cancelled = false;
     listDecks(teamSlug)
       .then((available) => {
@@ -52,7 +56,7 @@ export function CreateGamePage(): JSX.Element {
     return () => {
       cancelled = true;
     };
-  }, [teamSlug]);
+  }, [teamSlug, serverReady]);
 
   async function handleSubmit(event: SubmitEvent<HTMLFormElement>): Promise<void> {
     event.preventDefault();
@@ -166,9 +170,15 @@ export function CreateGamePage(): JSX.Element {
 
         {error ? <p style={{ color: '#e5484d' }}>{error}</p> : null}
 
-        <Button type="submit" variant="primary" block disabled={submitting || !deckId}>
+        <Button
+          type="submit"
+          variant="primary"
+          block
+          disabled={submitting || !deckId || !serverReady}
+        >
           {submitting ? 'Creando…' : 'Crear y repartir'}
         </Button>
+        <ServerNotReadyNote />
       </form>
 
       {teamSlug ? null : <TeamShortcuts teams={teams} />}
