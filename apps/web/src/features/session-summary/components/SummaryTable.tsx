@@ -1,16 +1,15 @@
-import type { GameSummaryIssueView, IssueStatusView } from '@pp/contracts';
+import type { GameSummaryIssueView } from '@pp/contracts';
 import type { JSX } from 'react';
-import { attentionOf, formatDuration, needsAttention } from '../summaryFormat.js';
+import {
+  attentionOf,
+  formatDuration,
+  ISSUE_STATUS_LABELS,
+  needsAttention,
+} from '../summaryFormat.js';
 
 export interface SummaryTableProps {
   readonly issues: ReadonlyArray<GameSummaryIssueView>;
 }
-
-const STATUS_LABELS: Record<IssueStatusView, string> = {
-  PENDING: 'Pendiente',
-  VOTING: 'En votación',
-  ESTIMATED: 'Estimada',
-};
 
 function TitleCell({ issue }: { readonly issue: GameSummaryIssueView }): JSX.Element {
   return (
@@ -71,7 +70,7 @@ function SummaryRow({ issue }: { readonly issue: GameSummaryIssueView }): JSX.El
           (issue.finalEstimate ?? '—')
         ) : (
           <span className="text-xs font-normal" style={{ color: 'var(--pp-muted)' }}>
-            {STATUS_LABELS[issue.status]}
+            {ISSUE_STATUS_LABELS[issue.status]}
           </span>
         )}
       </td>

@@ -171,12 +171,23 @@ describe('SessionSummaryPage', () => {
     );
   });
 
-  it('avisa de que la partida no tiene tareas', async () => {
+  it('ofrece descargar el CSV y copiar el Markdown cuando hay tareas', async () => {
+    vi.mocked(getGameSummary).mockResolvedValue(summary());
+
+    renderPage();
+
+    const exportSection = await screen.findByRole('region', { name: 'Exportar el resumen' });
+    expect(within(exportSection).getByRole('button', { name: 'Descargar CSV' })).toBeVisible();
+    expect(within(exportSection).getByRole('button', { name: 'Copiar Markdown' })).toBeVisible();
+  });
+
+  it('avisa de que la partida no tiene tareas y no ofrece exportar nada', async () => {
     vi.mocked(getGameSummary).mockResolvedValue(summary({ issues: [] }));
 
     renderPage();
 
     expect(await screen.findByText('Esta partida todavía no tiene tareas.')).toBeInTheDocument();
+    expect(screen.queryByRole('region', { name: 'Exportar el resumen' })).not.toBeInTheDocument();
   });
 
   it('muestra el error del servidor, por ejemplo una partida que no existe', async () => {
