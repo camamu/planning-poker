@@ -94,6 +94,47 @@ export interface GameView {
   readonly currentRound: RoundView | null;
 }
 
+/**
+ * Una tarea en el resumen de la sesión. Solo agregados: el resumen se comparte fuera de la sala y
+ * no lleva ningún voto individual (ADR 0025).
+ */
+export interface GameSummaryIssueView extends IssueView {
+  /** Rondas reveladas de la tarea; una ronda abierta no cuenta. */
+  readonly rounds: number;
+  /** De la última ronda revelada. `null` si la tarea aún no tiene ninguna. */
+  readonly agreementPercentage: number | null;
+  readonly average: number | null;
+  /** De abrir la primera ronda a la estimación final. `null` si falta cualquiera de los dos tiempos. */
+  readonly durationMs: number | null;
+}
+
+export interface GameSummaryTotalsView {
+  /** Tareas con estimación final. */
+  readonly estimatedCount: number;
+  /** Tareas sin estimación final: pendientes o en votación. */
+  readonly pendingCount: number;
+  /** Suma de las estimaciones numéricas. `null` si ninguna lo es (baraja de tallas). */
+  readonly points: number | null;
+  /** Recuento por valor de las estimaciones no numéricas; `?` y `☕` no cuentan. */
+  readonly nonNumericEstimates: Record<string, number>;
+  /** Tareas estimadas cuya última ronda revelada terminó en unanimidad. */
+  readonly unanimousCount: number;
+  /** Tareas que necesitaron más de una ronda revelada. */
+  readonly multiRoundCount: number;
+  /** Media de las duraciones conocidas. `null` si no hay ninguna. */
+  readonly averageDurationMs: number | null;
+  /** Participantes distintos que votaron en alguna ronda revelada. */
+  readonly voterCount: number;
+}
+
+/** `GET /api/games/:id/summary` (ADR 0025). */
+export interface GameSummaryView {
+  readonly id: string;
+  readonly name: string;
+  readonly issues: ReadonlyArray<GameSummaryIssueView>;
+  readonly totals: GameSummaryTotalsView;
+}
+
 export interface TeamView {
   readonly id: string;
   readonly slug: string;
