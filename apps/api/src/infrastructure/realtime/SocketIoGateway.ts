@@ -1,7 +1,10 @@
 import {
+  wsAsyncVoteCommandSchema,
   wsDiscussionTimerControlCommandSchema,
   wsEmojiThrownCommandSchema,
   wsJoinCommandSchema,
+  wsOpenAsyncRoundsCommandSchema,
+  wsRevealAsyncCommandSchema,
   wsRevealCommandSchema,
   wsSetEstimateCommandSchema,
   wsStartQuickRoundCommandSchema,
@@ -10,10 +13,13 @@ import {
 } from '@pp/contracts';
 import type { Server, Socket } from 'socket.io';
 import { ZodError } from 'zod';
+import type { CastAsyncVote } from '../../application/use-cases/CastAsyncVote.js';
 import type { CastVote } from '../../application/use-cases/CastVote.js';
 import type { GetGameState } from '../../application/use-cases/GetGameState.js';
 import { ParticipantHasLeftError } from '../../application/use-cases/ParticipantHasLeftError.js';
 import { GameNotFoundError } from '../../application/use-cases/GameNotFoundError.js';
+import type { OpenAsyncRounds } from '../../application/use-cases/OpenAsyncRounds.js';
+import type { RevealAsyncRounds } from '../../application/use-cases/RevealAsyncRounds.js';
 import type { RevealRound } from '../../application/use-cases/RevealRound.js';
 import type { StartQuickRound } from '../../application/use-cases/StartQuickRound.js';
 import type { StartVotingRound } from '../../application/use-cases/StartVotingRound.js';
@@ -36,6 +42,9 @@ export interface SocketGatewayDependencies {
   readonly revealRound: RevealRound;
   readonly timeoutReveal: TimeoutReveal;
   readonly setFinalEstimate: SetFinalEstimate;
+  readonly openAsyncRounds: OpenAsyncRounds;
+  readonly castAsyncVote: CastAsyncVote;
+  readonly revealAsyncRounds: RevealAsyncRounds;
   readonly versions: GameVersionTracker;
   /** Solo lectura, para comprobar `settings.throwEmojis` antes de reenviar un emoji. */
   readonly games: GameRepository;
@@ -129,6 +138,24 @@ export function registerSocketGateway(io: Server, deps: SocketGatewayDependencie
     socket.on('set_estimate', (payload: unknown) => {
       void handle(socket, async () => {
         await deps.setFinalEstimate.execute(wsSetEstimateCommandSchema.parse(payload));
+      });
+    });
+
+    socket.on('open_async_rounds', (payload: unknown) => {
+      void handle(socket, async () => {
+        await deps.openAsyncRounds.execute(wsOpenAsyncRoundsCommandSchema.parse(payload));
+      });
+    });
+
+    socket.on('async_vote', (payload: unknown) => {
+      void handle(socket, async () => {
+        await deps.castAsyncVote.execute(wsAsyncVoteCommandSchema.parse(payload));
+      });
+    });
+
+    socket.on('reveal_async', (payload: unknown) => {
+      void handle(socket, async () => {
+        await deps.revealAsyncRounds.execute(wsRevealAsyncCommandSchema.parse(payload));
       });
     });
 

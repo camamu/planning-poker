@@ -105,6 +105,19 @@ export class WsEventPublisher implements EventPublisher {
         };
       case 'RoundRevealed':
         return this.toRoundRevealedEvent(event.gameId);
+      case 'AsyncRoundsOpened':
+        return { type: 'async_rounds_opened', issueIds: event.rounds.map((r) => r.issueId.value) };
+      case 'AsyncVoteCast':
+        return {
+          type: 'async_vote_cast',
+          issueId: event.issueId.value,
+          participantId: event.participantId.value,
+        };
+      case 'AsyncRoundsRevealed':
+        return {
+          type: 'async_rounds_revealed',
+          issueIds: event.rounds.map((r) => r.issueId.value),
+        };
       case 'IssueEstimated':
         return {
           type: 'issue_estimated',
