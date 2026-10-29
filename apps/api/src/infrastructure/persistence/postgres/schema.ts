@@ -77,6 +77,16 @@ export interface TeamTable {
   created_at: Generated<Date>;
 }
 
+export interface TeamWebhookTable {
+  id: string;
+  team_id: string;
+  url: string;
+  /** `WebhookEvent`s del dominio, en el orden elegido. */
+  events: ColumnType<ReadonlyArray<string>, string, string>;
+  secret: string;
+  created_at: Generated<Date>;
+}
+
 export interface DeckTable {
   id: string;
   /** `null` = baraja de sistema. */
@@ -94,5 +104,6 @@ export interface Database {
   rounds: RoundTable;
   votes: VoteTable;
   teams: TeamTable;
+  team_webhooks: TeamWebhookTable;
   decks: DeckTable;
 }
