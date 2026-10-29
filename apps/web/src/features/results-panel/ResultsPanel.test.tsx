@@ -177,3 +177,34 @@ describe('ResultsPanel: resumen de la sesión', () => {
     ).not.toBeInTheDocument();
   });
 });
+
+describe('ResultsPanel: media', () => {
+  afterEach(cleanup);
+
+  function renderWithAverage(average: number): void {
+    renderPanel(
+      revealedRound({
+        previousRounds: [],
+        result: { ...result({ '5': 1, '8': 1 }, '5'), average },
+      }),
+    );
+  }
+
+  it('redondea la media a dos decimales en vez de enseñar todos los de la división', () => {
+    renderWithAverage(26 / 3);
+
+    expect(screen.getByText('8.67')).toBeInTheDocument();
+  });
+
+  it('no añade ceros a una media que ya es exacta', () => {
+    renderWithAverage(6.5);
+
+    expect(screen.getByText('6.5')).toBeInTheDocument();
+  });
+
+  it('enseña un entero sin decimales', () => {
+    renderWithAverage(5);
+
+    expect(screen.getByText('Media').nextElementSibling).toHaveTextContent(/^5$/);
+  });
+});
