@@ -1,7 +1,9 @@
 import type { JSX } from 'react';
 import { Link, useParams } from 'react-router-dom';
 import { Button } from '../../design-system/index.js';
+import { loadParticipantIdentity } from '../../shared/viewer/ParticipantIdProvider.js';
 import { ExportActions } from './components/ExportActions.js';
+import { SendSummaryToTeam } from './components/SendSummaryToTeam.js';
 import { SummaryTable } from './components/SummaryTable.js';
 import { SummaryTotals } from './components/SummaryTotals.js';
 import { useGameSummary } from './useGameSummary.js';
@@ -15,6 +17,9 @@ export function SessionSummaryPage(): JSX.Element {
 
 function SessionSummary({ gameId }: { readonly gameId: string }): JSX.Element {
   const { summary, error } = useGameSummary(gameId);
+  // La página no tiene identidad propia (la ve quien tenga el enlace); la del navegador, si la hay,
+  // es la de alguien que estuvo en la partida y puede enviar el resumen.
+  const identity = loadParticipantIdentity(gameId);
 
   if (error) {
     return (
@@ -52,6 +57,9 @@ function SessionSummary({ gameId }: { readonly gameId: string }): JSX.Element {
         <>
           <SummaryTotals totals={summary.totals} />
           <ExportActions summary={summary} />
+          {summary.canSendToTeam && identity ? (
+            <SendSummaryToTeam gameId={gameId} participantId={identity.participantId} />
+          ) : null}
           <SummaryTable issues={summary.issues} />
           <p className="text-xs" style={{ color: 'var(--pp-muted)' }}>
             Las tareas con un acuerdo por debajo del 50 % o que necesitaron varias rondas aparecen

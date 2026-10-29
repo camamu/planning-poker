@@ -1,7 +1,12 @@
 import { cleanup, fireEvent, render, screen } from '@testing-library/react';
 import { MemoryRouter, Route, Routes } from 'react-router-dom';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
-import { authenticateTeam, listDecks, listTeamGames } from '../../shared/api/teamsClient.js';
+import {
+  authenticateTeam,
+  listDecks,
+  listTeamGames,
+  listWebhooks,
+} from '../../shared/api/teamsClient.js';
 import { useServerStatusStore } from '../../shared/store/serverStatusStore.js';
 import { TeamPage } from './TeamPage.js';
 
@@ -9,6 +14,7 @@ vi.mock('../../shared/api/teamsClient.js', () => ({
   authenticateTeam: vi.fn(),
   listDecks: vi.fn(),
   listTeamGames: vi.fn(),
+  listWebhooks: vi.fn(),
   saveCustomDeck: vi.fn(),
   updateCustomDeck: vi.fn(),
   deleteCustomDeck: vi.fn(),
@@ -38,6 +44,16 @@ describe('TeamPage', () => {
     vi.mocked(listDecks).mockResolvedValue([
       { id: 'fib', name: 'Fibonacci', cards: ['1', '2', '3'], teamId: null },
     ]);
+    vi.mocked(listWebhooks)
+      .mockReset()
+      .mockResolvedValue([
+        {
+          id: 'w1',
+          url: 'https://hooks.example/jira',
+          events: ['issue.estimated'],
+          secretHint: 'ab12',
+        },
+      ]);
     vi.mocked(listTeamGames)
       .mockReset()
       .mockResolvedValue([
@@ -85,5 +101,17 @@ describe('TeamPage', () => {
     fireEvent.click(screen.getByRole('tab', { name: 'Barajas' }));
 
     expect(screen.getByText('Fibonacci')).toBeInTheDocument();
+  });
+
+  it('la pestaña Webhooks lista los del equipo y no los pide hasta que se abre', async () => {
+    renderPage();
+    await screen.findByText('Fibonacci');
+    expect(listWebhooks).not.toHaveBeenCalled();
+
+    fireEvent.click(screen.getByRole('tab', { name: 'Webhooks' }));
+
+    expect(await screen.findByText('https://hooks.example/jira')).toBeInTheDocument();
+    expect(listWebhooks).toHaveBeenCalledWith('backend', 'tok');
+    expect(screen.queryByText('Fibonacci')).not.toBeInTheDocument();
   });
 });

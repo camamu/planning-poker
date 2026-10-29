@@ -249,6 +249,32 @@ describe('gameStore', () => {
   });
 });
 
+describe('gameStore: webhook_failed', () => {
+  it('avisa a la sala de qué envío no llegó y de que lo hecho sí se guardó', () => {
+    useGameStore.setState({ errorMessage: null });
+
+    handlers.get('webhook_failed')?.({
+      type: 'webhook_failed',
+      event: 'issue.estimated',
+      issueId: 'issue-1',
+    });
+
+    const message = useGameStore.getState().errorMessage;
+    expect(message).toContain('Tarea estimada');
+    expect(message).toContain('sí se ha guardado');
+  });
+
+  it('nombra el evento de importación cuando falla ese envío', () => {
+    handlers.get('webhook_failed')?.({
+      type: 'webhook_failed',
+      event: 'issues.imported',
+      issueId: null,
+    });
+
+    expect(useGameStore.getState().errorMessage).toContain('Tareas importadas');
+  });
+});
+
 describe('gameStore: votación en diferido', () => {
   beforeEach(() => {
     useGameStore.setState({

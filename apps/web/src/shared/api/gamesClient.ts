@@ -6,12 +6,13 @@ import type {
   CreateGameCommandInput,
   DeckSummaryView,
   EditIssueCommandInput,
-  GameSummaryView,
+  GameSummaryResponseView,
   GameView,
   ImportIssuesCommandInput,
   JoinGameCommandInput,
   RemoveIssueCommandInput,
   ReorderIssuesCommandInput,
+  SendSessionSummaryResultView,
   TransferFacilitatorCommandInput,
   UpdateGameSettingsCommandInput,
 } from '@pp/contracts';
@@ -117,8 +118,19 @@ export function getGameState(gameId: string, participantId: string): Promise<Gam
   return requestJson(`/api/games/${gameId}?${query}`);
 }
 
-export function getGameSummary(gameId: string): Promise<GameSummaryView> {
+export function getGameSummary(gameId: string): Promise<GameSummaryResponseView> {
   return requestJson(`/api/games/${gameId}/summary`);
+}
+
+/** Envía el resumen a los webhooks del equipo y devuelve a cuántos llegó (ADR 0028). */
+export function sendSessionSummary(
+  gameId: string,
+  participantId: string,
+): Promise<SendSessionSummaryResultView> {
+  return requestJson(`/api/games/${gameId}/summary/webhook`, {
+    method: 'POST',
+    body: JSON.stringify({ participantId }),
+  });
 }
 
 export function updateGameSettings(

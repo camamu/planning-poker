@@ -1,10 +1,10 @@
-import type { GameSummaryView } from '@pp/contracts';
+import type { GameSummaryResponseView } from '@pp/contracts';
 import { useEffect, useState } from 'react';
 import { getGameSummary } from '../../shared/api/gamesClient.js';
 import { useServerReady } from '../../shared/store/serverStatusStore.js';
 
 export interface GameSummaryState {
-  readonly summary: GameSummaryView | null;
+  readonly summary: GameSummaryResponseView | null;
   readonly error: string | null;
 }
 
