@@ -1,14 +1,23 @@
-import type { TeamGameView } from '@pp/contracts';
 import { afterEach, beforeEach, describe, expect, it } from 'vitest';
+import { z } from 'zod';
 import { SYSTEM_DECK_IDS } from '../../src/domain/deck/SavedDeck.js';
 import { createGameOverHttp } from './support/httpClient.js';
 import { startTestServer } from './support/testServer.js';
 import type { TestServer } from './support/testServer.js';
 
-interface CreatedTeam {
-  readonly slug: string;
-  readonly token: string;
-}
+const createdTeamSchema = z.object({ slug: z.string(), token: z.string() });
+const teamGamesSchema = z.array(
+  z.object({
+    id: z.string(),
+    name: z.string(),
+    createdAt: z.string(),
+    issueCount: z.number(),
+    estimatedCount: z.number(),
+    participantCount: z.number(),
+  }),
+);
+
+type CreatedTeam = z.infer<typeof createdTeamSchema>;
 
 describe('histórico de partidas del equipo', () => {
   let server: TestServer;
@@ -27,7 +36,7 @@ describe('histórico de partidas del equipo', () => {
       headers: { 'content-type': 'application/json' },
       body: JSON.stringify({ name }),
     });
-    return (await response.json()) as CreatedTeam;
+    return createdTeamSchema.parse(await response.json());
   }
 
   async function createGame(name: string, teamSlug?: string): Promise<string> {
@@ -57,7 +66,7 @@ describe('histórico de partidas del equipo', () => {
     await createGame('Suelta');
 
     const response = await listGames(team);
-    const games = (await response.json()) as TeamGameView[];
+    const games = teamGamesSchema.parse(await response.json());
 
     expect(response.status).toBe(200);
     expect(games.map((game) => game.id)).toEqual([second, first]);
@@ -77,11 +86,11 @@ describe('histórico de partidas del equipo', () => {
       await createGame('Tercera', team.slug),
     ];
 
-    const firstPage = (await (await listGames(team, { limit: '2' })).json()) as TeamGameView[];
+    const firstPage = teamGamesSchema.parse(await (await listGames(team, { limit: '2' })).json());
     const lastSeen = firstPage.at(-1)?.createdAt ?? '';
-    const secondPage = (await (
-      await listGames(team, { limit: '2', before: lastSeen })
-    ).json()) as TeamGameView[];
+    const secondPage = teamGamesSchema.parse(
+      await (await listGames(team, { limit: '2', before: lastSeen })).json(),
+    );
 
     expect(firstPage.map((game) => game.id)).toEqual([ids[2], ids[1]]);
     expect(secondPage.map((game) => game.id)).toEqual([ids[0]]);

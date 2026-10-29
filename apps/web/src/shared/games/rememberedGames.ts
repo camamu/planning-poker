@@ -49,11 +49,14 @@ function save(games: ReadonlyArray<RememberedGame>): void {
 }
 
 function isRememberedGame(value: unknown): value is RememberedGame {
-  if (typeof value !== 'object' || value === null) return false;
-  const candidate = value as Record<string, unknown>;
   return (
-    typeof candidate.id === 'string' &&
-    typeof candidate.name === 'string' &&
-    typeof candidate.visitedAt === 'string'
+    typeof value === 'object' &&
+    value !== null &&
+    'id' in value &&
+    typeof value.id === 'string' &&
+    'name' in value &&
+    typeof value.name === 'string' &&
+    'visitedAt' in value &&
+    typeof value.visitedAt === 'string'
   );
 }
