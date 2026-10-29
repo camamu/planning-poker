@@ -5,6 +5,13 @@ import { RoundResult } from './RoundResult.js';
 
 export type RoundStatus = 'OPEN' | 'REVEALED' | 'CLOSED';
 
+/**
+ * `LIVE` es la ronda de la mesa: hay una sola abierta y de ella cuelgan el auto-revelado, la cuenta
+ * atrás y el dealer. `ASYNC` es una votación en diferido (ADR 0027): pasa por los mismos estados,
+ * pero puede haber varias abiertas a la vez, una por tarea, sin cuenta atrás ni auto-revelado.
+ */
+export type RoundMode = 'LIVE' | 'ASYNC';
+
 export class RoundNotOpenError extends DomainError {
   constructor(readonly roundId: RoundId) {
     super(`La ronda ${roundId.value} no está abierta.`);
@@ -15,6 +22,12 @@ export class RoundNotRevealedError extends DomainError {
   constructor(readonly roundId: RoundId) {
     super(`La ronda ${roundId.value} todavía no se ha revelado.`);
   }
+}
+
+/** Una ronda asíncrona que se abre: su id y la tarea sobre la que se vota. */
+export interface AsyncRoundEntry {
+  readonly roundId: RoundId;
+  readonly issueId: IssueId;
 }
 
 export interface RoundVote {
@@ -38,6 +51,7 @@ export class Round {
     private readonly timerDeadline: Date | null,
     /** `null` solo en las rondas anteriores a la migración 0008 (ADR 0024): su hora se desconoce. */
     private readonly openedAt: Date | null,
+    readonly mode: RoundMode,
   ) {}
 
   static open(
@@ -47,7 +61,12 @@ export class Round {
     timerDeadline: Date | null,
     now: Date,
   ): Round {
-    return new Round(id, issueId, roundNumber, timerDeadline, now);
+    return new Round(id, issueId, roundNumber, timerDeadline, now, 'LIVE');
+  }
+
+  /** Sin fecha límite: una ronda en diferido no tiene cuenta atrás (ADR 0027). */
+  static openAsync(id: RoundId, issueId: IssueId, roundNumber: number, now: Date): Round {
+    return new Round(id, issueId, roundNumber, null, now, 'ASYNC');
   }
 
   /**
@@ -66,8 +85,9 @@ export class Round {
     revealedAt: Date | null,
     timerDeadline: Date | null,
     openedAt: Date | null,
+    mode: RoundMode,
   ): Round {
-    const round = new Round(id, issueId, roundNumber, timerDeadline, openedAt);
+    const round = new Round(id, issueId, roundNumber, timerDeadline, openedAt, mode);
     for (const vote of votes) {
       round.votes.set(vote.participantId.value, vote);
     }
@@ -75,6 +95,14 @@ export class Round {
     round.revealedAt = revealedAt;
     round.result = status === 'OPEN' ? null : RoundResult.from(votes.map((vote) => vote.card));
     return round;
+  }
+
+  isLive(): boolean {
+    return this.mode === 'LIVE';
+  }
+
+  isAsync(): boolean {
+    return this.mode === 'ASYNC';
   }
 
   isOpen(): boolean {
@@ -112,6 +140,17 @@ export class Round {
   castVote(participantId: ParticipantId, card: CardValue): void {
     if (!this.isOpen()) throw new RoundNotOpenError(this.id);
     this.votes.set(participantId.value, { participantId, card });
+  }
+
+  /**
+   * Pasar una tarea a la mesa conserva lo ya votado en diferido (ADR 0027). Copia los votos tal cual,
+   * sin pasar por `castVote`: no son votos nuevos, y la ronda de origen se retira entera.
+   */
+  adoptVotesFrom(other: Round): void {
+    if (!this.isOpen()) throw new RoundNotOpenError(this.id);
+    for (const [key, vote] of other.votes) {
+      this.votes.set(key, vote);
+    }
   }
 
   retractVote(participantId: ParticipantId): void {

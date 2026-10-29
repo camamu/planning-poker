@@ -243,6 +243,7 @@ describe('resumen de la sesión', () => {
           NOW,
           null,
           null,
+          'LIVE',
         ),
       ],
     });

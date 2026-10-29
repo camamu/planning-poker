@@ -176,8 +176,9 @@ describe('previousRounds en la vista de la partida', () => {
           null,
           null,
           null,
+          'LIVE',
         ),
-        Round.reconstitute(RoundId.of('round-2'), issueId, 2, 'OPEN', [], null, null, null),
+        Round.reconstitute(RoundId.of('round-2'), issueId, 2, 'OPEN', [], null, null, null, 'LIVE'),
       ],
     });
 

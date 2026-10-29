@@ -25,6 +25,7 @@ describe('Round', () => {
       null,
       null,
       opened,
+      'LIVE',
     );
     const unknown = Round.reconstitute(
       RoundId.of('r1'),
@@ -35,6 +36,7 @@ describe('Round', () => {
       null,
       null,
       null,
+      'LIVE',
     );
 
     expect(known.currentOpenedAt()).toBe(opened);
@@ -125,6 +127,7 @@ describe('Round', () => {
       null,
       null,
       null,
+      'LIVE',
     );
 
     expect(round.isOpen()).toBe(true);
@@ -148,6 +151,7 @@ describe('Round', () => {
       NOW,
       null,
       null,
+      'LIVE',
     );
 
     expect(round.isRevealed()).toBe(true);
