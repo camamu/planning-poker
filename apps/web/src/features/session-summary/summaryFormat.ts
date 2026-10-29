@@ -1,7 +1,13 @@
-import type { GameSummaryIssueView, GameSummaryTotalsView } from '@pp/contracts';
+import type { GameSummaryIssueView, GameSummaryTotalsView, IssueStatusView } from '@pp/contracts';
 
 /** Por debajo de este acuerdo en la última ronda, la tarea se señala como sin consenso. */
 export const LOW_AGREEMENT_THRESHOLD = 50;
+
+export const ISSUE_STATUS_LABELS: Record<IssueStatusView, string> = {
+  PENDING: 'Pendiente',
+  VOTING: 'En votación',
+  ESTIMATED: 'Estimada',
+};
 
 export function formatDuration(ms: number | null): string {
   if (ms === null) return '—';

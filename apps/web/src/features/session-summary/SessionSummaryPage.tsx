@@ -1,6 +1,7 @@
 import type { JSX } from 'react';
 import { Link, useParams } from 'react-router-dom';
 import { Button } from '../../design-system/index.js';
+import { ExportActions } from './components/ExportActions.js';
 import { SummaryTable } from './components/SummaryTable.js';
 import { SummaryTotals } from './components/SummaryTotals.js';
 import { useGameSummary } from './useGameSummary.js';
@@ -50,6 +51,7 @@ function SessionSummary({ gameId }: { readonly gameId: string }): JSX.Element {
       ) : (
         <>
           <SummaryTotals totals={summary.totals} />
+          <ExportActions summary={summary} />
           <SummaryTable issues={summary.issues} />
           <p className="text-xs" style={{ color: 'var(--pp-muted)' }}>
             Las tareas con un acuerdo por debajo del 50 % o que necesitaron varias rondas aparecen
