@@ -45,6 +45,7 @@ function gameWith(issues: ReadonlyArray<IssueView>): GameView {
     participants: [],
     issues,
     currentRound: null,
+    asyncRounds: [],
   };
 }
 

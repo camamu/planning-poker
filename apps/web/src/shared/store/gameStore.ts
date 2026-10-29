@@ -36,6 +36,9 @@ interface GameStoreState {
    *  `currentRound.votes`, donde la proyección sí devuelve la carta del propio viewer (invariante
    *  7, docs/02 §4.3); esto solo cubre el hueco hasta que llega esa confirmación. */
   readonly selectedCard: string | null;
+  /** Lo mismo para los votos en diferido, por tarea. La verdad es `asyncRounds[].ownCard`, que se
+   *  recupera en el siguiente `state_sync`: `async_vote_cast` no reenvía la carta (invariante 7). */
+  readonly asyncSelected: Readonly<Record<string, string>>;
   readonly theme: 'dark' | 'light';
   readonly muted: boolean;
   readonly emojiMode: 'throw' | 'react';
@@ -50,7 +53,12 @@ interface GameStoreState {
   startQuickRound: () => void;
   reveal: () => void;
   timeoutReveal: () => void;
-  setFinalEstimate: (card: string) => void;
+  /** Sin `issueId` cierra la ronda de la mesa; con él, una tarea revelada en diferido (ADR 0027). */
+  setFinalEstimate: (card: string, issueId?: string) => void;
+  openAsyncRounds: (issueIds: ReadonlyArray<string>) => void;
+  castAsyncVote: (issueId: string, card: string) => void;
+  /** Sin `issueIds` revela todas las rondas en diferido que tengan votos. */
+  revealAsync: (issueIds?: ReadonlyArray<string>) => void;
   /** Optimista: pinta el cambio ya y lo revierte con un aviso si la API lo rechaza. */
   renameIssue: (issueId: string, title: string) => Promise<void>;
   deleteIssue: (issueId: string) => Promise<void>;
@@ -78,6 +86,7 @@ export const useGameStore = create<GameStoreState>((set, get) => ({
   errorMessage: null,
   hasLeft: false,
   selectedCard: null,
+  asyncSelected: {},
   theme: 'dark',
   muted: false,
   emojiMode: 'throw',
@@ -95,6 +104,7 @@ export const useGameStore = create<GameStoreState>((set, get) => ({
       game: null,
       version: 0,
       selectedCard: null,
+      asyncSelected: {},
     });
     const socket = getSocket();
     // Reconecta si ya había una conexión: Socket.IO no abandona rooms anteriores por sí solo, y
@@ -141,10 +151,38 @@ export const useGameStore = create<GameStoreState>((set, get) => ({
     getSocket().emit('timeout_reveal', { gameId, participantId });
   },
 
-  setFinalEstimate(card) {
+  setFinalEstimate(card, issueId) {
     const { gameId, participantId } = get();
     if (!gameId || !participantId) return;
-    getSocket().emit('set_estimate', { gameId, participantId, card });
+    getSocket().emit('set_estimate', {
+      gameId,
+      participantId,
+      card,
+      ...(issueId !== undefined ? { issueId } : {}),
+    });
+  },
+
+  openAsyncRounds(issueIds) {
+    const { gameId, participantId } = get();
+    if (!gameId || !participantId) return;
+    getSocket().emit('open_async_rounds', { gameId, participantId, issueIds });
+  },
+
+  castAsyncVote(issueId, card) {
+    const { gameId, participantId } = get();
+    if (!gameId || !participantId) return;
+    set((state) => ({ asyncSelected: { ...state.asyncSelected, [issueId]: card } }));
+    getSocket().emit('async_vote', { gameId, participantId, issueId, card });
+  },
+
+  revealAsync(issueIds) {
+    const { gameId, participantId } = get();
+    if (!gameId || !participantId) return;
+    getSocket().emit('reveal_async', {
+      gameId,
+      participantId,
+      ...(issueIds !== undefined ? { issueIds } : {}),
+    });
   },
 
   renameIssue(issueId, title) {
@@ -274,6 +312,8 @@ function applyEvent(event: ServerEvent): void {
     version: event.version,
     // Una carta elegida de la baraja anterior no tiene por qué existir en la nueva.
     ...(roundChanged || event.type === 'deck_changed' ? { selectedCard: null } : {}),
+    // Una foto completa trae ya los votos propios confirmados, y una baraja nueva invalida los elegidos.
+    ...(event.type === 'state_sync' || event.type === 'deck_changed' ? { asyncSelected: {} } : {}),
   });
 
   if (event.type === 'participant_left' && event.participantId === participantId) {
@@ -302,7 +342,13 @@ socket.on('disconnect', () => {
   useGameStore.setState({ status: 'disconnected' });
 });
 socket.on('error', (event: { message: string }) => {
+  const { asyncSelected, gameId, participantId } = useGameStore.getState();
   useGameStore.setState({ errorMessage: event.message });
+  // El servidor no dice qué comando rechazó. Si hay votos en diferido pintados sin confirmar, uno
+  // puede haber sido el rechazado: se pide la foto real, que además los reemplaza por los confirmados.
+  if (Object.keys(asyncSelected).length > 0 && gameId && participantId) {
+    socket.emit('join', { gameId, participantId });
+  }
 });
 socket.on('state_sync', (event: Extract<ServerEvent, { type: 'state_sync' }>) => {
   applyEvent(event);
@@ -352,6 +398,18 @@ socket.on('vote_retracted', (event: Extract<ServerEvent, { type: 'vote_retracted
 socket.on('round_revealed', (event: Extract<ServerEvent, { type: 'round_revealed' }>) => {
   applyEvent(event);
 });
+socket.on('async_rounds_opened', (event: Extract<ServerEvent, { type: 'async_rounds_opened' }>) => {
+  applyEvent(event);
+});
+socket.on('async_vote_cast', (event: Extract<ServerEvent, { type: 'async_vote_cast' }>) => {
+  applyEvent(event);
+});
+socket.on(
+  'async_rounds_revealed',
+  (event: Extract<ServerEvent, { type: 'async_rounds_revealed' }>) => {
+    applyEvent(event);
+  },
+);
 socket.on('issue_estimated', (event: Extract<ServerEvent, { type: 'issue_estimated' }>) => {
   applyEvent(event);
 });

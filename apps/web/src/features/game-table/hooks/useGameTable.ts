@@ -1,4 +1,10 @@
-import type { GameView, HatIdView, ParticipantView, RoundView } from '@pp/contracts';
+import type {
+  AsyncRoundView,
+  GameView,
+  HatIdView,
+  ParticipantView,
+  RoundView,
+} from '@pp/contracts';
 import { useEffect } from 'react';
 import {
   changeParticipantHat,
@@ -8,6 +14,7 @@ import {
 } from '../../../shared/api/gamesClient.js';
 import { rememberGame } from '../../../shared/games/rememberedGames.js';
 import { useGameStore } from '../../../shared/store/gameStore.js';
+import { asyncQueue, pendingVoteCount } from '../../async-voting/asyncQueue.js';
 import type { ConnectionStatus } from '../../../shared/store/gameStore.js';
 import type { SeatPosition } from '../seatLayout.js';
 import { orderSeatsWithViewerAt } from '../seatLayout.js';
@@ -42,7 +49,18 @@ export interface UseGameTableResult {
   readonly startRound: (issueId: string) => void;
   readonly startQuickRound: () => void;
   readonly reveal: () => void;
-  readonly setFinalEstimate: (card: string) => void;
+  /** Sin `issueId` cierra la ronda de la mesa; con él, una tarea revelada en diferido. */
+  readonly setFinalEstimate: (card: string, issueId?: string) => void;
+  readonly asyncRounds: ReadonlyArray<AsyncRoundView>;
+  /** Votos en diferido propios ya pintados y sin confirmar, por tarea. */
+  readonly asyncPendingCards: Readonly<Record<string, string>>;
+  /** Rondas en diferido abiertas en las que el viewer todavía no ha votado. */
+  readonly asyncToVote: number;
+  readonly openAsyncRounds: (issueIds: ReadonlyArray<string>) => void;
+  readonly castAsyncVote: (issueId: string, card: string) => void;
+  readonly revealAsync: (issueIds?: ReadonlyArray<string>) => void;
+  /** Quién puede revelar y estimar en diferido: como `canReveal`, salvo el reparto «dealer» sin mesa. */
+  readonly canRevealAsync: boolean;
   readonly renameIssue: (issueId: string, title: string) => void;
   readonly deleteIssue: (issueId: string) => void;
   readonly reorderIssues: (issueIds: ReadonlyArray<string>) => void;
@@ -68,6 +86,10 @@ export function useGameTable(gameId: string, participantId: string): UseGameTabl
   const startQuickRound = useGameStore((state) => state.startQuickRound);
   const reveal = useGameStore((state) => state.reveal);
   const setFinalEstimate = useGameStore((state) => state.setFinalEstimate);
+  const asyncPendingCards = useGameStore((state) => state.asyncSelected);
+  const openAsyncRounds = useGameStore((state) => state.openAsyncRounds);
+  const castAsyncVote = useGameStore((state) => state.castAsyncVote);
+  const revealAsync = useGameStore((state) => state.revealAsync);
   const timeoutReveal = useGameStore((state) => state.timeoutReveal);
   const renameIssue = useGameStore((state) => state.renameIssue);
   const deleteIssue = useGameStore((state) => state.deleteIssue);
@@ -88,6 +110,7 @@ export function useGameTable(gameId: string, participantId: string): UseGameTabl
   }, [gameId, loadedName]);
 
   const round = game?.currentRound ?? null;
+  const asyncRounds = game?.asyncRounds ?? [];
   const remainingMs = useCountdown(round?.timerDeadline ?? null);
 
   useEffect(() => {
@@ -178,6 +201,16 @@ export function useGameTable(gameId: string, participantId: string): UseGameTabl
     startQuickRound,
     reveal,
     setFinalEstimate,
+    asyncRounds,
+    asyncPendingCards,
+    asyncToVote:
+      me?.role === 'VOTER' && game
+        ? pendingVoteCount(asyncQueue(game.issues, asyncRounds), participantId)
+        : 0,
+    openAsyncRounds,
+    castAsyncVote,
+    revealAsync,
+    canRevealAsync: game ? canParticipantRevealAsync(game, participantId) : false,
     renameIssue: (issueId, title) => void renameIssue(issueId, title),
     deleteIssue: (issueId) => void deleteIssue(issueId),
     reorderIssues: (issueIds) => void reorderIssueQueue(issueIds),
@@ -193,6 +226,19 @@ export function useGameTable(gameId: string, participantId: string): UseGameTabl
 
 function reportFailure(cause: unknown, fallback: string): void {
   useGameStore.setState({ errorMessage: cause instanceof Error ? cause.message : fallback });
+}
+
+/**
+ * El «dealer» sale de la ronda en vivo: sin ella no designa a nadie, y el servidor deja decidir al
+ * facilitador para que las rondas en diferido no queden sin poder revelarse (ADR 0027).
+ */
+function canParticipantRevealAsync(game: GameView, participantId: string): boolean {
+  if (game.settings.whoCanReveal === 'DEALER' && !game.currentRound?.dealerId) {
+    return game.participants.some(
+      (participant) => participant.id === participantId && participant.isFacilitator,
+    );
+  }
+  return canParticipantReveal(game, participantId);
 }
 
 function canParticipantReveal(game: GameView, participantId: string): boolean {

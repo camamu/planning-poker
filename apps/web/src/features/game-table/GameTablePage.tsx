@@ -10,6 +10,7 @@ import {
   playThrowSound,
   playVoteSound,
 } from '../../shared/audio/sounds.js';
+import { nextTableIssueId } from '../async-voting/asyncQueue.js';
 import { DeckSettingsPanel } from '../deck-settings/DeckSettingsPanel.js';
 import { IssueListPanel } from '../issue-list/IssueListPanel.js';
 import { ResultsPanel } from '../results-panel/ResultsPanel.js';
@@ -137,7 +138,7 @@ export function GameTablePage({
   }
 
   const { game, round } = table;
-  const nextPendingIssueId = game.issues.find((issue) => issue.status === 'PENDING')?.id ?? null;
+  const nextPendingIssueId = nextTableIssueId(game.issues, game.asyncRounds);
   const summaryHref = `/games/${gameId}/summary`;
   const me = game.participants.find((p) => p.id === participantId);
   const isMyTurnToVote = me?.role === 'VOTER';
@@ -195,6 +196,7 @@ export function GameTablePage({
         viewerHat={me?.hat ?? null}
         onChangeHat={table.changeHat}
         summaryHref={summaryHref}
+        asyncToVote={table.asyncToVote}
         onToggleIssues={() => {
           setIssuesOpen((open) => !open);
         }}
@@ -368,6 +370,22 @@ export function GameTablePage({
               onDeleteIssue={table.deleteIssue}
               onReorderIssues={table.reorderIssues}
               onStartRound={table.startRound}
+              asyncVoting={{
+                rounds: table.asyncRounds,
+                viewerId: participantId,
+                viewerCanVote: isMyTurnToVote,
+                participants: game.participants,
+                deckCards: game.deck.cards,
+                canChangeVote: game.settings.allowVoteChange,
+                canReveal: table.canRevealAsync,
+                pendingCards: table.asyncPendingCards,
+                onOpen: table.openAsyncRounds,
+                onVote: table.castAsyncVote,
+                onReveal: table.revealAsync,
+                onAcceptEstimate: (issueId, card) => {
+                  table.setFinalEstimate(card, issueId);
+                },
+              }}
               onClose={() => {
                 setIssuesOpen(false);
               }}

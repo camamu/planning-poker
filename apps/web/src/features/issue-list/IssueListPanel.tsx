@@ -2,6 +2,9 @@ import type { IssueView } from '@pp/contracts';
 import { useState } from 'react';
 import type { JSX, SubmitEvent } from 'react';
 import { Button, Input } from '../../design-system/index.js';
+import { AsyncVotingSections } from '../async-voting/AsyncVotingSections.js';
+import { asyncIssueIds } from '../async-voting/asyncQueue.js';
+import type { AsyncVotingProps } from '../async-voting/types.js';
 import { ImportIssuesDialog } from '../issue-import/ImportIssuesDialog.js';
 import type { ParsedIssue } from '../issue-import/parseIssueInput.js';
 import { IssueRow } from './IssueRow.js';
@@ -19,6 +22,8 @@ export interface IssueListPanelProps {
   /** Recibe la cola entera en el orden nuevo (la API exige una permutación exacta, ADR 0019). */
   readonly onReorderIssues: (issueIds: ReadonlyArray<string>) => void;
   readonly onStartRound: (issueId: string) => void;
+  /** Votación en diferido: rondas vivas, votar, revelar en lote y estimar (ADR 0027). */
+  readonly asyncVoting: AsyncVotingProps;
   readonly onClose: () => void;
 }
 
@@ -27,13 +32,18 @@ export function IssueListPanel(props: IssueListPanelProps): JSX.Element {
   const [draggingId, setDraggingId] = useState<string | null>(null);
   const [dropTargetId, setDropTargetId] = useState<string | null>(null);
   const [importing, setImporting] = useState(false);
+  const [selected, setSelected] = useState<ReadonlySet<string>>(new Set());
   const current = props.issues.find((issue) => issue.id === props.currentIssueId);
+  // Una tarea con ronda en diferido sigue PENDING en el dominio, pero ya no está «por estimar».
+  const inAsync = asyncIssueIds(props.asyncVoting.rounds);
   const pending = props.issues.filter(
-    (issue) => issue.status === 'PENDING' && issue.id !== props.currentIssueId,
+    (issue) =>
+      issue.status === 'PENDING' && issue.id !== props.currentIssueId && !inAsync.has(issue.id),
   );
   const estimated = props.issues.filter((issue) => issue.status === 'ESTIMATED');
   const estimatedCount = props.issues.filter((issue) => issue.status === 'ESTIMATED').length;
   const pendingIds = pending.map((issue) => issue.id);
+  const selectedIds = pendingIds.filter((id) => selected.has(id));
 
   function handleAdd(event: SubmitEvent<HTMLFormElement>): void {
     event.preventDefault();
@@ -45,6 +55,20 @@ export function IssueListPanel(props: IssueListPanelProps): JSX.Element {
 
   function reorderPending(nextPendingIds: ReadonlyArray<string>): void {
     props.onReorderIssues(queueWithPendingOrder(props.issues, nextPendingIds));
+  }
+
+  function toggleSelected(issueId: string, checked: boolean): void {
+    setSelected((previous) => {
+      const next = new Set(previous);
+      if (checked) next.add(issueId);
+      else next.delete(issueId);
+      return next;
+    });
+  }
+
+  function openSelectedAsync(): void {
+    props.asyncVoting.onOpen(selectedIds);
+    setSelected(new Set());
   }
 
   function endDrag(): void {
@@ -95,6 +119,12 @@ export function IssueListPanel(props: IssueListPanelProps): JSX.Element {
                 />
               </IssueGroup>
             ) : null}
+            <AsyncVotingSections
+              issues={props.issues}
+              asyncVoting={props.asyncVoting}
+              canStartRound={props.canStartRound}
+              onStartRound={props.onStartRound}
+            />
             {pending.length > 0 ? (
               <IssueGroup title="Por estimar">
                 {pending.map((issue, index) => (
@@ -113,6 +143,12 @@ export function IssueListPanel(props: IssueListPanelProps): JSX.Element {
                     }}
                     onDelete={() => {
                       props.onDeleteIssue(issue.id);
+                    }}
+                    select={{
+                      checked: selected.has(issue.id),
+                      onChange: (checked) => {
+                        toggleSelected(issue.id, checked);
+                      },
                     }}
                     reorder={{
                       canMoveUp: index > 0,
@@ -162,6 +198,11 @@ export function IssueListPanel(props: IssueListPanelProps): JSX.Element {
         className="flex flex-col gap-2 p-3"
         style={{ borderTop: '1px solid var(--color-divider)' }}
       >
+        {selectedIds.length > 0 ? (
+          <Button variant="primary" onClick={openSelectedAsync}>
+            Abrir para votar en diferido ({selectedIds.length.toString()})
+          </Button>
+        ) : null}
         <form className="flex gap-2" onSubmit={handleAdd}>
           <Input
             value={title}
