@@ -10,6 +10,7 @@ import {
   removeIssueCommandSchema,
   removeParticipantCommandSchema,
   reorderIssuesCommandSchema,
+  sendSessionSummaryCommandSchema,
   transferFacilitatorCommandSchema,
   updateGameSettingsCommandSchema,
 } from '@pp/contracts';
@@ -29,6 +30,7 @@ import type { ListGameDecks } from '../../../application/use-cases/ListGameDecks
 import type { RemoveIssue } from '../../../application/use-cases/RemoveIssue.js';
 import type { RemoveParticipant } from '../../../application/use-cases/RemoveParticipant.js';
 import type { ReorderIssues } from '../../../application/use-cases/ReorderIssues.js';
+import type { SendSessionSummary } from '../../../application/use-cases/SendSessionSummary.js';
 import type { TransferFacilitator } from '../../../application/use-cases/TransferFacilitator.js';
 import type { UpdateGameSettings } from '../../../application/use-cases/UpdateGameSettings.js';
 import { GameId } from '../../../domain/game/ids.js';
@@ -48,6 +50,7 @@ export interface GameRoutesDependencies {
   readonly reorderIssues: ReorderIssues;
   readonly getGameState: GetGameState;
   readonly getGameSummary: GetGameSummary;
+  readonly sendSessionSummary: SendSessionSummary;
   readonly updateGameSettings: UpdateGameSettings;
   readonly changeGameDeck: ChangeGameDeck;
   readonly listGameDecks: ListGameDecks;
@@ -131,6 +134,21 @@ export function registerGameRoutes(app: FastifyInstance, deps: GameRoutesDepende
   app.get<{ Params: GameIdParams }>('/api/games/:id/summary', async (request, reply) => {
     try {
       await reply.send(await deps.getGameSummary.execute({ gameId: request.params.id }));
+    } catch (error) {
+      sendError(reply, error);
+    }
+  });
+
+  // Envía el resumen a los webhooks del equipo y espera el resultado (ADR 0028).
+  app.post<{ Params: GameIdParams }>('/api/games/:id/summary/webhook', async (request, reply) => {
+    try {
+      const command = sendSessionSummaryCommandSchema.parse(request.body);
+      await reply.send(
+        await deps.sendSessionSummary.execute({
+          gameId: request.params.id,
+          participantId: command.participantId,
+        }),
+      );
     } catch (error) {
       sendError(reply, error);
     }
