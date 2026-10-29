@@ -20,6 +20,7 @@ import { JoinGame } from '../../../src/application/use-cases/JoinGame.js';
 import { ListDecks } from '../../../src/application/use-cases/ListDecks.js';
 import { ListDecksForAdmin } from '../../../src/application/use-cases/ListDecksForAdmin.js';
 import { ListGamesForAdmin } from '../../../src/application/use-cases/ListGamesForAdmin.js';
+import { ListTeamGames } from '../../../src/application/use-cases/ListTeamGames.js';
 import { ListTeamsForAdmin } from '../../../src/application/use-cases/ListTeamsForAdmin.js';
 import { LogInAdmin } from '../../../src/application/use-cases/LogInAdmin.js';
 import { RegenerateTeamToken } from '../../../src/application/use-cases/RegenerateTeamToken.js';
@@ -44,6 +45,7 @@ import { registerGameRoutes } from '../../../src/infrastructure/http/routes/game
 import { registerTeamRoutes } from '../../../src/infrastructure/http/routes/teams.js';
 import { UuidGenerator } from '../../../src/infrastructure/ids/UuidGenerator.js';
 import { InMemoryDeckRepository } from '../../../src/infrastructure/persistence/in-memory/InMemoryDeckRepository.js';
+import { InMemoryGameHistoryReader } from '../../../src/infrastructure/persistence/in-memory/InMemoryGameHistoryReader.js';
 import { InMemoryGameRepository } from '../../../src/infrastructure/persistence/in-memory/InMemoryGameRepository.js';
 import { InMemoryTeamRepository } from '../../../src/infrastructure/persistence/in-memory/InMemoryTeamRepository.js';
 import { DiscussionTimerTracker } from '../../../src/infrastructure/realtime/DiscussionTimerTracker.js';
@@ -127,6 +129,7 @@ export async function startTestServer(options: TestServerOptions = {}): Promise<
   const createTeam = new CreateTeam(teams, tokenHasher, ids);
   const authenticateTeam = new AuthenticateTeam(teams, tokenHasher);
   const listDecks = new ListDecks(decks, teams);
+  const listTeamGames = new ListTeamGames(teams, tokenHasher, new InMemoryGameHistoryReader(games));
   const saveCustomDeck = new SaveCustomDeck(decks, teams, tokenHasher, ids);
   const updateCustomDeck = new UpdateCustomDeck(decks, teams, tokenHasher);
   const deleteCustomDeck = new DeleteCustomDeck(decks, teams, tokenHasher);
@@ -153,6 +156,7 @@ export async function startTestServer(options: TestServerOptions = {}): Promise<
     createTeam,
     authenticateTeam,
     listDecks,
+    listTeamGames,
     saveCustomDeck,
     updateCustomDeck,
     deleteCustomDeck,

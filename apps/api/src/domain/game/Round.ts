@@ -36,6 +36,8 @@ export class Round {
     readonly roundNumber: number,
     /** Fecha límite de la cuenta atrás (F5), fijada al abrir la ronda. `null` si está desactivada. */
     private readonly timerDeadline: Date | null,
+    /** `null` solo en las rondas anteriores a la migración 0008 (ADR 0024): su hora se desconoce. */
+    private readonly openedAt: Date | null,
   ) {}
 
   static open(
@@ -43,8 +45,9 @@ export class Round {
     issueId: IssueId,
     roundNumber: number,
     timerDeadline: Date | null,
+    now: Date,
   ): Round {
-    return new Round(id, issueId, roundNumber, timerDeadline);
+    return new Round(id, issueId, roundNumber, timerDeadline, now);
   }
 
   /**
@@ -62,8 +65,9 @@ export class Round {
     votes: ReadonlyArray<RoundVote>,
     revealedAt: Date | null,
     timerDeadline: Date | null,
+    openedAt: Date | null,
   ): Round {
-    const round = new Round(id, issueId, roundNumber, timerDeadline);
+    const round = new Round(id, issueId, roundNumber, timerDeadline, openedAt);
     for (const vote of votes) {
       round.votes.set(vote.participantId.value, vote);
     }
@@ -87,6 +91,10 @@ export class Round {
 
   currentRevealedAt(): Date | null {
     return this.revealedAt;
+  }
+
+  currentOpenedAt(): Date | null {
+    return this.openedAt;
   }
 
   currentTimerDeadline(): Date | null {

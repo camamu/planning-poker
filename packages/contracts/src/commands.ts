@@ -46,6 +46,20 @@ export const saveCustomDeckCommandSchema = z.object({
 });
 export type SaveCustomDeckCommandInput = z.infer<typeof saveCustomDeckCommandSchema>;
 
+export const TEAM_GAMES_DEFAULT_LIMIT = 20;
+export const TEAM_GAMES_MAX_LIMIT = 100;
+
+/**
+ * REST — `GET /api/teams/:slug/games`. Paginación por fecha y no por desplazamiento (ADR 0024):
+ * `before` es el `createdAt` de la última partida de la página anterior. El token `k` lo lee la
+ * ruta aparte, como en el resto de rutas del equipo.
+ */
+export const teamGamesQuerySchema = z.object({
+  limit: z.coerce.number().int().min(1).max(TEAM_GAMES_MAX_LIMIT).default(TEAM_GAMES_DEFAULT_LIMIT),
+  before: z.iso.datetime().optional(),
+});
+export type TeamGamesQueryInput = z.infer<typeof teamGamesQuerySchema>;
+
 /** REST — `PATCH /api/games/:id/settings` */
 export const updateGameSettingsCommandSchema = z.object({
   participantId: z.string().trim().min(1),

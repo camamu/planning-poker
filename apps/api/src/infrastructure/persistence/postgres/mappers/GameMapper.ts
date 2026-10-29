@@ -71,6 +71,7 @@ export function toIssueRows(game: Game): Insertable<IssueTable>[] {
     external_url: issue.externalUrl ?? null,
     status: issue.currentStatus(),
     final_estimate_raw: issue.currentFinalEstimate()?.raw ?? null,
+    estimated_at: issue.currentEstimatedAt(),
   }));
 }
 
@@ -84,6 +85,7 @@ export function toRoundRows(game: Game): Insertable<RoundTable>[] {
     status: round.currentStatus(),
     revealed_at: round.currentRevealedAt(),
     timer_deadline: round.currentTimerDeadline(),
+    opened_at: round.currentOpenedAt(),
   }));
 }
 
@@ -144,6 +146,7 @@ export function toDomainGame(rows: GameRowSet): Game {
         row.external_url ?? undefined,
         parseIssueStatus(row.status),
         row.final_estimate_raw === null ? null : CardValue.of(row.final_estimate_raw),
+        row.estimated_at,
       ),
     ),
     rounds: rows.rounds.map((row) =>
@@ -155,6 +158,7 @@ export function toDomainGame(rows: GameRowSet): Game {
         votesByRound.get(row.id) ?? [],
         row.revealed_at,
         row.timer_deadline,
+        row.opened_at,
       ),
     ),
   });

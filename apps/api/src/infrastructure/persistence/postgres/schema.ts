@@ -43,6 +43,8 @@ export interface IssueTable {
   external_url: string | null;
   status: string;
   final_estimate_raw: string | null;
+  /** Cuándo se aceptó la estimación; `null` si no se ha estimado o es anterior a la migración 0008. */
+  estimated_at: Date | null;
 }
 
 export interface RoundTable {
@@ -55,6 +57,8 @@ export interface RoundTable {
   revealed_at: Date | null;
   /** F5 — fecha límite de la cuenta atrás con la que se abrió la ronda, o `null`. */
   timer_deadline: Date | null;
+  /** Cuándo se abrió la ronda; `null` en las anteriores a la migración 0008. */
+  opened_at: Date | null;
 }
 
 export interface VoteTable {

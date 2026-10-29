@@ -18,6 +18,7 @@ import { JoinGame } from './application/use-cases/JoinGame.js';
 import { ListDecks } from './application/use-cases/ListDecks.js';
 import { ListDecksForAdmin } from './application/use-cases/ListDecksForAdmin.js';
 import { ListGamesForAdmin } from './application/use-cases/ListGamesForAdmin.js';
+import { ListTeamGames } from './application/use-cases/ListTeamGames.js';
 import { ListTeamsForAdmin } from './application/use-cases/ListTeamsForAdmin.js';
 import { LogInAdmin } from './application/use-cases/LogInAdmin.js';
 import { RegenerateTeamToken } from './application/use-cases/RegenerateTeamToken.js';
@@ -51,6 +52,7 @@ import { registerTeamRoutes } from './infrastructure/http/routes/teams.js';
 import { UuidGenerator } from './infrastructure/ids/UuidGenerator.js';
 import { createDb } from './infrastructure/persistence/postgres/db.js';
 import { PostgresDeckRepository } from './infrastructure/persistence/postgres/PostgresDeckRepository.js';
+import { PostgresGameHistoryReader } from './infrastructure/persistence/postgres/PostgresGameHistoryReader.js';
 import { PostgresGameRepository } from './infrastructure/persistence/postgres/PostgresGameRepository.js';
 import { PostgresTeamRepository } from './infrastructure/persistence/postgres/PostgresTeamRepository.js';
 import { DiscussionTimerTracker } from './infrastructure/realtime/DiscussionTimerTracker.js';
@@ -77,6 +79,7 @@ pool.on('error', (error) => {
 
 const db = createDb(pool);
 const games = new PostgresGameRepository(db);
+const gameHistory = new PostgresGameHistoryReader(db);
 const teams = new PostgresTeamRepository(db);
 const decks = new PostgresDeckRepository(db);
 const clock = new SystemClock();
@@ -129,6 +132,7 @@ const getGameState = new GetGameState(games, presence);
 const createTeam = new CreateTeam(teams, tokenHasher, ids);
 const authenticateTeam = new AuthenticateTeam(teams, tokenHasher);
 const listDecks = new ListDecks(decks, teams);
+const listTeamGames = new ListTeamGames(teams, tokenHasher, gameHistory);
 const saveCustomDeck = new SaveCustomDeck(decks, teams, tokenHasher, ids);
 const updateCustomDeck = new UpdateCustomDeck(decks, teams, tokenHasher);
 const deleteCustomDeck = new DeleteCustomDeck(decks, teams, tokenHasher);
@@ -155,6 +159,7 @@ registerTeamRoutes(app, {
   createTeam,
   authenticateTeam,
   listDecks,
+  listTeamGames,
   saveCustomDeck,
   updateCustomDeck,
   deleteCustomDeck,

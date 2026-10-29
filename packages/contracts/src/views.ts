@@ -100,6 +100,17 @@ export interface TeamView {
   readonly name: string;
 }
 
+/** Una partida en el histórico del equipo (`GET /api/teams/:slug/games`, ADR 0024). */
+export interface TeamGameView {
+  readonly id: string;
+  readonly name: string;
+  /** ISO 8601. Es también el cursor `before` de la página siguiente. */
+  readonly createdAt: string;
+  readonly issueCount: number;
+  readonly estimatedCount: number;
+  readonly participantCount: number;
+}
+
 /** `teamId: null` = baraja de sistema (visible para todos, no editable). */
 export interface DeckSummaryView {
   readonly id: string;

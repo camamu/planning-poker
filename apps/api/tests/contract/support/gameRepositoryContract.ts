@@ -8,6 +8,9 @@ import { GameName } from '../../../src/domain/game/GameName.js';
 import { GameSettings } from '../../../src/domain/game/GameSettings.js';
 import { Hat } from '../../../src/domain/game/Hat.js';
 import { GameId, IssueId, ParticipantId, RoundId } from '../../../src/domain/game/ids.js';
+import { Issue } from '../../../src/domain/game/Issue.js';
+import { Participant } from '../../../src/domain/game/Participant.js';
+import { Round } from '../../../src/domain/game/Round.js';
 
 const NOW = new Date('2026-08-07T10:00:00Z');
 
@@ -375,6 +378,58 @@ export function defineGameRepositoryContractTests(
         new Date(NOW.getTime() + 45_000),
       );
     });
+    it('conserva cuándo se abrió cada ronda y cuándo se estimó cada tarea tras recargar', async () => {
+      const repository = await makeRepository();
+      const { game, facilitatorId } = newGame('game-times');
+      const openedAt = new Date('2026-08-07T10:01:00Z');
+      const estimatedAt = new Date('2026-08-07T10:04:30Z');
+      game.addIssue(IssueId.of('issue-1'), 'Implementar login', NOW);
+      game.startVotingRound(RoundId.of('round-1'), IssueId.of('issue-1'), openedAt);
+      game.castVote(facilitatorId, CardValue.of('8'), openedAt);
+      game.reveal(facilitatorId, openedAt);
+      game.setFinalEstimate(CardValue.of('8'), facilitatorId, estimatedAt);
+      await repository.save(game);
+
+      const reloaded = await repository.findById(GameId.of('game-times'));
+
+      expect(reloaded?.currentRound()?.currentOpenedAt()).toEqual(openedAt);
+      expect(reloaded?.findIssue(IssueId.of('issue-1'))?.currentEstimatedAt()).toEqual(estimatedAt);
+    });
+
+    it('recarga con tiempo desconocido las rondas y tareas guardadas sin él', async () => {
+      const repository = await makeRepository();
+      const facilitatorId = ParticipantId.of('game-old-facilitator');
+      const issueId = IssueId.of('issue-1');
+      await repository.save(
+        Game.reconstitute({
+          id: GameId.of('game-old'),
+          name: GameName.of('Sprint 1'),
+          deck: Deck.fibonacci(),
+          settings: GameSettings.of({ autoReveal: false, whoCanReveal: 'FACILITATOR_ONLY' }),
+          participants: [Participant.join(facilitatorId, DisplayName.of('Ada'), 'VOTER', true, 0)],
+          issues: [
+            Issue.reconstitute(
+              issueId,
+              'Antigua',
+              undefined,
+              undefined,
+              'ESTIMATED',
+              CardValue.of('5'),
+              null,
+            ),
+          ],
+          rounds: [
+            Round.reconstitute(RoundId.of('round-1'), issueId, 1, 'CLOSED', [], NOW, null, null),
+          ],
+        }),
+      );
+
+      const reloaded = await repository.findById(GameId.of('game-old'));
+
+      expect(reloaded?.currentRound()?.currentOpenedAt()).toBeNull();
+      expect(reloaded?.findIssue(issueId)?.currentEstimatedAt()).toBeNull();
+    });
+
     it('listSummaries() cuenta participantes, issues e issues estimadas de cada partida', async () => {
       const repository = await makeRepository();
       const { game, facilitatorId } = newGame('game-summary');
