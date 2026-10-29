@@ -60,6 +60,8 @@ function renderPanel(round: RoundView, overrides: Partial<ResultsPanelProps> = {
       onAcceptEstimate={vi.fn()}
       hasNextIssue={false}
       onNextIssue={vi.fn()}
+      sessionFinished={false}
+      summaryHref="/games/game-1/summary"
       discussionTimer={null}
       onStartDiscussionTimer={vi.fn()}
       onPauseDiscussionTimer={vi.fn()}
@@ -153,5 +155,25 @@ describe('ResultsPanel: comparar con la ronda anterior', () => {
 
     expect(screen.queryByText(/Comparar con la ronda/)).not.toBeInTheDocument();
     expect(screen.getByText('Quién ha votado')).toBeInTheDocument();
+  });
+});
+
+describe('ResultsPanel: resumen de la sesión', () => {
+  afterEach(cleanup);
+
+  it('ofrece ver el resumen en otra pestaña cuando la sesión ha terminado', () => {
+    renderPanel(revealedRound(), { sessionFinished: true });
+
+    const link = screen.getByRole('link', { name: 'Ver resumen de la sesión' });
+    expect(link).toHaveAttribute('href', '/games/game-1/summary');
+    expect(link).toHaveAttribute('target', '_blank');
+  });
+
+  it('no lo ofrece mientras la sesión sigue en marcha', () => {
+    renderPanel(revealedRound(), { sessionFinished: false });
+
+    expect(
+      screen.queryByRole('link', { name: 'Ver resumen de la sesión' }),
+    ).not.toBeInTheDocument();
   });
 });

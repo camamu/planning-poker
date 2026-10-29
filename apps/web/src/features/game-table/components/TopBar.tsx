@@ -15,6 +15,8 @@ export interface TopBarProps {
   readonly viewerId: string;
   readonly viewerHat: HatIdView | null;
   readonly onChangeHat: (hat: HatIdView | null) => void | Promise<void>;
+  /** Se abre en otra pestaña: salir de la sala desconectaría el socket y el resto te vería ausente. */
+  readonly summaryHref: string;
   readonly onToggleIssues: () => void;
   readonly onToggleSettings: () => void;
   /** El facilitador también sale, pero antes cede el rol (ADR 0021): lo resuelve quien lo pasa. */
@@ -58,6 +60,14 @@ export function TopBar(props: TopBarProps): JSX.Element {
         <button type="button" className="btn btn-secondary" onClick={props.onToggleIssues}>
           📋 Tareas
         </button>
+        <a
+          href={props.summaryHref}
+          target="_blank"
+          rel="noopener noreferrer"
+          className="btn btn-secondary"
+        >
+          📊 Resumen
+        </a>
         <button type="button" className="btn btn-secondary" onClick={props.onToggleSettings}>
           ⚙️ Ajustes
         </button>

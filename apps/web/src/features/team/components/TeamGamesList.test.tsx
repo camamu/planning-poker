@@ -49,6 +49,10 @@ describe('TeamGamesList', () => {
       'href',
       '/games/game-1',
     );
+    expect(screen.getAllByRole('link', { name: 'Resumen' })[0]).toHaveAttribute(
+      'href',
+      '/games/game-1/summary',
+    );
     expect(listTeamGames).toHaveBeenCalledWith('backend', 'tok', {
       limit: TEAM_GAMES_PAGE_SIZE,
       before: undefined,
