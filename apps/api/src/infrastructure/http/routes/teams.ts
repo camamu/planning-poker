@@ -1,9 +1,14 @@
-import { createTeamCommandSchema, saveCustomDeckCommandSchema } from '@pp/contracts';
+import {
+  createTeamCommandSchema,
+  saveCustomDeckCommandSchema,
+  teamGamesQuerySchema,
+} from '@pp/contracts';
 import type { FastifyInstance, FastifyReply } from 'fastify';
 import type { AuthenticateTeam } from '../../../application/use-cases/AuthenticateTeam.js';
 import type { CreateTeam } from '../../../application/use-cases/CreateTeam.js';
 import type { DeleteCustomDeck } from '../../../application/use-cases/DeleteCustomDeck.js';
 import type { ListDecks } from '../../../application/use-cases/ListDecks.js';
+import type { ListTeamGames } from '../../../application/use-cases/ListTeamGames.js';
 import type { SaveCustomDeck } from '../../../application/use-cases/SaveCustomDeck.js';
 import type { UpdateCustomDeck } from '../../../application/use-cases/UpdateCustomDeck.js';
 import { sendError } from '../errors.js';
@@ -12,6 +17,7 @@ export interface TeamRoutesDependencies {
   readonly createTeam: CreateTeam;
   readonly authenticateTeam: AuthenticateTeam;
   readonly listDecks: ListDecks;
+  readonly listTeamGames: ListTeamGames;
   readonly saveCustomDeck: SaveCustomDeck;
   readonly updateCustomDeck: UpdateCustomDeck;
   readonly deleteCustomDeck: DeleteCustomDeck;
@@ -61,6 +67,26 @@ export function registerTeamRoutes(app: FastifyInstance, deps: TeamRoutesDepende
         if (token === undefined) return;
         const result = await deps.authenticateTeam.execute({ slug: request.params.slug, token });
         await reply.send(result);
+      } catch (error) {
+        sendError(reply, error);
+      }
+    },
+  );
+
+  app.get<{ Params: TeamSlugParams; Querystring: TokenQuery }>(
+    '/api/teams/:slug/games',
+    async (request, reply) => {
+      try {
+        const token = requireToken(request.query, reply);
+        if (token === undefined) return;
+        const { limit, before } = teamGamesQuerySchema.parse(request.query);
+        const games = await deps.listTeamGames.execute({
+          slug: request.params.slug,
+          token,
+          limit,
+          before: before === undefined ? undefined : new Date(before),
+        });
+        await reply.send(games);
       } catch (error) {
         sendError(reply, error);
       }
