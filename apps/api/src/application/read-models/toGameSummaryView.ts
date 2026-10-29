@@ -31,13 +31,21 @@ function factsOf(game: Game, issue: Issue): IssueFacts {
   return {
     issue,
     revealedRounds: rounds.filter((round) => round.isRevealed()),
-    durationMs: durationOf(issue, rounds[0]),
+    durationMs: durationOf(
+      issue,
+      rounds.find((round) => round.isLive()),
+    ),
   };
 }
 
-/** `null` si falta cualquiera de los dos tiempos: las partidas anteriores a la migración 0008 no los tienen. */
-function durationOf(issue: Issue, firstRound: Round | undefined): number | null {
-  const openedAt = firstRound?.currentOpenedAt();
+/**
+ * Tiempo en la mesa: de abrir la primera ronda en vivo a la estimación final. Las rondas en diferido
+ * no cuentan (ADR 0027): miden cuánto tardó cada uno en entrar a votar, no cuánto se discutió, y una
+ * tarea que solo se votó en diferido no tiene duración. `null` también si falta cualquiera de los dos
+ * tiempos: las partidas anteriores a la migración 0008 no los tienen.
+ */
+function durationOf(issue: Issue, firstLiveRound: Round | undefined): number | null {
+  const openedAt = firstLiveRound?.currentOpenedAt();
   const estimatedAt = issue.currentEstimatedAt();
   if (!openedAt || !estimatedAt) return null;
   return estimatedAt.getTime() - openedAt.getTime();
