@@ -49,7 +49,7 @@ async function seedTable(deckId: string = SYSTEM_DECK_IDS.fibonacci.value): Prom
   const castVote = new CastVote(context.games, context.events, clock);
   const revealRound = new RevealRound(context.games, context.events, clock);
   const setFinalEstimate = new SetFinalEstimate(context.games, context.events, clock);
-  const getGameSummary = new GetGameSummary(context.games);
+  const getGameSummary = new GetGameSummary(context.games, context.teams);
 
   return {
     gameId,
@@ -276,7 +276,7 @@ describe('resumen de la sesión', () => {
 
   it('no existe el resumen de una partida desconocida', async () => {
     const { context } = await seedGame();
-    const getGameSummary = new GetGameSummary(context.games);
+    const getGameSummary = new GetGameSummary(context.games, context.teams);
 
     await expect(getGameSummary.execute({ gameId: 'no-existe' })).rejects.toThrow(
       GameNotFoundError,
