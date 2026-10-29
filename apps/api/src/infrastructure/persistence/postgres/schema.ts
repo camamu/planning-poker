@@ -59,6 +59,8 @@ export interface RoundTable {
   timer_deadline: Date | null;
   /** Cuándo se abrió la ronda; `null` en las anteriores a la migración 0008. */
   opened_at: Date | null;
+  /** `RoundMode` del dominio. Las rondas anteriores a la migración 0009 son todas `LIVE`. */
+  mode: ColumnType<string, string | undefined, string>;
 }
 
 export interface VoteTable {
