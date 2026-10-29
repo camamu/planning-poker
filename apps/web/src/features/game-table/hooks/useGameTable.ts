@@ -6,6 +6,7 @@ import {
   removeParticipant,
   transferFacilitator,
 } from '../../../shared/api/gamesClient.js';
+import { rememberGame } from '../../../shared/games/rememberedGames.js';
 import { useGameStore } from '../../../shared/store/gameStore.js';
 import type { ConnectionStatus } from '../../../shared/store/gameStore.js';
 import type { SeatPosition } from '../seatLayout.js';
@@ -79,6 +80,12 @@ export function useGameTable(gameId: string, participantId: string): UseGameTabl
   useEffect(() => {
     connect(gameId, participantId);
   }, [connect, gameId, participantId]);
+
+  // `game` puede ser todavía el de otra sala hasta que llega el `state_sync` de esta.
+  const loadedName = game?.id === gameId ? game.name : undefined;
+  useEffect(() => {
+    if (loadedName !== undefined) rememberGame({ id: gameId, name: loadedName });
+  }, [gameId, loadedName]);
 
   const round = game?.currentRound ?? null;
   const remainingMs = useCountdown(round?.timerDeadline ?? null);

@@ -1,7 +1,8 @@
 import type { GameView } from '@pp/contracts';
 import type { RenderHookResult } from '@testing-library/react';
-import { act, renderHook } from '@testing-library/react';
-import { describe, expect, it, vi } from 'vitest';
+import { act, cleanup, renderHook } from '@testing-library/react';
+import { beforeEach, describe, expect, it, vi } from 'vitest';
+import { rememberedGames } from '../../../shared/games/rememberedGames.js';
 import { useGameStore } from '../../../shared/store/gameStore.js';
 import type { UseGameTableResult } from './useGameTable.js';
 import { useGameTable } from './useGameTable.js';
@@ -181,6 +182,31 @@ describe('useGameTable', () => {
 
     expect(result.current.hasLeft).toBe(false);
     expect(result.current.errorMessage).toBe('No puedes quitar a otro.');
+  });
+
+  describe('partidas recientes', () => {
+    // Sin esto siguen montados los hooks de los tests anteriores y también recuerdan su partida.
+    beforeEach(() => {
+      cleanup();
+      localStorage.clear();
+    });
+
+    it('recuerda la partida al entrar en la sala para volver a ella desde la portada', () => {
+      renderWith('p1', null);
+
+      expect(rememberedGames().map((game) => [game.id, game.name])).toEqual([
+        ['game-1', 'Partida'],
+      ]);
+    });
+
+    it('no recuerda la partida mientras el estado cargado es el de otra sala', () => {
+      renderHook(() => useGameTable('game-2', 'p1'));
+      act(() => {
+        useGameStore.setState({ game: baseGame });
+      });
+
+      expect(rememberedGames()).toEqual([]);
+    });
   });
 
   describe('traspaso de facilitador', () => {

@@ -2,6 +2,7 @@ import type {
   CreateTeamCommandInput,
   DeckSummaryView,
   SaveCustomDeckCommandInput,
+  TeamGameView,
   TeamView,
 } from '@pp/contracts';
 
@@ -40,6 +41,22 @@ export function createTeam(input: CreateTeamCommandInput): Promise<CreateTeamRes
 export function authenticateTeam(slug: string, token: string): Promise<TeamView> {
   const query = new URLSearchParams({ k: token }).toString();
   return requestJson(`/api/teams/${slug}?${query}`);
+}
+
+export interface TeamGamesPage {
+  readonly limit: number;
+  /** El `createdAt` de la última partida de la página anterior. */
+  readonly before?: string | undefined;
+}
+
+export function listTeamGames(
+  slug: string,
+  token: string,
+  page: TeamGamesPage,
+): Promise<ReadonlyArray<TeamGameView>> {
+  const query = new URLSearchParams({ k: token, limit: page.limit.toString() });
+  if (page.before !== undefined) query.set('before', page.before);
+  return requestJson(`/api/teams/${slug}/games?${query.toString()}`);
 }
 
 export function listDecks(teamSlug?: string): Promise<ReadonlyArray<DeckSummaryView>> {

@@ -5,6 +5,8 @@ import { Link, useNavigate, useSearchParams } from 'react-router-dom';
 import { Button, Input, QrCode } from '../../design-system/index.js';
 import { createGame } from '../../shared/api/gamesClient.js';
 import { listDecks } from '../../shared/api/teamsClient.js';
+import type { RememberedGame } from '../../shared/games/rememberedGames.js';
+import { forgetGame, rememberedGames } from '../../shared/games/rememberedGames.js';
 import { useServerReady } from '../../shared/store/serverStatusStore.js';
 import type { RememberedTeam } from '../../shared/team/rememberedTeams.js';
 import { rememberedTeams } from '../../shared/team/rememberedTeams.js';
@@ -36,6 +38,7 @@ export function CreateGamePage(): JSX.Element {
   const [submitting, setSubmitting] = useState(false);
   const [created, setCreated] = useState<CreatedGame | null>(null);
   const [teams] = useState<ReadonlyArray<RememberedTeam>>(rememberedTeams);
+  const [recentGames, setRecentGames] = useState<ReadonlyArray<RememberedGame>>(rememberedGames);
   const serverReady = useServerReady();
 
   useEffect(() => {
@@ -182,6 +185,15 @@ export function CreateGamePage(): JSX.Element {
       </form>
 
       {teamSlug ? null : <TeamShortcuts teams={teams} />}
+      {teamSlug ? null : (
+        <RecentGames
+          games={recentGames}
+          onForget={(id) => {
+            forgetGame(id);
+            setRecentGames(rememberedGames());
+          }}
+        />
+      )}
     </div>
   );
 }
@@ -218,6 +230,63 @@ function TeamShortcuts({ teams }: { readonly teams: ReadonlyArray<RememberedTeam
       <Link to="/teams/new" className="text-center text-xs" style={{ color: 'var(--pp-muted)' }}>
         Crear otro equipo →
       </Link>
+    </div>
+  );
+}
+
+const visitFormat = new Intl.DateTimeFormat('es-ES', { dateStyle: 'medium', timeStyle: 'short' });
+
+function RecentGames({
+  games,
+  onForget,
+}: {
+  readonly games: ReadonlyArray<RememberedGame>;
+  readonly onForget: (id: string) => void;
+}): JSX.Element | null {
+  if (games.length === 0) return null;
+
+  return (
+    <div className="flex flex-col gap-2">
+      <span className="pp-kicker">Partidas recientes</span>
+      {games.map((game) => (
+        <RecentGameRow key={game.id} game={game} onForget={onForget} />
+      ))}
+    </div>
+  );
+}
+
+function RecentGameRow({
+  game,
+  onForget,
+}: {
+  readonly game: RememberedGame;
+  readonly onForget: (id: string) => void;
+}): JSX.Element {
+  return (
+    <div
+      className="flex items-center justify-between gap-2 rounded-[10px] px-3 py-2"
+      style={{ border: '1px solid var(--pp-line)' }}
+    >
+      <div className="flex min-w-0 flex-col">
+        <span className="truncate text-sm">{game.name}</span>
+        <span className="text-[11px]" style={{ color: 'var(--pp-muted)' }}>
+          {visitFormat.format(new Date(game.visitedAt))}
+        </span>
+      </div>
+      <div className="flex flex-none gap-2">
+        <Link to={`/games/${game.id}`}>
+          <Button variant="secondary">Entrar</Button>
+        </Link>
+        <Button
+          variant="ghost"
+          aria-label={`Quitar ${game.name} de la lista`}
+          onClick={() => {
+            onForget(game.id);
+          }}
+        >
+          Quitar
+        </Button>
+      </div>
     </div>
   );
 }
