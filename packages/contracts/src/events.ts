@@ -6,6 +6,7 @@ import type {
   ParticipantRoleView,
   RoundResultView,
 } from './views.js';
+import type { WebhookEventName } from './webhooks.js';
 
 /**
  * Todos los eventos servidor→cliente llevan `version`, el contador incremental de la
@@ -139,4 +140,10 @@ export type EphemeralEvent =
       readonly remainingMs: number;
     }
   // La partida se ha borrado desde el panel de gestión: no hay estado que sincronizar después.
-  | { readonly type: 'game_closed' };
+  | { readonly type: 'game_closed' }
+  // Un envío agotó los reintentos (ADR 0028). Solo avisa: nunca deshace lo que lo provocó.
+  | {
+      readonly type: 'webhook_failed';
+      readonly event: WebhookEventName;
+      readonly issueId: string | null;
+    };
