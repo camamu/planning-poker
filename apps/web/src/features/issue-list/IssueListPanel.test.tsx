@@ -1,5 +1,5 @@
 import type { IssueView } from '@pp/contracts';
-import { cleanup, fireEvent, render, screen } from '@testing-library/react';
+import { cleanup, fireEvent, render, screen, waitFor } from '@testing-library/react';
 import { afterEach, describe, expect, it, vi } from 'vitest';
 import { IssueListPanel } from './IssueListPanel.js';
 import type { IssueListPanelProps } from './IssueListPanel.js';
@@ -11,6 +11,8 @@ const issue = (
 ): IssueView => ({
   id,
   title: `Tarea ${id}`,
+  description: null,
+  externalUrl: null,
   status,
   finalEstimate,
 });
@@ -29,6 +31,7 @@ function renderPanel(overrides: Partial<IssueListPanelProps> = {}): IssueListPan
     currentIssueId: 'mesa',
     canStartRound: false,
     onAddIssue: vi.fn(),
+    onImportIssues: vi.fn(() => Promise.resolve()),
     onRenameIssue: vi.fn(),
     onDeleteIssue: vi.fn(),
     onReorderIssues: vi.fn(),
@@ -190,5 +193,49 @@ describe('IssueListPanel: gestión de tareas', () => {
     fireEvent.click(screen.getByText('Tarea p2'));
 
     expect(props.onStartRound).toHaveBeenCalledWith('p2');
+  });
+});
+
+describe('IssueListPanel: importar tareas y enlaces', () => {
+  afterEach(cleanup);
+
+  it('abre el diálogo de importación y le pasa el lote a onImportIssues', async () => {
+    const props = renderPanel();
+
+    fireEvent.click(screen.getByRole('button', { name: 'Importar tareas…' }));
+    fireEvent.change(screen.getByLabelText('Tareas'), { target: { value: 'Una\nOtra' } });
+    fireEvent.click(screen.getByRole('button', { name: 'Importar 2 tareas' }));
+
+    await waitFor(() => {
+      expect(props.onImportIssues).toHaveBeenCalledWith([{ title: 'Una' }, { title: 'Otra' }]);
+    });
+    await waitFor(() => {
+      expect(screen.queryByRole('dialog')).not.toBeInTheDocument();
+    });
+  });
+
+  it('muestra un enlace solo en las tareas con externalUrl', () => {
+    renderPanel({
+      issues: [
+        { ...issue('p1', 'PENDING'), externalUrl: 'https://acme.atlassian.net/browse/ABC-1' },
+        issue('p2', 'PENDING'),
+      ],
+      currentIssueId: null,
+    });
+
+    const link = screen.getByRole('link', { name: 'Abrir «Tarea p1» en una pestaña nueva' });
+    expect(link).toHaveAttribute('href', 'https://acme.atlassian.net/browse/ABC-1');
+    expect(link).toHaveAttribute('target', '_blank');
+    expect(link).toHaveAttribute('rel', 'noopener noreferrer');
+    expect(screen.getAllByRole('link')).toHaveLength(1);
+  });
+
+  it('no pinta como enlace un externalUrl que no sea http(s)', () => {
+    renderPanel({
+      issues: [{ ...issue('p1', 'PENDING'), externalUrl: 'javascript:alert(1)' }],
+      currentIssueId: null,
+    });
+
+    expect(screen.queryByRole('link')).not.toBeInTheDocument();
   });
 });

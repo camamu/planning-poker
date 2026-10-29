@@ -20,6 +20,10 @@ export interface ParticipantView {
 export interface IssueView {
   readonly id: string;
   readonly title: string;
+  /** `null` = sin descripción (ausente o vacía en el dominio). */
+  readonly description: string | null;
+  /** Siempre http(s): se valida en el borde y se pinta como enlace. */
+  readonly externalUrl: string | null;
   readonly status: IssueStatusView;
   readonly finalEstimate: string | null;
 }

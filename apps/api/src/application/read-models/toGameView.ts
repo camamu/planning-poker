@@ -77,9 +77,16 @@ export function toIssueView(issue: Issue): IssueView {
   return {
     id: issue.id.value,
     title: issue.title,
+    description: nullIfBlank(issue.description),
+    externalUrl: nullIfBlank(issue.externalUrl),
     status: issue.currentStatus(),
     finalEstimate: issue.currentFinalEstimate()?.raw ?? null,
   };
+}
+
+/** Una descripción vacía es la forma de borrarla al editar (ADR 0019): para la vista es «sin descripción». */
+function nullIfBlank(value: string | undefined): string | null {
+  return value === undefined || value === '' ? null : value;
 }
 
 /**

@@ -2,7 +2,7 @@ import { useEffect, useRef, useState } from 'react';
 import type { JSX } from 'react';
 import { Link } from 'react-router-dom';
 import { Avatar, Button, Toast } from '../../design-system/index.js';
-import { addIssue } from '../../shared/api/gamesClient.js';
+import { addIssue, importIssues } from '../../shared/api/gamesClient.js';
 import {
   playImpactSound,
   playReactionSound,
@@ -355,6 +355,9 @@ export function GameTablePage({
               canStartRound={round === null}
               onAddIssue={(title) => {
                 void addIssue(gameId, { title });
+              }}
+              onImportIssues={async (issues) => {
+                await importIssues(gameId, { issues: [...issues] });
               }}
               onRenameIssue={table.renameIssue}
               onDeleteIssue={table.deleteIssue}

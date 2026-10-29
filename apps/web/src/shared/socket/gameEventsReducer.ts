@@ -3,7 +3,7 @@ import type { GameView, IssueView, RoundVoteView, ServerEvent } from '@pp/contra
 /**
  * Espejo cliente de la invariante 7: nunca fabrica un valor de voto que el servidor no le haya
  * dado. Los eventos que no traen datos suficientes para parchear correctamente (`participant_
- * joined`, `participant_left`, `issue_added`, `round_started` — ver `NEEDS_RESYNC`) se ignoran aquí a propósito: es
+ * joined`, `participant_left`, `issue_added`, `issues_imported`, `round_started` — ver `NEEDS_RESYNC`) se ignoran aquí a propósito: es
  * responsabilidad de quien escucha el socket pedir un `state_sync` fresco para esos casos, no de
  * este reductor inventar un nombre, un título o un dealer que no le han llegado.
  */
@@ -15,6 +15,7 @@ export function gameEventsReducer(state: GameView | null, event: ServerEvent): G
     case 'participant_joined':
     case 'participant_left':
     case 'issue_added':
+    case 'issues_imported':
     case 'round_started':
       return state;
 
@@ -119,6 +120,7 @@ export function needsResync(eventType: ServerEvent['type']): boolean {
     eventType === 'participant_joined' ||
     eventType === 'participant_left' ||
     eventType === 'issue_added' ||
+    eventType === 'issues_imported' ||
     eventType === 'round_started'
   );
 }

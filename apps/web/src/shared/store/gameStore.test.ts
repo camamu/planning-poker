@@ -164,6 +164,20 @@ describe('gameStore', () => {
     expect(emit).toHaveBeenCalledWith('join', { gameId: 'game-1', participantId: 'p1' });
   });
 
+  it('issues_imported pide un único state_sync fresco para toda la importación', () => {
+    useGameStore.getState().connect('game-1', 'p1');
+    emit.mockClear();
+
+    handlers.get('issues_imported')?.({
+      type: 'issues_imported',
+      version: 1,
+      issueIds: ['issue-1', 'issue-2', 'issue-3'],
+    });
+
+    expect(emit).toHaveBeenCalledOnce();
+    expect(emit).toHaveBeenCalledWith('join', { gameId: 'game-1', participantId: 'p1' });
+  });
+
   it('connect() reinicia version a 0 al cambiar de partida', () => {
     useGameStore.setState({ version: 12 });
     useGameStore.getState().connect('game-2', 'p1');

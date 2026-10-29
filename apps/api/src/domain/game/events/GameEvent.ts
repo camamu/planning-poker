@@ -38,6 +38,11 @@ export type GameEvent = DomainEvent &
         readonly nextId: ParticipantId;
       }
     | { readonly type: 'IssueAdded'; readonly gameId: GameId; readonly issueId: IssueId }
+    | {
+        readonly type: 'IssuesImported';
+        readonly gameId: GameId;
+        readonly issueIds: ReadonlyArray<IssueId>;
+      }
     | { readonly type: 'IssueEdited'; readonly gameId: GameId; readonly issueId: IssueId }
     | { readonly type: 'IssueRemoved'; readonly gameId: GameId; readonly issueId: IssueId }
     | {

@@ -21,6 +21,8 @@ vi.mock('../api/gamesClient.js', () => ({
 const issue = (id: string, title: string, status: IssueView['status'] = 'PENDING'): IssueView => ({
   id,
   title,
+  description: null,
+  externalUrl: null,
   status,
   finalEstimate: null,
 });

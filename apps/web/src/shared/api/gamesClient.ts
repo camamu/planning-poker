@@ -7,6 +7,7 @@ import type {
   DeckSummaryView,
   EditIssueCommandInput,
   GameView,
+  ImportIssuesCommandInput,
   JoinGameCommandInput,
   RemoveIssueCommandInput,
   ReorderIssuesCommandInput,
@@ -25,6 +26,10 @@ export interface JoinGameResult {
 
 export interface AddIssueResult {
   readonly issueId: string;
+}
+
+export interface ImportIssuesResult {
+  readonly issueIds: ReadonlyArray<string>;
 }
 
 export interface GameStateResult {
@@ -62,6 +67,16 @@ export function joinGame(gameId: string, input: JoinGameCommandInput): Promise<J
 
 export function addIssue(gameId: string, input: AddIssueCommandInput): Promise<AddIssueResult> {
   return requestJson(`/api/games/${gameId}/issues`, {
+    method: 'POST',
+    body: JSON.stringify(input),
+  });
+}
+
+export function importIssues(
+  gameId: string,
+  input: ImportIssuesCommandInput,
+): Promise<ImportIssuesResult> {
+  return requestJson(`/api/games/${gameId}/issues/batch`, {
     method: 'POST',
     body: JSON.stringify(input),
   });

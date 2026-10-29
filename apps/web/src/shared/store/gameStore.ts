@@ -328,6 +328,9 @@ socket.on('facilitator_changed', (event: Extract<ServerEvent, { type: 'facilitat
 socket.on('issue_added', (event: Extract<ServerEvent, { type: 'issue_added' }>) => {
   applyEvent(event);
 });
+socket.on('issues_imported', (event: Extract<ServerEvent, { type: 'issues_imported' }>) => {
+  applyEvent(event);
+});
 socket.on('issue_edited', (event: Extract<ServerEvent, { type: 'issue_edited' }>) => {
   applyEvent(event);
 });

@@ -1,3 +1,4 @@
+import { isHttpUrl } from '@pp/contracts';
 import type { IssueView } from '@pp/contracts';
 import { useRef, useState } from 'react';
 import type { DragEvent, JSX, SubmitEvent } from 'react';
@@ -138,6 +139,19 @@ export function IssueRow({
             {issue.title}
           </span>
         )}
+
+        {!editing && issue.externalUrl !== null && isHttpUrl(issue.externalUrl) ? (
+          <a
+            href={issue.externalUrl}
+            target="_blank"
+            rel="noopener noreferrer"
+            className="btn btn-ghost"
+            title={issue.externalUrl}
+            aria-label={`Abrir «${issue.title}» en una pestaña nueva`}
+          >
+            ↗
+          </a>
+        ) : null}
 
         {issue.finalEstimate !== null ? (
           <span

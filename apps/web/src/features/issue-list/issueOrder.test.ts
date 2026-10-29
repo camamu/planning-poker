@@ -5,6 +5,8 @@ import { moveItem, queueWithPendingOrder } from './issueOrder.js';
 const issue = (id: string, status: IssueView['status']): IssueView => ({
   id,
   title: id,
+  description: null,
+  externalUrl: null,
   status,
   finalEstimate: null,
 });
