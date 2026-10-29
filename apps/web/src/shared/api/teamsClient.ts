@@ -1,9 +1,13 @@
 import type {
+  AddWebhookCommandInput,
   CreateTeamCommandInput,
+  CreatedWebhookView,
   DeckSummaryView,
   SaveCustomDeckCommandInput,
   TeamGameView,
   TeamView,
+  WebhookTestResultView,
+  WebhookView,
 } from '@pp/contracts';
 
 export interface CreateTeamResult {
@@ -20,7 +24,9 @@ export interface SaveCustomDeckResult {
 async function requestJson<T>(path: string, init?: RequestInit): Promise<T> {
   const response = await fetch(`${import.meta.env.VITE_API_URL}${path}`, {
     ...init,
-    headers: { 'content-type': 'application/json' },
+    // Sin cuerpo no se manda: Fastify responde 400 a un `application/json` vacío, y eso rompía los
+    // `DELETE` y las acciones sin datos (borrar una baraja, enviar una prueba de webhook).
+    headers: init?.body === undefined ? {} : { 'content-type': 'application/json' },
   });
   if (!response.ok) {
     const body: unknown = await response.json().catch(() => null);
@@ -92,4 +98,37 @@ export function updateCustomDeck(
 export function deleteCustomDeck(teamSlug: string, token: string, deckId: string): Promise<void> {
   const query = new URLSearchParams({ k: token }).toString();
   return requestJson(`/api/teams/${teamSlug}/decks/${deckId}?${query}`, { method: 'DELETE' });
+}
+
+export function listWebhooks(slug: string, token: string): Promise<ReadonlyArray<WebhookView>> {
+  const query = new URLSearchParams({ k: token }).toString();
+  return requestJson(`/api/teams/${slug}/webhooks?${query}`);
+}
+
+/** La única respuesta que lleva el secreto completo: hay que enseñarlo ahora (ADR 0028). */
+export function addWebhook(
+  slug: string,
+  token: string,
+  input: AddWebhookCommandInput,
+): Promise<CreatedWebhookView> {
+  const query = new URLSearchParams({ k: token }).toString();
+  return requestJson(`/api/teams/${slug}/webhooks?${query}`, {
+    method: 'POST',
+    body: JSON.stringify(input),
+  });
+}
+
+export function removeWebhook(slug: string, token: string, webhookId: string): Promise<void> {
+  const query = new URLSearchParams({ k: token }).toString();
+  return requestJson(`/api/teams/${slug}/webhooks/${webhookId}?${query}`, { method: 'DELETE' });
+}
+
+/** Un `ping` con una sola entrega; el resultado dice si el receptor contestó y con qué código. */
+export function testWebhook(
+  slug: string,
+  token: string,
+  webhookId: string,
+): Promise<WebhookTestResultView> {
+  const query = new URLSearchParams({ k: token }).toString();
+  return requestJson(`/api/teams/${slug}/webhooks/${webhookId}/test?${query}`, { method: 'POST' });
 }

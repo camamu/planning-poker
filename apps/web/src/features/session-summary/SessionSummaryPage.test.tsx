@@ -1,4 +1,4 @@
-import type { GameSummaryIssueView, GameSummaryView } from '@pp/contracts';
+import type { GameSummaryIssueView, GameSummaryResponseView } from '@pp/contracts';
 import { cleanup, render, screen, within } from '@testing-library/react';
 import { MemoryRouter, Route, Routes } from 'react-router-dom';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
@@ -26,7 +26,7 @@ function issue(overrides: Partial<GameSummaryIssueView> = {}): GameSummaryIssueV
   };
 }
 
-function summary(overrides: Partial<GameSummaryView> = {}): GameSummaryView {
+function summary(overrides: Partial<GameSummaryResponseView> = {}): GameSummaryResponseView {
   return {
     id: 'game-1',
     name: 'Sprint 42',
@@ -41,6 +41,7 @@ function summary(overrides: Partial<GameSummaryView> = {}): GameSummaryView {
       averageDurationMs: 180_000,
       voterCount: 3,
     },
+    canSendToTeam: false,
     ...overrides,
   };
 }
@@ -179,6 +180,43 @@ describe('SessionSummaryPage', () => {
     const exportSection = await screen.findByRole('region', { name: 'Exportar el resumen' });
     expect(within(exportSection).getByRole('button', { name: 'Descargar CSV' })).toBeVisible();
     expect(within(exportSection).getByRole('button', { name: 'Copiar Markdown' })).toBeVisible();
+  });
+
+  it('ofrece enviar el resumen al equipo solo si hay un webhook suscrito y el navegador es de un participante', async () => {
+    localStorage.setItem(
+      'pp:participant:game-1',
+      JSON.stringify({ participantId: 'p1', displayName: 'Ada' }),
+    );
+    vi.mocked(getGameSummary).mockResolvedValue(summary({ canSendToTeam: true }));
+
+    renderPage();
+
+    expect(await screen.findByRole('button', { name: 'Enviar resumen' })).toBeVisible();
+    localStorage.clear();
+  });
+
+  it('no ofrece enviar el resumen si el equipo no tiene webhook para ello', async () => {
+    localStorage.setItem(
+      'pp:participant:game-1',
+      JSON.stringify({ participantId: 'p1', displayName: 'Ada' }),
+    );
+    vi.mocked(getGameSummary).mockResolvedValue(summary({ canSendToTeam: false }));
+
+    renderPage();
+
+    await screen.findByRole('heading', { name: 'Sprint 42' });
+    expect(screen.queryByRole('button', { name: 'Enviar resumen' })).not.toBeInTheDocument();
+    localStorage.clear();
+  });
+
+  it('no ofrece enviar el resumen a quien abre el enlace sin haber estado en la partida', async () => {
+    localStorage.clear();
+    vi.mocked(getGameSummary).mockResolvedValue(summary({ canSendToTeam: true }));
+
+    renderPage();
+
+    await screen.findByRole('heading', { name: 'Sprint 42' });
+    expect(screen.queryByRole('button', { name: 'Enviar resumen' })).not.toBeInTheDocument();
   });
 
   it('avisa de que la partida no tiene tareas y no ofrece exportar nada', async () => {

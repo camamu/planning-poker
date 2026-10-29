@@ -155,6 +155,15 @@ export interface GameSummaryView {
   readonly totals: GameSummaryTotalsView;
 }
 
+/**
+ * `GET /api/games/:id/summary`: el resumen más un dato que no pertenece al resumen en sí. Se separa
+ * de `GameSummaryView` porque el webhook `session.summary` envía solo el resumen (ADR 0028).
+ */
+export interface GameSummaryResponseView extends GameSummaryView {
+  /** La partida es de un equipo con algún webhook suscrito a `session.summary`. */
+  readonly canSendToTeam: boolean;
+}
+
 export interface TeamView {
   readonly id: string;
   readonly slug: string;

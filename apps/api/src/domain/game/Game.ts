@@ -617,6 +617,11 @@ export class Game {
     this.reconcileAutoReveal(now, present);
   }
 
+  /** Para acciones fuera del agregado que piden «estar en la partida» (p. ej. enviar el resumen a un webhook). */
+  assertParticipant(id: ParticipantId): void {
+    this.requireParticipant(id);
+  }
+
   hasParticipantLeft(id: ParticipantId): boolean {
     return this.participants.get(id.value)?.hasLeft() ?? false;
   }

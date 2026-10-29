@@ -2,6 +2,7 @@ import type { EphemeralEvent, GameView, IssueView, ServerEvent } from '@pp/contr
 import { create } from 'zustand';
 import { editIssue, removeIssue, reorderIssues } from '../api/gamesClient.js';
 import { getSocket } from '../socket/connection.js';
+import { WEBHOOK_EVENT_LABELS } from '../webhooks/webhookEventLabels.js';
 import { gameEventsReducer, needsResync } from '../socket/gameEventsReducer.js';
 
 export type ConnectionStatus = 'idle' | 'connecting' | 'connected' | 'disconnected';
@@ -463,6 +464,13 @@ socket.on('emoji_thrown', (event: Extract<EphemeralEvent, { type: 'emoji_thrown'
   setTimeout(() => {
     useGameStore.getState().dismissEmoji(id);
   }, 2500);
+});
+// Un envío a un webhook del equipo agotó los reintentos (ADR 0028). Es un aviso, no un error de lo
+// que hizo quien lo ve: la acción que lo provocó ya está guardada.
+socket.on('webhook_failed', (event: Extract<EphemeralEvent, { type: 'webhook_failed' }>) => {
+  useGameStore.setState({
+    errorMessage: `No se pudo avisar a un webhook del equipo («${WEBHOOK_EVENT_LABELS[event.event]}»). Lo que has hecho sí se ha guardado.`,
+  });
 });
 // El servidor ya ha sacado al socket de la room: sin `game`, la mesa muestra el mensaje y la salida.
 socket.on('game_closed', () => {

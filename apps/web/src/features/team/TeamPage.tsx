@@ -15,16 +15,18 @@ import { rememberTeam } from '../../shared/team/rememberedTeams.js';
 import { CustomDeckForm } from './components/CustomDeckForm.js';
 import type { CustomDeckFormValue } from './components/CustomDeckForm.js';
 import { TeamGamesList } from './components/TeamGamesList.js';
+import { WebhooksPanel } from './components/WebhooksPanel.js';
 
-type TeamTab = 'decks' | 'games';
+type TeamTab = 'decks' | 'games' | 'webhooks';
 
 const TEAM_TABS = [
   { value: 'decks', label: 'Barajas' },
   { value: 'games', label: 'Partidas' },
+  { value: 'webhooks', label: 'Webhooks' },
 ] as const;
 
 function isTeamTab(value: string): value is TeamTab {
-  return value === 'decks' || value === 'games';
+  return value === 'decks' || value === 'games' || value === 'webhooks';
 }
 
 type Editing =
@@ -135,6 +137,8 @@ export function TeamPage(): JSX.Element {
 
       {tab === 'games' ? (
         <TeamGamesList key={`${slug}:${token}`} slug={slug} token={token} />
+      ) : tab === 'webhooks' ? (
+        <WebhooksPanel key={`${slug}:${token}`} slug={slug} token={token} />
       ) : (
         <>
           <p className="text-sm" style={{ color: 'var(--pp-muted)' }}>
