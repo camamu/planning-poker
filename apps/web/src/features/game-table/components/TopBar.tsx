@@ -18,6 +18,8 @@ export interface TopBarProps {
   /** Se abre en otra pestaña: salir de la sala desconectaría el socket y el resto te vería ausente. */
   readonly summaryHref: string;
   readonly onToggleIssues: () => void;
+  /** Tareas en diferido que le quedan por votar al viewer; 0 = nada que avisar. */
+  readonly asyncToVote: number;
   readonly onToggleSettings: () => void;
   /** El facilitador también sale, pero antes cede el rol (ADR 0021): lo resuelve quien lo pasa. */
   readonly onLeave?: (() => void) | undefined;
@@ -59,6 +61,14 @@ export function TopBar(props: TopBarProps): JSX.Element {
         ) : null}
         <button type="button" className="btn btn-secondary" onClick={props.onToggleIssues}>
           📋 Tareas
+          {props.asyncToVote > 0 ? (
+            <span
+              className="tag tag-accent ml-1.5"
+              aria-label={`${props.asyncToVote.toString()} por votar en diferido`}
+            >
+              {props.asyncToVote}
+            </span>
+          ) : null}
         </button>
         <a
           href={props.summaryHref}

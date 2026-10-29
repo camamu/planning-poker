@@ -1,4 +1,5 @@
 import type {
+  AsyncRoundView,
   GameView,
   IssueView,
   ParticipantView,
@@ -59,6 +60,9 @@ export function toGameView(
     currentRound: round
       ? toRoundView(round, viewerId, dealerId, previousRoundsOf(game, round))
       : null,
+    asyncRounds: game
+      .activeAsyncRounds()
+      .map((asyncRound) => toAsyncRoundView(asyncRound, viewerId)),
   };
 }
 
@@ -134,6 +138,30 @@ function toRoundView(
     previousRounds,
     dealerId: dealerId?.value ?? null,
     timerDeadline: round.currentTimerDeadline()?.toISOString() ?? null,
+  };
+}
+
+/**
+ * Tercera vía por la que un voto puede salir del servidor (ADR 0027), con la misma regla que
+ * `toRoundView`: abierta, solo quién ha votado y la carta del propio viewer; las cartas de los demás
+ * y el resultado únicamente cuando la ronda está revelada.
+ */
+function toAsyncRoundView(round: Round, viewerId: ParticipantId): AsyncRoundView {
+  const revealed = round.isRevealed();
+  const votes = round.allVotesRaw();
+
+  return {
+    roundId: round.id.value,
+    issueId: round.issueId.value,
+    status: round.currentStatus(),
+    voterIds: votes.map((vote) => vote.participantId.value),
+    ownCard: votes.find((vote) => vote.participantId.equals(viewerId))?.card.raw ?? null,
+    votes: revealed
+      ? round
+          .revealedVotes()
+          .map((vote) => ({ participantId: vote.participantId.value, card: vote.card.raw }))
+      : [],
+    result: revealed ? toRoundResultView(round.revealedResult()) : null,
   };
 }
 

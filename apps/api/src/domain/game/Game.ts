@@ -12,6 +12,7 @@ import type { IssueChanges, IssueDetails, IssueDraft } from './Issue.js';
 import { Participant } from './Participant.js';
 import type { ParticipantRole } from './Participant.js';
 import { Round } from './Round.js';
+import type { AsyncRoundEntry } from './Round.js';
 import type { TeamId } from '../team/TeamId.js';
 
 export class ParticipantAlreadyJoinedError extends DomainError {
@@ -85,6 +86,20 @@ export class NoOpenRoundError extends DomainError {
 export class AnotherRoundOpenError extends DomainError {
   constructor(readonly gameId: GameId) {
     super(`La partida ${gameId.value} ya tiene una ronda abierta.`);
+  }
+}
+
+export class NoOpenAsyncRoundError extends DomainError {
+  constructor(readonly issueId: IssueId) {
+    super(`La tarea ${issueId.value} no tiene ninguna ronda abierta en diferido.`);
+  }
+}
+
+export class IssueNotPendingError extends DomainError {
+  constructor(readonly issueId: IssueId) {
+    super(
+      `La tarea ${issueId.value} no se puede abrir en diferido: tiene que estar pendiente y sin ronda abierta.`,
+    );
   }
 }
 
@@ -368,16 +383,32 @@ export class Game {
     this.startVotingRound(roundId, issueId, now);
   }
 
-  startVotingRound(id: RoundId, issueId: IssueId, now: Date): void {
+  /**
+   * Si la tarea tiene una ronda asíncrona abierta, la ronda en vivo la absorbe (ADR 0027): arranca
+   * con sus votos y la asíncrona se retira, para que quien votó en diferido no repita y no queden dos
+   * rondas abiertas sobre la misma tarea. Esos votos pueden completar la ronda, así que se repasa el
+   * auto-revelado como al votar; si no, la ronda se revelaría sola en el siguiente cambio de presencia.
+   */
+  startVotingRound(
+    id: RoundId,
+    issueId: IssueId,
+    now: Date,
+    present?: ReadonlyArray<ParticipantId>,
+  ): void {
     if (this.openRound()) throw new AnotherRoundOpenError(this.id);
     const issue = this.requireIssue(issueId);
 
-    const roundNumber = this.rounds.filter((round) => round.issueId.equals(issueId)).length + 1;
+    const absorbed = this.openAsyncRound(issueId);
+    if (absorbed) this.rounds.splice(this.rounds.indexOf(absorbed), 1);
+
+    const roundNumber = this.roundsOf(issueId).length + 1;
     const timerDeadline =
       this.settings.countdownSeconds != null
         ? new Date(now.getTime() + this.settings.countdownSeconds * 1000)
         : null;
-    this.rounds.push(Round.open(id, issueId, roundNumber, timerDeadline, now));
+    const round = Round.open(id, issueId, roundNumber, timerDeadline, now);
+    if (absorbed) round.adoptVotesFrom(absorbed);
+    this.rounds.push(round);
     issue.startVoting();
     this.record({
       type: 'VotingRoundStarted',
@@ -386,6 +417,108 @@ export class Game {
       roundId: id,
       issueId,
     });
+
+    if (absorbed && round.voteCount() > 0) this.autoRevealIfComplete(round, present, now);
+  }
+
+  /**
+   * Abre en diferido varias tareas de golpe, todas o ninguna: se validan todas antes de crear
+   * ninguna. Cada una tiene que estar pendiente y sin ronda abierta; una repetida en la lista falla
+   * igual que una ya abierta. Cualquier participante puede abrirlas, como una ronda en vivo. Una
+   * lista vacía no cambia nada y no emite nada.
+   */
+  openAsyncRounds(
+    entries: ReadonlyArray<AsyncRoundEntry>,
+    requestedBy: ParticipantId,
+    now: Date,
+  ): void {
+    this.requireParticipant(requestedBy);
+    const seen = new Set<string>();
+    for (const entry of entries) {
+      const issue = this.requireIssue(entry.issueId);
+      if (
+        issue.currentStatus() !== 'PENDING' ||
+        this.openAsyncRound(entry.issueId) ||
+        seen.has(entry.issueId.value)
+      ) {
+        throw new IssueNotPendingError(entry.issueId);
+      }
+      seen.add(entry.issueId.value);
+    }
+    if (entries.length === 0) return;
+
+    for (const entry of entries) {
+      const roundNumber = this.roundsOf(entry.issueId).length + 1;
+      this.rounds.push(Round.openAsync(entry.roundId, entry.issueId, roundNumber, now));
+    }
+    this.record({ type: 'AsyncRoundsOpened', occurredAt: now, gameId: this.id, rounds: entries });
+  }
+
+  /**
+   * Mismas reglas que `castVote` (espectador, carta en la baraja, `allowVoteChange`) sobre la ronda
+   * asíncrona abierta de la tarea. Nunca revela: eso lo decide quien puede revelar, en lote.
+   */
+  castAsyncVote(participantId: ParticipantId, issueId: IssueId, card: CardValue, now: Date): void {
+    this.requireVoteAllowed(participantId, card);
+    const round = this.openAsyncRound(issueId);
+    if (!round) throw new NoOpenAsyncRoundError(issueId);
+    if (!this.placeVote(round, participantId, card)) return;
+
+    this.record({
+      type: 'AsyncVoteCast',
+      occurredAt: now,
+      gameId: this.id,
+      roundId: round.id,
+      issueId,
+      participantId,
+    });
+  }
+
+  /**
+   * Revela las rondas asíncronas abiertas que tienen al menos un voto: las de `issueIds`, o todas
+   * con `'ALL'`. Una ronda sin votos no tiene resultado que enseñar y se deja abierta; una tarea sin
+   * ronda asíncrona abierta (alguien se adelantó) se ignora. Si no queda nada que revelar, no emite.
+   */
+  revealAsyncRounds(
+    issueIds: ReadonlyArray<IssueId> | 'ALL',
+    requestedBy: ParticipantId,
+    now: Date,
+  ): void {
+    if (!this.canRevealWithoutLiveRound(requestedBy)) throw new RevealNotAllowedError(requestedBy);
+    if (issueIds !== 'ALL') {
+      for (const issueId of issueIds) this.requireIssue(issueId);
+    }
+
+    const revealed = this.rounds.filter(
+      (round) =>
+        round.isAsync() &&
+        round.isOpen() &&
+        round.voteCount() > 0 &&
+        (issueIds === 'ALL' || issueIds.some((issueId) => issueId.equals(round.issueId))),
+    );
+    if (revealed.length === 0) return;
+
+    for (const round of revealed) round.reveal(now);
+    this.record({
+      type: 'AsyncRoundsRevealed',
+      occurredAt: now,
+      gameId: this.id,
+      rounds: revealed.map((round) => ({ roundId: round.id, issueId: round.issueId })),
+    });
+  }
+
+  /**
+   * Las rondas asíncronas que siguen vivas para la sala: abiertas, o reveladas y a la espera de
+   * estimación. Una tarea que ya se ha llevado a la mesa o se ha estimado tiene una ronda posterior o
+   * cerrada, y deja de aparecer aquí.
+   */
+  activeAsyncRounds(): ReadonlyArray<Round> {
+    return this.rounds.filter(
+      (round) =>
+        round.isAsync() &&
+        round.currentStatus() !== 'CLOSED' &&
+        this.roundsOf(round.issueId).at(-1) === round,
+    );
   }
 
   castVote(
@@ -394,17 +527,10 @@ export class Game {
     now: Date,
     present?: ReadonlyArray<ParticipantId>,
   ): void {
-    const participant = this.requireParticipant(participantId);
-    if (participant.isSpectator()) throw new SpectatorCannotVoteError(participantId);
-    if (!this.deck.contains(card)) throw new CardNotInDeckError(card);
-
+    this.requireVoteAllowed(participantId, card);
     const round = this.requireOpenRound();
-    if (round.hasSameVote(participantId, card)) return;
-    if (!this.settings.allowVoteChange && round.hasVoted(participantId)) {
-      throw new VoteChangeNotAllowedError(participantId);
-    }
+    if (!this.placeVote(round, participantId, card)) return;
 
-    round.castVote(participantId, card);
     this.record({
       type: 'VoteCast',
       occurredAt: now,
@@ -477,9 +603,8 @@ export class Game {
       participantId: targetId,
     });
 
-    const round = this.openRound();
-    if (!round) return;
-    if (round.hasVoted(targetId)) {
+    // También las rondas asíncronas abiertas: un voto de quien ya no está no debe salir al revelarlas.
+    for (const round of this.rounds.filter((r) => r.isOpen() && r.hasVoted(targetId))) {
       round.retractVote(targetId);
       this.record({
         type: 'VoteRetracted',
@@ -572,6 +697,18 @@ export class Game {
   }
 
   /**
+   * El dealer sale de la ronda en vivo, así que sin ella `DEALER` no designaría a nadie y las rondas
+   * asíncronas no se podrían revelar ni estimar. En ese caso decide el facilitador.
+   */
+  private canRevealWithoutLiveRound(participantId: ParticipantId): boolean {
+    const participant = this.requireParticipant(participantId);
+    if (this.settings.whoCanReveal === 'DEALER' && this.currentDealer() === null) {
+      return participant.isFacilitator;
+    }
+    return this.canReveal(participantId);
+  }
+
+  /**
    * Reveal disparado por el cliente al agotarse la cuenta atrás (F5) y validado aquí contra la
    * fecha límite guardada en la ronda — nunca contra el reloj local del cliente. No comprueba
    * `canReveal()`: es una acción del sistema, mismo precedente que el auto-reveal de `castVote`.
@@ -624,17 +761,33 @@ export class Game {
   /** Cualquier participante, espectadores incluidos (ADR 0018): la baraja es de toda la sala. */
   changeDeck(deck: Deck, requestedBy: ParticipantId, now: Date): void {
     this.requireParticipant(requestedBy);
-    if (this.openRound()) throw new DeckChangeDuringVotingError(this.id);
+    if (this.openRound() || this.rounds.some((round) => round.isAsync() && round.isOpen())) {
+      throw new DeckChangeDuringVotingError(this.id);
+    }
     this.deck = deck;
     this.record({ type: 'GameDeckChanged', occurredAt: now, gameId: this.id, deck });
   }
 
-  /** Mismo permiso que revelar: cerrar la issue es el otro extremo de la misma decisión. */
-  setFinalEstimate(cardValue: CardValue, requestedBy: ParticipantId, now: Date): void {
-    if (!this.canReveal(requestedBy)) throw new RevealNotAllowedError(requestedBy);
+  /**
+   * Mismo permiso que revelar: cerrar la issue es el otro extremo de la misma decisión. Con `issueId`
+   * cierra la última ronda de esa tarea en vez de la ronda actual de la mesa, que es como se estiman
+   * las tareas reveladas en lote sin llevarlas antes a la mesa (ADR 0027).
+   */
+  setFinalEstimate(
+    cardValue: CardValue,
+    requestedBy: ParticipantId,
+    now: Date,
+    issueId?: IssueId,
+  ): void {
+    const allowed =
+      issueId === undefined
+        ? this.canReveal(requestedBy)
+        : this.canRevealWithoutLiveRound(requestedBy);
+    if (!allowed) throw new RevealNotAllowedError(requestedBy);
     if (!this.deck.contains(cardValue)) throw new CardNotInDeckError(cardValue);
 
-    const round = this.currentRound();
+    if (issueId !== undefined) this.requireIssue(issueId);
+    const round = issueId === undefined ? this.currentRound() : this.roundsOf(issueId).at(-1);
     if (!round || round.currentStatus() !== 'REVEALED') {
       throw new EstimateRequiresRevealedRoundError(this.id);
     }
@@ -662,9 +815,12 @@ export class Game {
     this.record({ type: 'RoundRevealed', occurredAt: now, gameId: this.id, roundId: round.id });
   }
 
-  /** La ronda más reciente de la partida, abierta o no. Base de la proyección de lectura. */
+  /**
+   * La ronda en vivo más reciente de la partida, abierta o no. Base de la proyección de lectura. Las
+   * rondas asíncronas no cuentan (ADR 0027): conviven con la mesa sin ser nunca «la ronda actual».
+   */
   currentRound(): Round | undefined {
-    return this.rounds.at(-1);
+    return this.rounds.findLast((round) => round.isLive());
   }
 
   findIssue(id: IssueId): Issue | undefined {
@@ -672,13 +828,35 @@ export class Game {
   }
 
   private openRound(): Round | undefined {
-    return this.rounds.find((round) => round.isOpen());
+    return this.rounds.find((round) => round.isLive() && round.isOpen());
+  }
+
+  private openAsyncRound(issueId: IssueId): Round | undefined {
+    return this.rounds.find(
+      (round) => round.isAsync() && round.isOpen() && round.issueId.equals(issueId),
+    );
   }
 
   private requireOpenRound(): Round {
     const round = this.openRound();
     if (!round) throw new NoOpenRoundError(this.id);
     return round;
+  }
+
+  private requireVoteAllowed(participantId: ParticipantId, card: CardValue): void {
+    const participant = this.requireParticipant(participantId);
+    if (participant.isSpectator()) throw new SpectatorCannotVoteError(participantId);
+    if (!this.deck.contains(card)) throw new CardNotInDeckError(card);
+  }
+
+  /** Devuelve `false` si el voto ya era ese: repetirlo no es un hecho nuevo y no genera evento. */
+  private placeVote(round: Round, participantId: ParticipantId, card: CardValue): boolean {
+    if (round.hasSameVote(participantId, card)) return false;
+    if (!this.settings.allowVoteChange && round.hasVoted(participantId)) {
+      throw new VoteChangeNotAllowedError(participantId);
+    }
+    round.castVote(participantId, card);
+    return true;
   }
 
   private requireParticipant(id: ParticipantId): Participant {

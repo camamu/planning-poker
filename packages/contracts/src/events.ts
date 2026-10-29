@@ -78,6 +78,22 @@ export type ServerEvent =
       readonly votes: ReadonlyArray<{ readonly participantId: string; readonly card: string }>;
       readonly result: RoundResultView;
     })
+  // Los dos de apertura y revelado en lote piden `resync`: el estado de cada ronda (quién ha votado,
+  // y las cartas tras revelar) es por viewer, y un parche común no puede llevarlo (ADR 0027).
+  | (ServerEventBase & {
+      readonly type: 'async_rounds_opened';
+      readonly issueIds: ReadonlyArray<string>;
+    })
+  // Invariante 7: nunca lleva `card`, solo la señal de que ese participante ya votó esa tarea.
+  | (ServerEventBase & {
+      readonly type: 'async_vote_cast';
+      readonly issueId: string;
+      readonly participantId: string;
+    })
+  | (ServerEventBase & {
+      readonly type: 'async_rounds_revealed';
+      readonly issueIds: ReadonlyArray<string>;
+    })
   | (ServerEventBase & {
       readonly type: 'issue_estimated';
       readonly issueId: string;

@@ -1,5 +1,6 @@
 import type { GameSettingsView, GameView } from '@pp/contracts';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
+import { asyncRoundView } from '../testing/viewFixtures.js';
 import { useGameStore } from './gameStore.js';
 
 const { handlers, emit } = vi.hoisted(() => ({
@@ -28,6 +29,7 @@ function baseGame(): GameView {
     participants: [],
     issues: [],
     currentRound: null,
+    asyncRounds: [],
   };
 }
 
@@ -54,6 +56,7 @@ describe('gameStore', () => {
       participantId: null,
       errorMessage: null,
       selectedCard: null,
+      asyncSelected: {},
       hasLeft: false,
       theme: 'dark',
       muted: false,
@@ -243,5 +246,166 @@ describe('gameStore', () => {
     expect(state.game).toBeNull();
     expect(state.selectedCard).toBeNull();
     expect(state.errorMessage).toMatch(/administrador/);
+  });
+});
+
+describe('gameStore: votación en diferido', () => {
+  beforeEach(() => {
+    useGameStore.setState({
+      status: 'idle',
+      game: null,
+      version: 0,
+      gameId: null,
+      participantId: null,
+      errorMessage: null,
+      selectedCard: null,
+      asyncSelected: {},
+    });
+    emit.mockClear();
+  });
+
+  it('castAsyncVote pinta la carta propia ya y la manda al servidor', () => {
+    useGameStore.getState().connect('game-1', 'p1');
+    emit.mockClear();
+
+    useGameStore.getState().castAsyncVote('issue-2', '8');
+
+    expect(useGameStore.getState().asyncSelected).toEqual({ 'issue-2': '8' });
+    expect(emit).toHaveBeenCalledWith('async_vote', {
+      gameId: 'game-1',
+      participantId: 'p1',
+      issueId: 'issue-2',
+      card: '8',
+    });
+  });
+
+  it('castAsyncVote sin conexión (sin gameId) no hace nada', () => {
+    useGameStore.getState().castAsyncVote('issue-2', '8');
+
+    expect(useGameStore.getState().asyncSelected).toEqual({});
+    expect(emit).not.toHaveBeenCalled();
+  });
+
+  it('openAsyncRounds y revealAsync mandan sus comandos', () => {
+    useGameStore.getState().connect('game-1', 'p1');
+    emit.mockClear();
+
+    useGameStore.getState().openAsyncRounds(['a', 'b']);
+    useGameStore.getState().revealAsync();
+    useGameStore.getState().revealAsync(['a']);
+
+    expect(emit).toHaveBeenNthCalledWith(1, 'open_async_rounds', {
+      gameId: 'game-1',
+      participantId: 'p1',
+      issueIds: ['a', 'b'],
+    });
+    expect(emit).toHaveBeenNthCalledWith(2, 'reveal_async', {
+      gameId: 'game-1',
+      participantId: 'p1',
+    });
+    expect(emit).toHaveBeenNthCalledWith(3, 'reveal_async', {
+      gameId: 'game-1',
+      participantId: 'p1',
+      issueIds: ['a'],
+    });
+  });
+
+  it('setFinalEstimate con tarea manda su issueId y sin ella lo omite', () => {
+    useGameStore.getState().connect('game-1', 'p1');
+    emit.mockClear();
+
+    useGameStore.getState().setFinalEstimate('5', 'issue-2');
+    useGameStore.getState().setFinalEstimate('8');
+
+    expect(emit).toHaveBeenNthCalledWith(1, 'set_estimate', {
+      gameId: 'game-1',
+      participantId: 'p1',
+      card: '5',
+      issueId: 'issue-2',
+    });
+    expect(emit).toHaveBeenNthCalledWith(2, 'set_estimate', {
+      gameId: 'game-1',
+      participantId: 'p1',
+      card: '8',
+    });
+  });
+
+  it('async_vote_cast actualiza quién ha votado sin pedir un state_sync', () => {
+    useGameStore.getState().connect('game-1', 'p1');
+    useGameStore.setState({ game: { ...baseGame(), asyncRounds: [asyncRoundView('issue-2')] } });
+    emit.mockClear();
+
+    handlers.get('async_vote_cast')?.({
+      type: 'async_vote_cast',
+      version: 1,
+      issueId: 'issue-2',
+      participantId: 'p2',
+    });
+
+    expect(useGameStore.getState().game?.asyncRounds[0]?.voterIds).toEqual(['p2']);
+    expect(emit).not.toHaveBeenCalled();
+  });
+
+  it('abrir y revelar en lote piden un state_sync fresco', () => {
+    useGameStore.getState().connect('game-1', 'p1');
+
+    for (const [index, type] of (
+      ['async_rounds_opened', 'async_rounds_revealed'] as const
+    ).entries()) {
+      emit.mockClear();
+      handlers.get(type)?.({ type, version: index + 1, issueIds: ['issue-2'] });
+      expect(emit).toHaveBeenCalledWith('join', { gameId: 'game-1', participantId: 'p1' });
+    }
+  });
+
+  it('un state_sync sustituye los votos pintados por los confirmados por el servidor', () => {
+    useGameStore.getState().connect('game-1', 'p1');
+    useGameStore.getState().castAsyncVote('issue-2', '8');
+
+    handlers.get('state_sync')?.({
+      type: 'state_sync',
+      version: 4,
+      state: {
+        ...baseGame(),
+        asyncRounds: [asyncRoundView('issue-2', { voterIds: ['p1'], ownCard: '8' })],
+      },
+    });
+
+    expect(useGameStore.getState().asyncSelected).toEqual({});
+    expect(useGameStore.getState().game?.asyncRounds[0]?.ownCard).toBe('8');
+  });
+
+  it('un error con votos pintados sin confirmar pide la foto real, por si uno fue el rechazado', () => {
+    useGameStore.getState().connect('game-1', 'p1');
+    useGameStore.getState().castAsyncVote('issue-2', '8');
+    emit.mockClear();
+
+    handlers.get('error')?.({ message: 'No permitido.' });
+
+    expect(useGameStore.getState().errorMessage).toBe('No permitido.');
+    expect(emit).toHaveBeenCalledWith('join', { gameId: 'game-1', participantId: 'p1' });
+  });
+
+  it('un error sin votos pintados no pide ninguna resincronización', () => {
+    useGameStore.getState().connect('game-1', 'p1');
+    emit.mockClear();
+
+    handlers.get('error')?.({ message: 'No permitido.' });
+
+    expect(emit).not.toHaveBeenCalled();
+  });
+
+  it('cambiar la baraja descarta los votos pintados: la carta puede no existir en la nueva', () => {
+    useGameStore.getState().connect('game-1', 'p1');
+    useGameStore.setState({ game: baseGame() });
+    useGameStore.getState().castAsyncVote('issue-2', '8');
+
+    handlers.get('deck_changed')?.({
+      type: 'deck_changed',
+      version: 1,
+      deck: { cards: ['S', 'M'] },
+    });
+
+    expect(useGameStore.getState().asyncSelected).toEqual({});
   });
 });

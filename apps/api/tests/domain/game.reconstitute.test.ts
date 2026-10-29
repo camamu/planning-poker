@@ -34,6 +34,7 @@ function reconstitutedGame(): Game {
         null,
         null,
         null,
+        'LIVE',
       ),
     ],
   });
@@ -91,7 +92,7 @@ describe('Game.reconstitute', () => {
         Participant.join(facilitatorId, DisplayName.of('Ada'), 'VOTER', true, 0),
       ],
       issues: [Issue.create(issueId, 'Implementar login')],
-      rounds: [Round.reconstitute(roundId, issueId, 1, 'OPEN', [], null, null, null)],
+      rounds: [Round.reconstitute(roundId, issueId, 1, 'OPEN', [], null, null, null, 'LIVE')],
     });
 
     expect(game.currentDealer()?.equals(facilitatorId)).toBe(true);

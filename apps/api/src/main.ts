@@ -4,6 +4,7 @@ import { Pool } from 'pg';
 import { Server as SocketIoServer } from 'socket.io';
 import { AddIssue } from './application/use-cases/AddIssue.js';
 import { AuthenticateTeam } from './application/use-cases/AuthenticateTeam.js';
+import { CastAsyncVote } from './application/use-cases/CastAsyncVote.js';
 import { CastVote } from './application/use-cases/CastVote.js';
 import { CreateGame } from './application/use-cases/CreateGame.js';
 import { CreateTeam } from './application/use-cases/CreateTeam.js';
@@ -29,6 +30,8 @@ import { RemoveIssue } from './application/use-cases/RemoveIssue.js';
 import { RemoveParticipant } from './application/use-cases/RemoveParticipant.js';
 import { ReorderIssues } from './application/use-cases/ReorderIssues.js';
 import { TransferFacilitator } from './application/use-cases/TransferFacilitator.js';
+import { OpenAsyncRounds } from './application/use-cases/OpenAsyncRounds.js';
+import { RevealAsyncRounds } from './application/use-cases/RevealAsyncRounds.js';
 import { RevealRound } from './application/use-cases/RevealRound.js';
 import { SaveCustomDeck } from './application/use-cases/SaveCustomDeck.js';
 import { StartQuickRound } from './application/use-cases/StartQuickRound.js';
@@ -115,7 +118,7 @@ const importIssues = new ImportIssues(games, events, clock, ids);
 const editIssue = new EditIssue(games, events, clock);
 const removeIssue = new RemoveIssue(games, events, clock);
 const reorderIssues = new ReorderIssues(games, events, clock);
-const startVotingRound = new StartVotingRound(games, events, clock, ids);
+const startVotingRound = new StartVotingRound(games, events, clock, ids, presence);
 const startQuickRound = new StartQuickRound(games, events, clock, ids);
 const castVote = new CastVote(games, events, clock, presence);
 const removeParticipant = new RemoveParticipant(games, events, clock, presence);
@@ -124,6 +127,9 @@ const claimFacilitator = new ClaimFacilitator(games, events, clock, presence);
 const revealRound = new RevealRound(games, events, clock);
 const timeoutReveal = new TimeoutReveal(games, events, clock);
 const setFinalEstimate = new SetFinalEstimate(games, events, clock);
+const openAsyncRounds = new OpenAsyncRounds(games, events, clock, ids);
+const castAsyncVote = new CastAsyncVote(games, events, clock);
+const revealAsyncRounds = new RevealAsyncRounds(games, events, clock);
 const updateGameSettings = new UpdateGameSettings(games, events, clock);
 const changeGameDeck = new ChangeGameDeck(games, decks, events, clock);
 const changeParticipantHat = new ChangeParticipantHat(games, events, clock);
@@ -202,6 +208,9 @@ registerSocketGateway(io, {
   revealRound,
   timeoutReveal,
   setFinalEstimate,
+  openAsyncRounds,
+  castAsyncVote,
+  revealAsyncRounds,
   versions,
   games,
   discussionTimer,

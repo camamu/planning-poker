@@ -419,7 +419,17 @@ export function defineGameRepositoryContractTests(
             ),
           ],
           rounds: [
-            Round.reconstitute(RoundId.of('round-1'), issueId, 1, 'CLOSED', [], NOW, null, null),
+            Round.reconstitute(
+              RoundId.of('round-1'),
+              issueId,
+              1,
+              'CLOSED',
+              [],
+              NOW,
+              null,
+              null,
+              'LIVE',
+            ),
           ],
         }),
       );
@@ -428,6 +438,73 @@ export function defineGameRepositoryContractTests(
 
       expect(reloaded?.currentRound()?.currentOpenedAt()).toBeNull();
       expect(reloaded?.findIssue(issueId)?.currentEstimatedAt()).toBeNull();
+    });
+
+    it('conserva el modo de cada ronda y los votos de las rondas en diferido tras recargar', async () => {
+      const repository = await makeRepository();
+      const { game, facilitatorId } = newGame('game-async');
+      game.addIssue(IssueId.of('issue-1'), 'En la mesa', NOW);
+      game.addIssue(IssueId.of('issue-2'), 'En diferido', NOW);
+      game.startVotingRound(RoundId.of('round-live'), IssueId.of('issue-1'), NOW);
+      game.openAsyncRounds(
+        [{ roundId: RoundId.of('round-async'), issueId: IssueId.of('issue-2') }],
+        facilitatorId,
+        NOW,
+      );
+      game.castAsyncVote(facilitatorId, IssueId.of('issue-2'), CardValue.of('8'), NOW);
+      await repository.save(game);
+
+      const reloaded = await repository.findById(GameId.of('game-async'));
+
+      const [asyncRound] = reloaded?.roundsOf(IssueId.of('issue-2')) ?? [];
+      expect(asyncRound?.mode).toBe('ASYNC');
+      expect(asyncRound?.isOpen()).toBe(true);
+      expect(asyncRound?.hasSameVote(facilitatorId, CardValue.of('8'))).toBe(true);
+      expect(reloaded?.currentRound()?.mode).toBe('LIVE');
+      expect(reloaded?.activeAsyncRounds().map((round) => round.id.value)).toEqual(['round-async']);
+    });
+
+    it('conserva el orden de las rondas en vivo y en diferido intercaladas', async () => {
+      const repository = await makeRepository();
+      const { game, facilitatorId } = newGame('game-order');
+      game.addIssue(IssueId.of('issue-1'), 'Primera', NOW);
+      game.addIssue(IssueId.of('issue-2'), 'Segunda', NOW);
+      game.startVotingRound(RoundId.of('round-live'), IssueId.of('issue-1'), NOW);
+      game.openAsyncRounds(
+        [{ roundId: RoundId.of('round-async'), issueId: IssueId.of('issue-2') }],
+        facilitatorId,
+        NOW,
+      );
+      await repository.save(game);
+
+      const reloaded = await repository.findById(GameId.of('game-order'));
+
+      expect(reloaded?.allRounds().map((round) => round.id.value)).toEqual([
+        'round-live',
+        'round-async',
+      ]);
+      expect(reloaded?.currentRound()?.id.value).toBe('round-live');
+    });
+
+    it('al llevar a la mesa una tarea en diferido y guardar, la ronda asíncrona deja de existir', async () => {
+      const repository = await makeRepository();
+      const { game, facilitatorId } = newGame('game-absorbed');
+      game.addIssue(IssueId.of('issue-1'), 'Login', NOW);
+      game.openAsyncRounds(
+        [{ roundId: RoundId.of('round-async'), issueId: IssueId.of('issue-1') }],
+        facilitatorId,
+        NOW,
+      );
+      game.castAsyncVote(facilitatorId, IssueId.of('issue-1'), CardValue.of('5'), NOW);
+      await repository.save(game);
+
+      const stored = await repository.findById(GameId.of('game-absorbed'));
+      stored?.startVotingRound(RoundId.of('round-live'), IssueId.of('issue-1'), NOW);
+      if (stored) await repository.save(stored);
+      const reloaded = await repository.findById(GameId.of('game-absorbed'));
+
+      expect(reloaded?.allRounds().map((round) => round.id.value)).toEqual(['round-live']);
+      expect(reloaded?.currentRound()?.hasSameVote(facilitatorId, CardValue.of('5'))).toBe(true);
     });
 
     it('listSummaries() cuenta participantes, issues e issues estimadas de cada partida', async () => {

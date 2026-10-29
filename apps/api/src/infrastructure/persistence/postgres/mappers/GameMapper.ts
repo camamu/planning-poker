@@ -13,7 +13,7 @@ import type { IssueStatus } from '../../../../domain/game/Issue.js';
 import { Participant } from '../../../../domain/game/Participant.js';
 import type { ParticipantRole } from '../../../../domain/game/Participant.js';
 import { Round } from '../../../../domain/game/Round.js';
-import type { RoundStatus, RoundVote } from '../../../../domain/game/Round.js';
+import type { RoundMode, RoundStatus, RoundVote } from '../../../../domain/game/Round.js';
 import { TeamId } from '../../../../domain/team/TeamId.js';
 import type { GameTable, IssueTable, ParticipantTable, RoundTable, VoteTable } from '../schema.js';
 
@@ -86,6 +86,7 @@ export function toRoundRows(game: Game): Insertable<RoundTable>[] {
     revealed_at: round.currentRevealedAt(),
     timer_deadline: round.currentTimerDeadline(),
     opened_at: round.currentOpenedAt(),
+    mode: round.mode,
   }));
 }
 
@@ -159,6 +160,7 @@ export function toDomainGame(rows: GameRowSet): Game {
         row.revealed_at,
         row.timer_deadline,
         row.opened_at,
+        parseRoundMode(row.mode),
       ),
     ),
   });
@@ -184,6 +186,11 @@ function parseParticipantRole(value: string): ParticipantRole {
 function parseIssueStatus(value: string): IssueStatus {
   if (value === 'PENDING' || value === 'VOTING' || value === 'ESTIMATED') return value;
   throw new Error(`status de issue desconocido en BD: "${value}"`);
+}
+
+function parseRoundMode(value: string): RoundMode {
+  if (value === 'LIVE' || value === 'ASYNC') return value;
+  throw new Error(`mode de ronda desconocido en BD: "${value}"`);
 }
 
 function parseRoundStatus(value: string): RoundStatus {

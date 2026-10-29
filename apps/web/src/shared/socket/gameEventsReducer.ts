@@ -1,9 +1,15 @@
-import type { GameView, IssueView, RoundVoteView, ServerEvent } from '@pp/contracts';
+import type {
+  AsyncRoundView,
+  GameView,
+  IssueView,
+  RoundVoteView,
+  ServerEvent,
+} from '@pp/contracts';
 
 /**
  * Espejo cliente de la invariante 7: nunca fabrica un valor de voto que el servidor no le haya
  * dado. Los eventos que no traen datos suficientes para parchear correctamente (`participant_
- * joined`, `participant_left`, `issue_added`, `issues_imported`, `round_started` — ver `NEEDS_RESYNC`) se ignoran aquí a propósito: es
+ * joined`, `participant_left`, `issue_added`, `issues_imported`, `round_started`, `async_rounds_opened`, `async_rounds_revealed` — ver `needsResync`) se ignoran aquí a propósito: es
  * responsabilidad de quien escucha el socket pedir un `state_sync` fresco para esos casos, no de
  * este reductor inventar un nombre, un título o un dealer que no le han llegado.
  */
@@ -17,6 +23,8 @@ export function gameEventsReducer(state: GameView | null, event: ServerEvent): G
     case 'issue_added':
     case 'issues_imported':
     case 'round_started':
+    case 'async_rounds_opened':
+    case 'async_rounds_revealed':
       return state;
 
     case 'participant_role_changed':
@@ -64,6 +72,16 @@ export function gameEventsReducer(state: GameView | null, event: ServerEvent): G
         votes: round.votes.filter((vote) => vote.participantId !== event.participantId),
       }));
 
+    // Solo la señal de que alguien votó: la carta no viaja (invariante 7), y la propia la pone el
+    // store hasta el siguiente `state_sync`.
+    case 'async_vote_cast':
+      return patchAsyncRound(state, event.issueId, (round) => ({
+        ...round,
+        voterIds: round.voterIds.includes(event.participantId)
+          ? round.voterIds
+          : [...round.voterIds, event.participantId],
+      }));
+
     case 'round_revealed':
       return patchRound(state, event.roundId, (round) => ({
         ...round,
@@ -81,6 +99,8 @@ export function gameEventsReducer(state: GameView | null, event: ServerEvent): G
             ? { ...issue, status: 'ESTIMATED', finalEstimate: event.finalEstimate }
             : issue,
         ),
+        // Estimar cierra la ronda en diferido de la tarea, si la tenía.
+        asyncRounds: state.asyncRounds.filter((round) => round.issueId !== event.issueId),
       };
 
     case 'issue_edited':
@@ -121,7 +141,9 @@ export function needsResync(eventType: ServerEvent['type']): boolean {
     eventType === 'participant_left' ||
     eventType === 'issue_added' ||
     eventType === 'issues_imported' ||
-    eventType === 'round_started'
+    eventType === 'round_started' ||
+    eventType === 'async_rounds_opened' ||
+    eventType === 'async_rounds_revealed'
   );
 }
 
@@ -132,6 +154,20 @@ function patchRound(
 ): GameView | null {
   if (!state?.currentRound || state.currentRound.id !== roundId) return state;
   return { ...state, currentRound: patch(state.currentRound) };
+}
+
+function patchAsyncRound(
+  state: GameView | null,
+  issueId: string,
+  patch: (round: AsyncRoundView) => AsyncRoundView,
+): GameView | null {
+  if (!state?.asyncRounds.some((round) => round.issueId === issueId)) return state;
+  return {
+    ...state,
+    asyncRounds: state.asyncRounds.map((round) =>
+      round.issueId === issueId ? patch(round) : round,
+    ),
+  };
 }
 
 /**

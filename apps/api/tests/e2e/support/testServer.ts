@@ -3,6 +3,7 @@ import type { FastifyInstance } from 'fastify';
 import { Server as SocketIoServer } from 'socket.io';
 import { AddIssue } from '../../../src/application/use-cases/AddIssue.js';
 import { AuthenticateTeam } from '../../../src/application/use-cases/AuthenticateTeam.js';
+import { CastAsyncVote } from '../../../src/application/use-cases/CastAsyncVote.js';
 import { CastVote } from '../../../src/application/use-cases/CastVote.js';
 import { ChangeGameDeck } from '../../../src/application/use-cases/ChangeGameDeck.js';
 import { ChangeParticipantHat } from '../../../src/application/use-cases/ChangeParticipantHat.js';
@@ -32,6 +33,8 @@ import { RemoveIssue } from '../../../src/application/use-cases/RemoveIssue.js';
 import { RemoveParticipant } from '../../../src/application/use-cases/RemoveParticipant.js';
 import { ReorderIssues } from '../../../src/application/use-cases/ReorderIssues.js';
 import { TransferFacilitator } from '../../../src/application/use-cases/TransferFacilitator.js';
+import { OpenAsyncRounds } from '../../../src/application/use-cases/OpenAsyncRounds.js';
+import { RevealAsyncRounds } from '../../../src/application/use-cases/RevealAsyncRounds.js';
 import { RevealRound } from '../../../src/application/use-cases/RevealRound.js';
 import { SaveCustomDeck } from '../../../src/application/use-cases/SaveCustomDeck.js';
 import { StartQuickRound } from '../../../src/application/use-cases/StartQuickRound.js';
@@ -112,7 +115,7 @@ export async function startTestServer(options: TestServerOptions = {}): Promise<
   const editIssue = new EditIssue(games, events, clock);
   const removeIssue = new RemoveIssue(games, events, clock);
   const reorderIssues = new ReorderIssues(games, events, clock);
-  const startVotingRound = new StartVotingRound(games, events, clock, ids);
+  const startVotingRound = new StartVotingRound(games, events, clock, ids, presence);
   const startQuickRound = new StartQuickRound(games, events, clock, ids);
   const castVote = new CastVote(games, events, clock, presence);
   const removeParticipant = new RemoveParticipant(games, events, clock, presence);
@@ -121,6 +124,9 @@ export async function startTestServer(options: TestServerOptions = {}): Promise<
   const revealRound = new RevealRound(games, events, clock);
   const timeoutReveal = new TimeoutReveal(games, events, clock);
   const setFinalEstimate = new SetFinalEstimate(games, events, clock);
+  const openAsyncRounds = new OpenAsyncRounds(games, events, clock, ids);
+  const castAsyncVote = new CastAsyncVote(games, events, clock);
+  const revealAsyncRounds = new RevealAsyncRounds(games, events, clock);
   const updateGameSettings = new UpdateGameSettings(games, events, clock);
   const changeGameDeck = new ChangeGameDeck(games, decks, events, clock);
   const changeParticipantHat = new ChangeParticipantHat(games, events, clock);
@@ -193,6 +199,9 @@ export async function startTestServer(options: TestServerOptions = {}): Promise<
     revealRound,
     timeoutReveal,
     setFinalEstimate,
+    openAsyncRounds,
+    castAsyncVote,
+    revealAsyncRounds,
     versions,
     games,
     discussionTimer,

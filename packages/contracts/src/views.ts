@@ -73,6 +73,24 @@ export interface RoundView {
   readonly timerDeadline: string | null;
 }
 
+/**
+ * Una ronda en diferido que sigue viva para la sala: abierta, o revelada y pendiente de estimar
+ * (ADR 0027). Invariante 7: mientras está abierta solo lleva quién ha votado y la carta del propio
+ * viewer; `votes` y `result` llegan únicamente cuando la ronda está revelada.
+ */
+export interface AsyncRoundView {
+  readonly roundId: string;
+  readonly issueId: string;
+  readonly status: RoundStatusView;
+  /** Quién ha votado, sin la carta. */
+  readonly voterIds: ReadonlyArray<string>;
+  /** La carta del propio viewer, o `null` si no ha votado. Nunca la de otro. */
+  readonly ownCard: string | null;
+  /** Vacío mientras la ronda está abierta. */
+  readonly votes: ReadonlyArray<{ readonly participantId: string; readonly card: string }>;
+  readonly result: RoundResultView | null;
+}
+
 export interface GameSettingsView {
   readonly autoReveal: boolean;
   readonly whoCanReveal: WhoCanRevealView;
@@ -92,6 +110,8 @@ export interface GameView {
   readonly participants: ReadonlyArray<ParticipantView>;
   readonly issues: ReadonlyArray<IssueView>;
   readonly currentRound: RoundView | null;
+  /** Rondas en diferido vivas, en el orden en que se abrieron (ADR 0027). */
+  readonly asyncRounds: ReadonlyArray<AsyncRoundView>;
 }
 
 /**

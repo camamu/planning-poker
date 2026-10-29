@@ -1,6 +1,7 @@
 import type { IssueView } from '@pp/contracts';
 import { cleanup, fireEvent, render, screen, waitFor } from '@testing-library/react';
 import { afterEach, describe, expect, it, vi } from 'vitest';
+import { asyncRoundView, asyncVotingProps } from '../async-voting/asyncVotingFixtures.js';
 import { IssueListPanel } from './IssueListPanel.js';
 import type { IssueListPanelProps } from './IssueListPanel.js';
 
@@ -36,6 +37,7 @@ function renderPanel(overrides: Partial<IssueListPanelProps> = {}): IssueListPan
     onDeleteIssue: vi.fn(),
     onReorderIssues: vi.fn(),
     onStartRound: vi.fn(),
+    asyncVoting: asyncVotingProps(),
     onClose: vi.fn(),
     ...overrides,
   };
@@ -237,5 +239,71 @@ describe('IssueListPanel: importar tareas y enlaces', () => {
     });
 
     expect(screen.queryByRole('link')).not.toBeInTheDocument();
+  });
+});
+
+describe('IssueListPanel: votación en diferido', () => {
+  afterEach(() => {
+    cleanup();
+    vi.restoreAllMocks();
+  });
+
+  function select(id: string): void {
+    fireEvent.click(
+      screen.getByRole('checkbox', { name: `Seleccionar «Tarea ${id}» para votar en diferido` }),
+    );
+  }
+
+  it('no ofrece abrir en diferido mientras no haya tareas marcadas', () => {
+    renderPanel();
+
+    expect(
+      screen.queryByRole('button', { name: /Abrir para votar en diferido/ }),
+    ).not.toBeInTheDocument();
+  });
+
+  it('abre en diferido las tareas marcadas, en el orden de la cola, y desmarca después', () => {
+    const props = renderPanel();
+
+    select('p3');
+    select('p1');
+    fireEvent.click(screen.getByRole('button', { name: 'Abrir para votar en diferido (2)' }));
+
+    expect(props.asyncVoting.onOpen).toHaveBeenCalledWith(['p1', 'p3']);
+    expect(
+      screen.queryByRole('button', { name: /Abrir para votar en diferido/ }),
+    ).not.toBeInTheDocument();
+    expect(screen.getByRole('checkbox', { name: /«Tarea p1»/ })).not.toBeChecked();
+  });
+
+  it('solo se pueden marcar las tareas por estimar, no la de la mesa ni las ya estimadas', () => {
+    renderPanel();
+
+    expect(screen.getAllByRole('checkbox')).toHaveLength(3);
+    expect(screen.queryByRole('checkbox', { name: /«Tarea mesa»/ })).not.toBeInTheDocument();
+    expect(screen.queryByRole('checkbox', { name: /«Tarea est»/ })).not.toBeInTheDocument();
+  });
+
+  it('las tareas con una ronda en diferido salen de «Por estimar» y aparecen en su sección', () => {
+    renderPanel({
+      asyncVoting: asyncVotingProps({
+        rounds: [asyncRoundView('p2', { voterIds: ['p1'] })],
+      }),
+    });
+
+    expect(screen.getByText('Votando en diferido')).toBeInTheDocument();
+    expect(screen.getByText('1 de 3 han votado')).toBeInTheDocument();
+    expect(screen.queryByRole('checkbox', { name: /«Tarea p2»/ })).not.toBeInTheDocument();
+    expect(screen.getAllByRole('checkbox')).toHaveLength(2);
+  });
+
+  it('reordenar las tareas por estimar deja en su sitio las que están en diferido', () => {
+    const props = renderPanel({
+      asyncVoting: asyncVotingProps({ rounds: [asyncRoundView('p2')] }),
+    });
+
+    fireEvent.click(screen.getByRole('button', { name: 'Bajar «Tarea p1»' }));
+
+    expect(props.onReorderIssues).toHaveBeenCalledWith(['est', 'p3', 'mesa', 'p2', 'p1']);
   });
 });
