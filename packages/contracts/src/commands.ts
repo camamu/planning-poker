@@ -225,8 +225,38 @@ export const wsSetEstimateCommandSchema = z.object({
   gameId: z.string().trim().min(1),
   participantId: z.string().trim().min(1),
   card: z.string().trim().min(1),
+  /** Ausente = la ronda actual de la mesa; presente = una tarea revelada en diferido (ADR 0027). */
+  issueId: z.string().trim().min(1).optional(),
 });
 export type WsSetEstimateCommandInput = z.infer<typeof wsSetEstimateCommandSchema>;
+
+/** Tope de tareas por petición en diferido: `save()` reescribe todas las rondas de la partida. */
+const MAX_ASYNC_ISSUES_PER_COMMAND = 200;
+
+/** WS cliente→servidor — `open_async_rounds` (abre varias tareas pendientes para votar en diferido) */
+export const wsOpenAsyncRoundsCommandSchema = z.object({
+  gameId: z.string().trim().min(1),
+  participantId: z.string().trim().min(1),
+  issueIds: z.array(z.string().trim().min(1)).min(1).max(MAX_ASYNC_ISSUES_PER_COMMAND),
+});
+export type WsOpenAsyncRoundsCommandInput = z.infer<typeof wsOpenAsyncRoundsCommandSchema>;
+
+/** WS cliente→servidor — `async_vote` */
+export const wsAsyncVoteCommandSchema = z.object({
+  gameId: z.string().trim().min(1),
+  participantId: z.string().trim().min(1),
+  issueId: z.string().trim().min(1),
+  card: z.string().trim().min(1),
+});
+export type WsAsyncVoteCommandInput = z.infer<typeof wsAsyncVoteCommandSchema>;
+
+/** WS cliente→servidor — `reveal_async`. `issueIds` ausente = todas las rondas con votos. */
+export const wsRevealAsyncCommandSchema = z.object({
+  gameId: z.string().trim().min(1),
+  participantId: z.string().trim().min(1),
+  issueIds: z.array(z.string().trim().min(1)).min(1).max(MAX_ASYNC_ISSUES_PER_COMMAND).optional(),
+});
+export type WsRevealAsyncCommandInput = z.infer<typeof wsRevealAsyncCommandSchema>;
 
 /**
  * WS cliente→servidor — `emoji_thrown`. No pasa por ningún caso de uso (docs/adr/
