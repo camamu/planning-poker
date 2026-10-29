@@ -13,6 +13,7 @@ import { DeleteGame } from './application/use-cases/DeleteGame.js';
 import { DeleteTeam } from './application/use-cases/DeleteTeam.js';
 import { EditIssue } from './application/use-cases/EditIssue.js';
 import { GetGameState } from './application/use-cases/GetGameState.js';
+import { GetGameSummary } from './application/use-cases/GetGameSummary.js';
 import { ImportIssues } from './application/use-cases/ImportIssues.js';
 import { JoinGame } from './application/use-cases/JoinGame.js';
 import { ListDecks } from './application/use-cases/ListDecks.js';
@@ -128,6 +129,7 @@ const changeGameDeck = new ChangeGameDeck(games, decks, events, clock);
 const changeParticipantHat = new ChangeParticipantHat(games, events, clock);
 const listGameDecks = new ListGameDecks(games, decks);
 const getGameState = new GetGameState(games, presence);
+const getGameSummary = new GetGameSummary(games);
 
 const createTeam = new CreateTeam(teams, tokenHasher, ids);
 const authenticateTeam = new AuthenticateTeam(teams, tokenHasher);
@@ -149,6 +151,7 @@ registerGameRoutes(app, {
   removeIssue,
   reorderIssues,
   getGameState,
+  getGameSummary,
   updateGameSettings,
   changeGameDeck,
   changeParticipantHat,
