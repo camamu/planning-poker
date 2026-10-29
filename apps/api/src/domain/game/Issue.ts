@@ -36,6 +36,8 @@ function validTitle(raw: string): string {
 export class Issue {
   private status: IssueStatus = 'PENDING';
   private finalEstimate: CardValue | null = null;
+  /** `null` mientras no se estima y en las tareas estimadas antes de la migración 0008 (ADR 0024). */
+  private estimatedAt: Date | null = null;
 
   private constructor(
     readonly id: IssueId,
@@ -56,10 +58,12 @@ export class Issue {
     externalUrl: string | undefined,
     status: IssueStatus,
     finalEstimate: CardValue | null,
+    estimatedAt: Date | null,
   ): Issue {
     const issue = new Issue(id, title, description, externalUrl);
     issue.status = status;
     issue.finalEstimate = finalEstimate;
+    issue.estimatedAt = estimatedAt;
     return issue;
   }
 
@@ -69,6 +73,10 @@ export class Issue {
 
   currentFinalEstimate(): CardValue | null {
     return this.finalEstimate;
+  }
+
+  currentEstimatedAt(): Date | null {
+    return this.estimatedAt;
   }
 
   /** Un `description` o `externalUrl` ausente deja el valor que había: renombrar no borra los datos. */
@@ -82,8 +90,9 @@ export class Issue {
     this.status = 'VOTING';
   }
 
-  estimate(card: CardValue): void {
+  estimate(card: CardValue, now: Date): void {
     this.finalEstimate = card;
+    this.estimatedAt = now;
     this.status = 'ESTIMATED';
   }
 }

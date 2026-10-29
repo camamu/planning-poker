@@ -377,7 +377,7 @@ export class Game {
       this.settings.countdownSeconds != null
         ? new Date(now.getTime() + this.settings.countdownSeconds * 1000)
         : null;
-    this.rounds.push(Round.open(id, issueId, roundNumber, timerDeadline));
+    this.rounds.push(Round.open(id, issueId, roundNumber, timerDeadline, now));
     issue.startVoting();
     this.record({
       type: 'VotingRoundStarted',
@@ -640,7 +640,7 @@ export class Game {
     }
 
     const issue = this.requireIssue(round.issueId);
-    issue.estimate(cardValue);
+    issue.estimate(cardValue, now);
     round.close();
     this.record({
       type: 'IssueEstimated',

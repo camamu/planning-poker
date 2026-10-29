@@ -6,10 +6,41 @@ import { Round, RoundNotOpenError, RoundNotRevealedError } from '../../src/domai
 const NOW = new Date('2026-08-07T10:00:00Z');
 
 function openRound(timerDeadline: Date | null = null): Round {
-  return Round.open(RoundId.of('r1'), IssueId.of('i1'), 1, timerDeadline);
+  return Round.open(RoundId.of('r1'), IssueId.of('i1'), 1, timerDeadline, NOW);
 }
 
 describe('Round', () => {
+  it('guarda cuándo se abrió', () => {
+    expect(openRound().currentOpenedAt()).toBe(NOW);
+  });
+
+  it('reconstitute() conserva la hora de apertura y admite que se desconozca', () => {
+    const opened = new Date('2026-08-07T09:55:00Z');
+    const known = Round.reconstitute(
+      RoundId.of('r1'),
+      IssueId.of('i1'),
+      1,
+      'OPEN',
+      [],
+      null,
+      null,
+      opened,
+    );
+    const unknown = Round.reconstitute(
+      RoundId.of('r1'),
+      IssueId.of('i1'),
+      1,
+      'OPEN',
+      [],
+      null,
+      null,
+      null,
+    );
+
+    expect(known.currentOpenedAt()).toBe(opened);
+    expect(unknown.currentOpenedAt()).toBeNull();
+  });
+
   it('nace OPEN, sin revelar y sin resultado', () => {
     const round = openRound();
     expect(round.currentStatus()).toBe('OPEN');
@@ -93,6 +124,7 @@ describe('Round', () => {
       [{ participantId: p1, card: CardValue.of('5') }],
       null,
       null,
+      null,
     );
 
     expect(round.isOpen()).toBe(true);
@@ -114,6 +146,7 @@ describe('Round', () => {
         { participantId: p2, card: CardValue.of('5') },
       ],
       NOW,
+      null,
       null,
     );
 

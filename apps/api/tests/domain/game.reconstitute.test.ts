@@ -33,6 +33,7 @@ function reconstitutedGame(): Game {
         [{ participantId: facilitatorId, card: CardValue.of('5') }],
         null,
         null,
+        null,
       ),
     ],
   });
@@ -90,7 +91,7 @@ describe('Game.reconstitute', () => {
         Participant.join(facilitatorId, DisplayName.of('Ada'), 'VOTER', true, 0),
       ],
       issues: [Issue.create(issueId, 'Implementar login')],
-      rounds: [Round.reconstitute(roundId, issueId, 1, 'OPEN', [], null, null)],
+      rounds: [Round.reconstitute(roundId, issueId, 1, 'OPEN', [], null, null, null)],
     });
 
     expect(game.currentDealer()?.equals(facilitatorId)).toBe(true);
