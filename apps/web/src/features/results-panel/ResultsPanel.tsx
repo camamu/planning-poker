@@ -3,6 +3,7 @@ import type { JSX } from 'react';
 import { Badge, Button, Tooltip } from '../../design-system/index.js';
 import type { DiscussionTimerState } from '../../shared/store/gameStore.js';
 import { formatCountdown } from '../game-table/hooks/useCountdown.js';
+import { formatPoints } from '../session-summary/summaryFormat.js';
 import { Confetti } from './Confetti.js';
 import { DiscussionTimerControls } from './DiscussionTimerControls.js';
 import { Distribution } from './Distribution.js';
@@ -141,7 +142,7 @@ function RevealedPanel(props: ResultsPanelProps & { round: RoundView }): JSX.Ele
 
       <div className="grid grid-cols-2 gap-2.5">
         {result.average !== null ? (
-          <StatTile label="Media" value={result.average.toString()} />
+          <StatTile label="Media" value={formatPoints(result.average)} />
         ) : (
           <StatTile label="Carta más votada" value={result.mostVoted ?? '—'} />
         )}

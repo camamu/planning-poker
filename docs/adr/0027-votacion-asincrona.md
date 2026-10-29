@@ -93,6 +93,5 @@ dealer.
   alcance, cada uno entra por el enlace. El aviso en la barra solo ayuda a quien ya está dentro.
 - Una ronda asíncrona abierta no caduca: se queda abierta hasta que alguien la revele o la lleve a la
   mesa.
-- El panel de resultados de la mesa en vivo enseña la media sin redondear (`8.666666666666666`);
-  viene de antes de este bloque y no se ha tocado. La tarjeta en diferido la redondea a dos decimales
-  con `formatPoints`.
+- La media se enseña redondeada a dos decimales (`formatPoints`) tanto en la tarjeta en diferido como
+  en el panel de resultados de la mesa en vivo, que antes la pintaba tal cual (`8.666666666666666`).
