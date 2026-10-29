@@ -22,6 +22,7 @@ import type { ClaimFacilitator } from '../../../application/use-cases/ClaimFacil
 import type { CreateGame } from '../../../application/use-cases/CreateGame.js';
 import type { EditIssue } from '../../../application/use-cases/EditIssue.js';
 import type { GetGameState } from '../../../application/use-cases/GetGameState.js';
+import type { GetGameSummary } from '../../../application/use-cases/GetGameSummary.js';
 import type { ImportIssues } from '../../../application/use-cases/ImportIssues.js';
 import type { JoinGame } from '../../../application/use-cases/JoinGame.js';
 import type { ListGameDecks } from '../../../application/use-cases/ListGameDecks.js';
@@ -46,6 +47,7 @@ export interface GameRoutesDependencies {
   readonly removeIssue: RemoveIssue;
   readonly reorderIssues: ReorderIssues;
   readonly getGameState: GetGameState;
+  readonly getGameSummary: GetGameSummary;
   readonly updateGameSettings: UpdateGameSettings;
   readonly changeGameDeck: ChangeGameDeck;
   readonly listGameDecks: ListGameDecks;
@@ -125,6 +127,14 @@ export function registerGameRoutes(app: FastifyInstance, deps: GameRoutesDepende
       }
     },
   );
+
+  app.get<{ Params: GameIdParams }>('/api/games/:id/summary', async (request, reply) => {
+    try {
+      await reply.send(await deps.getGameSummary.execute({ gameId: request.params.id }));
+    } catch (error) {
+      sendError(reply, error);
+    }
+  });
 
   app.post<{ Params: GameIdParams }>('/api/games/:id/participants', async (request, reply) => {
     try {

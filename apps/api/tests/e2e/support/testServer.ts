@@ -15,6 +15,7 @@ import { DeleteGame } from '../../../src/application/use-cases/DeleteGame.js';
 import { DeleteTeam } from '../../../src/application/use-cases/DeleteTeam.js';
 import { EditIssue } from '../../../src/application/use-cases/EditIssue.js';
 import { GetGameState } from '../../../src/application/use-cases/GetGameState.js';
+import { GetGameSummary } from '../../../src/application/use-cases/GetGameSummary.js';
 import { ImportIssues } from '../../../src/application/use-cases/ImportIssues.js';
 import { JoinGame } from '../../../src/application/use-cases/JoinGame.js';
 import { ListDecks } from '../../../src/application/use-cases/ListDecks.js';
@@ -125,6 +126,7 @@ export async function startTestServer(options: TestServerOptions = {}): Promise<
   const changeParticipantHat = new ChangeParticipantHat(games, events, clock);
   const listGameDecks = new ListGameDecks(games, decks);
   const getGameState = new GetGameState(games, presence);
+  const getGameSummary = new GetGameSummary(games);
 
   const createTeam = new CreateTeam(teams, tokenHasher, ids);
   const authenticateTeam = new AuthenticateTeam(teams, tokenHasher);
@@ -146,6 +148,7 @@ export async function startTestServer(options: TestServerOptions = {}): Promise<
     removeIssue,
     reorderIssues,
     getGameState,
+    getGameSummary,
     updateGameSettings,
     changeGameDeck,
     changeParticipantHat,

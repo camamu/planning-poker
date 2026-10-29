@@ -28,9 +28,14 @@ function TeamGameRow({ game }: { readonly game: TeamGameView }): JSX.Element {
           {describeGame(game)}
         </span>
       </div>
-      <Link to={`/games/${game.id}`} className="flex-none">
-        <Button variant="secondary">Abrir</Button>
-      </Link>
+      <div className="flex flex-none gap-2">
+        <Link to={`/games/${game.id}/summary`}>
+          <Button variant="ghost">Resumen</Button>
+        </Link>
+        <Link to={`/games/${game.id}`}>
+          <Button variant="secondary">Abrir</Button>
+        </Link>
+      </div>
     </li>
   );
 }

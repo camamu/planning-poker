@@ -13,6 +13,7 @@ import {
 import { DeckSettingsPanel } from '../deck-settings/DeckSettingsPanel.js';
 import { IssueListPanel } from '../issue-list/IssueListPanel.js';
 import { ResultsPanel } from '../results-panel/ResultsPanel.js';
+import { isSessionFinished } from '../session-summary/isSessionFinished.js';
 import { THROW_FLIGHT_MS } from './components/EmojiThrowLayer.js';
 import { FacilitatorAbsentBanner } from './components/FacilitatorAbsentBanner.js';
 import { Hand } from './components/Hand.js';
@@ -137,6 +138,7 @@ export function GameTablePage({
 
   const { game, round } = table;
   const nextPendingIssueId = game.issues.find((issue) => issue.status === 'PENDING')?.id ?? null;
+  const summaryHref = `/games/${gameId}/summary`;
   const me = game.participants.find((p) => p.id === participantId);
   const isMyTurnToVote = me?.role === 'VOTER';
 
@@ -192,6 +194,7 @@ export function GameTablePage({
         viewerId={participantId}
         viewerHat={me?.hat ?? null}
         onChangeHat={table.changeHat}
+        summaryHref={summaryHref}
         onToggleIssues={() => {
           setIssuesOpen((open) => !open);
         }}
@@ -322,6 +325,8 @@ export function GameTablePage({
             canEstimate={table.canReveal}
             onAcceptEstimate={table.setFinalEstimate}
             hasNextIssue={nextPendingIssueId !== null}
+            sessionFinished={isSessionFinished(game.issues, round?.issueId ?? null)}
+            summaryHref={summaryHref}
             onNextIssue={() => {
               if (nextPendingIssueId) table.startRound(nextPendingIssueId);
             }}

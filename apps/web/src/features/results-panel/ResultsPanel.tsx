@@ -24,6 +24,9 @@ export interface ResultsPanelProps {
   readonly onAcceptEstimate: (card: string) => void;
   readonly hasNextIssue: boolean;
   readonly onNextIssue: () => void;
+  /** Sin tareas pendientes y con la última estimada: se ofrece cerrar con el resumen (ADR 0025). */
+  readonly sessionFinished: boolean;
+  readonly summaryHref: string;
   readonly discussionTimer: DiscussionTimerState | null;
   readonly onStartDiscussionTimer: (roundId: string, seconds: number) => void;
   readonly onPauseDiscussionTimer: (roundId: string) => void;
@@ -174,6 +177,16 @@ function RevealedPanel(props: ResultsPanelProps & { round: RoundView }): JSX.Ele
           onResume={props.onResumeDiscussionTimer}
           onAddSeconds={props.onAddDiscussionSeconds}
         />
+        {props.sessionFinished ? (
+          <a
+            href={props.summaryHref}
+            target="_blank"
+            rel="noopener noreferrer"
+            className="btn btn-primary w-full"
+          >
+            Ver resumen de la sesión
+          </a>
+        ) : null}
         <AcceptEstimateButton
           card={acceptedCard}
           canEstimate={props.canEstimate}

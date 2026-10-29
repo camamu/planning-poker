@@ -6,6 +6,7 @@ import type {
   CreateGameCommandInput,
   DeckSummaryView,
   EditIssueCommandInput,
+  GameSummaryView,
   GameView,
   ImportIssuesCommandInput,
   JoinGameCommandInput,
@@ -114,6 +115,10 @@ export function reorderIssues(gameId: string, input: ReorderIssuesCommandInput):
 export function getGameState(gameId: string, participantId: string): Promise<GameStateResult> {
   const query = new URLSearchParams({ participantId }).toString();
   return requestJson(`/api/games/${gameId}?${query}`);
+}
+
+export function getGameSummary(gameId: string): Promise<GameSummaryView> {
+  return requestJson(`/api/games/${gameId}/summary`);
 }
 
 export function updateGameSettings(
