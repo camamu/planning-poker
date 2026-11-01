@@ -1,4 +1,5 @@
 import {
+  RATE_LIMITED_CONNECTION_ERROR,
   wsAsyncVoteCommandSchema,
   wsDiscussionTimerControlCommandSchema,
   wsEmojiThrownCommandSchema,
@@ -227,7 +228,7 @@ function registerRateLimiting(io: Server, deps: SocketGatewayDependencies): void
       trustedHops: deps.trustedProxyHops,
     });
     const verdict = deps.rateLimits.allowConnection(ip, deps.clock.now().getTime());
-    next(verdict.allowed ? undefined : new Error('rate_limited'));
+    next(verdict.allowed ? undefined : new Error(RATE_LIMITED_CONNECTION_ERROR));
   });
 
   io.on('connection', (socket) => {

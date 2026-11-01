@@ -39,3 +39,10 @@ export const MAX_REORDERED_ISSUES = 2000;
 
 export const MAX_COUNTDOWN_SECONDS = 3600;
 export const MAX_TIMER_SECONDS = 3600;
+
+/**
+ * El mensaje de `connect_error` cuando el servidor rechaza una conexión de Socket.IO por exceso de
+ * uso. Socket.IO no reintenta solo una conexión rechazada por el servidor, así que el cliente
+ * necesita reconocerlo para volver a intentarlo.
+ */
+export const RATE_LIMITED_CONNECTION_ERROR = 'rate_limited';

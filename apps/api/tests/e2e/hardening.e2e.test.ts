@@ -1,4 +1,8 @@
-import { MAX_CARD_LENGTH, MAX_PLAYER_NAME_LENGTH } from '@pp/contracts';
+import {
+  MAX_CARD_LENGTH,
+  MAX_PLAYER_NAME_LENGTH,
+  RATE_LIMITED_CONNECTION_ERROR,
+} from '@pp/contracts';
 import type { ServerEvent } from '@pp/contracts';
 import { io as connectClient } from 'socket.io-client';
 import type { Socket } from 'socket.io-client';
@@ -229,7 +233,7 @@ describe('endurecimiento: límites de uso, de tamaño y cabeceras (ADR 0031)', (
       const third = connect(baseUrl, false);
       const error = await once<Error>(third, 'connect_error');
 
-      expect(error.message).toBe('rate_limited');
+      expect(error.message).toBe(RATE_LIMITED_CONNECTION_ERROR);
     });
 
     it('rechaza con Payload inválido una carta de más de MAX_CARD_LENGTH caracteres', async () => {
