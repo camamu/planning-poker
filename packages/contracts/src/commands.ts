@@ -1,5 +1,26 @@
 import { z } from 'zod';
+import {
+  MAX_CARD_LENGTH,
+  MAX_CARDS_PER_DECK,
+  MAX_COUNTDOWN_SECONDS,
+  MAX_DECK_NAME_LENGTH,
+  MAX_EMOJI_LENGTH,
+  MAX_GAME_NAME_LENGTH,
+  MAX_ID_LENGTH,
+  MAX_ISSUE_DESCRIPTION_LENGTH,
+  MAX_ISSUE_TITLE_LENGTH,
+  MAX_NAMED_REVEALERS,
+  MAX_PLAYER_NAME_LENGTH,
+  MAX_REORDERED_ISSUES,
+  MAX_SLUG_LENGTH,
+  MAX_TEAM_NAME_LENGTH,
+  MAX_TIMER_SECONDS,
+  MAX_URL_LENGTH,
+} from './limits.js';
 import type { HatIdView } from './views.js';
+
+/** Todo identificador que llega por el borde: acotado, porque acaba en consultas y en logs. */
+const idSchema = z.string().trim().min(1).max(MAX_ID_LENGTH);
 
 const whoCanRevealSchema = z.enum(['FACILITATOR_ONLY', 'ANYONE', 'NAMED_LIST', 'DEALER']);
 const participantRoleSchema = z.enum(['VOTER', 'SPECTATOR']);
@@ -13,36 +34,36 @@ const participantRoleSchema = z.enum(['VOTER', 'SPECTATOR']);
 export const gameSettingsSchema = z.object({
   autoReveal: z.boolean(),
   whoCanReveal: whoCanRevealSchema,
-  namedRevealers: z.array(z.string().trim().min(1)).optional(),
+  namedRevealers: z.array(idSchema).max(MAX_NAMED_REVEALERS).optional(),
   allowVoteChange: z.boolean().default(true),
   celebrate: z.boolean().default(true),
   throwEmojis: z.boolean().default(true),
-  countdownSeconds: z.number().int().positive().nullable().default(null),
+  countdownSeconds: z.number().int().positive().max(MAX_COUNTDOWN_SECONDS).nullable().default(null),
   revealOnTimeout: z.boolean().default(false),
 });
 export type GameSettingsCommandInput = z.infer<typeof gameSettingsSchema>;
 
 /** REST — `POST /api/games` */
 export const createGameCommandSchema = z.object({
-  name: z.string().trim().min(1),
-  deckId: z.string().trim().min(1),
-  facilitatorName: z.string().trim().min(1),
+  name: z.string().trim().min(1).max(MAX_GAME_NAME_LENGTH),
+  deckId: idSchema,
+  facilitatorName: z.string().trim().min(1).max(MAX_PLAYER_NAME_LENGTH),
   settings: gameSettingsSchema,
   /** Equipo del que sale la baraja. Sin token, igual que listar barajas — ver ADR 0006. */
-  teamSlug: z.string().trim().min(1).optional(),
+  teamSlug: z.string().trim().min(1).max(MAX_SLUG_LENGTH).optional(),
 });
 export type CreateGameCommandInput = z.infer<typeof createGameCommandSchema>;
 
 /** REST — `POST /api/teams` */
 export const createTeamCommandSchema = z.object({
-  name: z.string().trim().min(1),
+  name: z.string().trim().min(1).max(MAX_TEAM_NAME_LENGTH),
 });
 export type CreateTeamCommandInput = z.infer<typeof createTeamCommandSchema>;
 
 /** REST — `POST /api/teams/:slug/decks` y `PATCH /api/teams/:slug/decks/:deckId` */
 export const saveCustomDeckCommandSchema = z.object({
-  name: z.string().trim().min(1),
-  cards: z.array(z.string().trim().min(1)).min(1),
+  name: z.string().trim().min(1).max(MAX_DECK_NAME_LENGTH),
+  cards: z.array(z.string().trim().min(1).max(MAX_CARD_LENGTH)).min(1).max(MAX_CARDS_PER_DECK),
 });
 export type SaveCustomDeckCommandInput = z.infer<typeof saveCustomDeckCommandSchema>;
 
@@ -62,15 +83,15 @@ export type TeamGamesQueryInput = z.infer<typeof teamGamesQuerySchema>;
 
 /** REST — `PATCH /api/games/:id/settings` */
 export const updateGameSettingsCommandSchema = z.object({
-  participantId: z.string().trim().min(1),
+  participantId: idSchema,
   settings: gameSettingsSchema,
 });
 export type UpdateGameSettingsCommandInput = z.infer<typeof updateGameSettingsCommandSchema>;
 
 /** REST — `PATCH /api/games/:id/deck` */
 export const changeGameDeckCommandSchema = z.object({
-  participantId: z.string().trim().min(1),
-  deckId: z.string().trim().min(1),
+  participantId: idSchema,
+  deckId: idSchema,
 });
 export type ChangeGameDeckCommandInput = z.infer<typeof changeGameDeckCommandSchema>;
 
@@ -92,14 +113,14 @@ export const HAT_IDS = [
  * quien lo pide; solo vale si coincide con el de la URL (`Game.changeParticipantHat`).
  */
 export const changeParticipantHatCommandSchema = z.object({
-  participantId: z.string().trim().min(1),
+  participantId: idSchema,
   hat: z.enum(HAT_IDS).nullable(),
 });
 export type ChangeParticipantHatCommandInput = z.infer<typeof changeParticipantHatCommandSchema>;
 
 /** REST — `POST /api/games/:id/participants` */
 export const joinGameCommandSchema = z.object({
-  displayName: z.string().trim().min(1),
+  displayName: z.string().trim().min(1).max(MAX_PLAYER_NAME_LENGTH),
   role: participantRoleSchema,
 });
 export type JoinGameCommandInput = z.infer<typeof joinGameCommandSchema>;
@@ -109,7 +130,7 @@ export type JoinGameCommandInput = z.infer<typeof joinGameCommandSchema>;
  * lo pide: el propio participante (salir) o el facilitador (quitar).
  */
 export const removeParticipantCommandSchema = z.object({
-  participantId: z.string().trim().min(1),
+  participantId: idSchema,
 });
 export type RemoveParticipantCommandInput = z.infer<typeof removeParticipantCommandSchema>;
 
@@ -118,8 +139,8 @@ export type RemoveParticipantCommandInput = z.infer<typeof removeParticipantComm
  * el facilitador actual) y `toParticipantId` quien lo recibe.
  */
 export const transferFacilitatorCommandSchema = z.object({
-  participantId: z.string().trim().min(1),
-  toParticipantId: z.string().trim().min(1),
+  participantId: idSchema,
+  toParticipantId: idSchema,
 });
 export type TransferFacilitatorCommandInput = z.infer<typeof transferFacilitatorCommandSchema>;
 
@@ -128,7 +149,7 @@ export type TransferFacilitatorCommandInput = z.infer<typeof transferFacilitator
  * prospera si el facilitador actual no está conectado (`Game.claimFacilitator`).
  */
 export const claimFacilitatorCommandSchema = z.object({
-  participantId: z.string().trim().min(1),
+  participantId: idSchema,
 });
 export type ClaimFacilitatorCommandInput = z.infer<typeof claimFacilitatorCommandSchema>;
 
@@ -136,12 +157,13 @@ export type ClaimFacilitatorCommandInput = z.infer<typeof claimFacilitatorComman
 const externalUrlSchema = z
   .string()
   .trim()
+  .max(MAX_URL_LENGTH)
   .pipe(z.url({ protocol: /^https?$/ }));
 
 /** REST — `POST /api/games/:id/issues` */
 export const addIssueCommandSchema = z.object({
-  title: z.string().trim().min(1),
-  description: z.string().trim().optional(),
+  title: z.string().trim().min(1).max(MAX_ISSUE_TITLE_LENGTH),
+  description: z.string().trim().max(MAX_ISSUE_DESCRIPTION_LENGTH).optional(),
   externalUrl: externalUrlSchema.optional(),
 });
 export type AddIssueCommandInput = z.infer<typeof addIssueCommandSchema>;
@@ -163,70 +185,70 @@ export type ImportIssuesCommandInput = z.infer<typeof importIssuesCommandSchema>
  * que había (ADR 0019).
  */
 export const editIssueCommandSchema = z.object({
-  participantId: z.string().trim().min(1),
-  title: z.string().trim().min(1),
-  description: z.string().trim().optional(),
+  participantId: idSchema,
+  title: z.string().trim().min(1).max(MAX_ISSUE_TITLE_LENGTH),
+  description: z.string().trim().max(MAX_ISSUE_DESCRIPTION_LENGTH).optional(),
   externalUrl: externalUrlSchema.optional(),
 });
 export type EditIssueCommandInput = z.infer<typeof editIssueCommandSchema>;
 
 /** REST — `DELETE /api/games/:id/issues/:issueId` */
 export const removeIssueCommandSchema = z.object({
-  participantId: z.string().trim().min(1),
+  participantId: idSchema,
 });
 export type RemoveIssueCommandInput = z.infer<typeof removeIssueCommandSchema>;
 
 /** REST — `PUT /api/games/:id/issues/order`. Tiene que ser una permutación de TODAS las tareas. */
 export const reorderIssuesCommandSchema = z.object({
-  participantId: z.string().trim().min(1),
-  issueIds: z.array(z.string().trim().min(1)),
+  participantId: idSchema,
+  issueIds: z.array(idSchema).max(MAX_REORDERED_ISSUES),
 });
 export type ReorderIssuesCommandInput = z.infer<typeof reorderIssuesCommandSchema>;
 
 /** WS cliente→servidor — `join` (entra en la room de la partida y pide `state_sync`) */
 export const wsJoinCommandSchema = z.object({
-  gameId: z.string().trim().min(1),
-  participantId: z.string().trim().min(1),
+  gameId: idSchema,
+  participantId: idSchema,
 });
 export type WsJoinCommandInput = z.infer<typeof wsJoinCommandSchema>;
 
 /** WS cliente→servidor — `vote` */
 export const wsVoteCommandSchema = z.object({
-  gameId: z.string().trim().min(1),
-  participantId: z.string().trim().min(1),
-  card: z.string().trim().min(1),
+  gameId: idSchema,
+  participantId: idSchema,
+  card: z.string().trim().min(1).max(MAX_CARD_LENGTH),
 });
 export type WsVoteCommandInput = z.infer<typeof wsVoteCommandSchema>;
 
 /** WS cliente→servidor — `start_round` */
 export const wsStartRoundCommandSchema = z.object({
-  gameId: z.string().trim().min(1),
-  participantId: z.string().trim().min(1),
-  issueId: z.string().trim().min(1),
+  gameId: idSchema,
+  participantId: idSchema,
+  issueId: idSchema,
 });
 export type WsStartRoundCommandInput = z.infer<typeof wsStartRoundCommandSchema>;
 
 /** WS cliente→servidor — `start_quick_round` (vota ya, sin crear tarea: ver Game.startQuickRound) */
 export const wsStartQuickRoundCommandSchema = z.object({
-  gameId: z.string().trim().min(1),
-  participantId: z.string().trim().min(1),
+  gameId: idSchema,
+  participantId: idSchema,
 });
 export type WsStartQuickRoundCommandInput = z.infer<typeof wsStartQuickRoundCommandSchema>;
 
 /** WS cliente→servidor — `reveal` y `timeout_reveal` (mismo payload, ver Game.revealOnTimeout) */
 export const wsRevealCommandSchema = z.object({
-  gameId: z.string().trim().min(1),
-  participantId: z.string().trim().min(1),
+  gameId: idSchema,
+  participantId: idSchema,
 });
 export type WsRevealCommandInput = z.infer<typeof wsRevealCommandSchema>;
 
 /** WS cliente→servidor — `set_estimate` (invariante 10: cierra la issue con la carta acordada) */
 export const wsSetEstimateCommandSchema = z.object({
-  gameId: z.string().trim().min(1),
-  participantId: z.string().trim().min(1),
-  card: z.string().trim().min(1),
+  gameId: idSchema,
+  participantId: idSchema,
+  card: z.string().trim().min(1).max(MAX_CARD_LENGTH),
   /** Ausente = la ronda actual de la mesa; presente = una tarea revelada en diferido (ADR 0027). */
-  issueId: z.string().trim().min(1).optional(),
+  issueId: idSchema.optional(),
 });
 export type WsSetEstimateCommandInput = z.infer<typeof wsSetEstimateCommandSchema>;
 
@@ -235,26 +257,26 @@ const MAX_ASYNC_ISSUES_PER_COMMAND = 200;
 
 /** WS cliente→servidor — `open_async_rounds` (abre varias tareas pendientes para votar en diferido) */
 export const wsOpenAsyncRoundsCommandSchema = z.object({
-  gameId: z.string().trim().min(1),
-  participantId: z.string().trim().min(1),
-  issueIds: z.array(z.string().trim().min(1)).min(1).max(MAX_ASYNC_ISSUES_PER_COMMAND),
+  gameId: idSchema,
+  participantId: idSchema,
+  issueIds: z.array(idSchema).min(1).max(MAX_ASYNC_ISSUES_PER_COMMAND),
 });
 export type WsOpenAsyncRoundsCommandInput = z.infer<typeof wsOpenAsyncRoundsCommandSchema>;
 
 /** WS cliente→servidor — `async_vote` */
 export const wsAsyncVoteCommandSchema = z.object({
-  gameId: z.string().trim().min(1),
-  participantId: z.string().trim().min(1),
-  issueId: z.string().trim().min(1),
-  card: z.string().trim().min(1),
+  gameId: idSchema,
+  participantId: idSchema,
+  issueId: idSchema,
+  card: z.string().trim().min(1).max(MAX_CARD_LENGTH),
 });
 export type WsAsyncVoteCommandInput = z.infer<typeof wsAsyncVoteCommandSchema>;
 
 /** WS cliente→servidor — `reveal_async`. `issueIds` ausente = todas las rondas con votos. */
 export const wsRevealAsyncCommandSchema = z.object({
-  gameId: z.string().trim().min(1),
-  participantId: z.string().trim().min(1),
-  issueIds: z.array(z.string().trim().min(1)).min(1).max(MAX_ASYNC_ISSUES_PER_COMMAND).optional(),
+  gameId: idSchema,
+  participantId: idSchema,
+  issueIds: z.array(idSchema).min(1).max(MAX_ASYNC_ISSUES_PER_COMMAND).optional(),
 });
 export type WsRevealAsyncCommandInput = z.infer<typeof wsRevealAsyncCommandSchema>;
 
@@ -264,21 +286,21 @@ export type WsRevealAsyncCommandInput = z.infer<typeof wsRevealAsyncCommandSchem
  * reenvía. `toParticipantId: null` = modo "Reaccionar" (el emoji sale sobre el propio asiento).
  */
 export const wsEmojiThrownCommandSchema = z.object({
-  gameId: z.string().trim().min(1),
-  participantId: z.string().trim().min(1),
-  toParticipantId: z.string().trim().min(1).nullable(),
-  emoji: z.string().trim().min(1),
+  gameId: idSchema,
+  participantId: idSchema,
+  toParticipantId: idSchema.nullable(),
+  emoji: z.string().trim().min(1).max(MAX_EMOJI_LENGTH),
 });
 export type WsEmojiThrownCommandInput = z.infer<typeof wsEmojiThrownCommandSchema>;
 
 /** WS cliente→servidor — `discussion_timer_control` (F8, temporizador de discusión efímero) */
 const discussionTimerActionSchema = z.enum(['start', 'pause', 'resume', 'reset', 'addSeconds']);
 export const wsDiscussionTimerControlCommandSchema = z.object({
-  gameId: z.string().trim().min(1),
-  participantId: z.string().trim().min(1),
-  roundId: z.string().trim().min(1),
+  gameId: idSchema,
+  participantId: idSchema,
+  roundId: idSchema,
   action: discussionTimerActionSchema,
-  seconds: z.number().int().positive().optional(),
+  seconds: z.number().int().positive().max(MAX_TIMER_SECONDS).optional(),
 });
 export type WsDiscussionTimerControlCommandInput = z.infer<
   typeof wsDiscussionTimerControlCommandSchema
@@ -293,6 +315,6 @@ export type AdminLoginCommandInput = z.infer<typeof adminLoginCommandSchema>;
 
 /** REST — `PATCH /api/admin/teams/:teamId` */
 export const renameTeamCommandSchema = z.object({
-  name: z.string().trim().min(1),
+  name: z.string().trim().min(1).max(MAX_TEAM_NAME_LENGTH),
 });
 export type RenameTeamCommandInput = z.infer<typeof renameTeamCommandSchema>;

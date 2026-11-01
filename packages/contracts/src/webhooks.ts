@@ -1,4 +1,5 @@
 import { z } from 'zod';
+import { MAX_ID_LENGTH, MAX_URL_LENGTH } from './limits.js';
 import type { GameSummaryView } from './views.js';
 
 /**
@@ -116,6 +117,7 @@ export const addWebhookCommandSchema = z.object({
   url: z
     .string()
     .trim()
+    .max(MAX_URL_LENGTH)
     .pipe(z.url({ protocol: /^https$/ })),
   events: z.array(webhookEventSchema).min(1),
 });
@@ -123,7 +125,7 @@ export type AddWebhookCommandInput = z.infer<typeof addWebhookCommandSchema>;
 
 /** REST — `POST /api/games/:id/summary/webhook`. */
 export const sendSessionSummaryCommandSchema = z.object({
-  participantId: z.string().trim().min(1),
+  participantId: z.string().trim().min(1).max(MAX_ID_LENGTH),
 });
 export type SendSessionSummaryCommandInput = z.infer<typeof sendSessionSummaryCommandSchema>;
 
