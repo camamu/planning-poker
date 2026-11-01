@@ -134,6 +134,10 @@ VPS, no de parchear con más automatismos.
    ningún efecto**.
 5. Dominio: el `*.workers.dev` que da Cloudflare por defecto sirve para el MVP; un dominio propio es
    opcional y no urgente para una herramienta interna.
+6. Opcional: anotar ese dominio (sin `https://`) como variable `WEB_HOST` del repositorio. El build
+   lo usa para que la imagen de Open Graph de la portada tenga URL absoluta, que es lo que Slack y
+   Teams necesitan para enseñarla al pegar el enlace (ADR 0029). Sin ella el título y la
+   descripción se ven igual; solo puede faltar la imagen.
 
 ---
 

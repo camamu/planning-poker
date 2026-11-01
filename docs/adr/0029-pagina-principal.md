@@ -1,7 +1,7 @@
 # 0029 — Página principal en `/`
 
-_Borrador escrito al planificar el bloque 21 (`docs/07-plan-v2.md` §13). Actualizar en la PR del
-bloque si la implementación se desvía._
+_Escrito al planificar el bloque 21 (`docs/07-plan-v2.md` §13) y actualizado al implementarlo: ver
+«Cómo quedó»._
 
 ## Contexto
 
@@ -37,3 +37,27 @@ tiene forma de saber qué hace la herramienta ni qué ofrece, y la app se quiere
   que no se pide y §5.7 trae el encargo para Claude Design.
 - Se añade una obligación a los bloques siguientes: actualizar `features/landing/content.ts` cuando
   entreguen algo visible.
+
+## Cómo quedó (bloque 21)
+
+- **Diseño sin Claude Design.** Se eligió la opción A («mesa a la vista») entre tres maquetas
+  hechas con los tokens Nocturne reales y se ajustó por comentarios. No hubo handoff: los componentes
+  de presentación nuevos (`Icon`, `FeatureCard`, `Step`) se escribieron directamente en
+  `design-system/`.
+- **La mesa de la cabecera es la de la sala.** `features/landing/DemoTable` monta `Table` de
+  `features/game-table` con una partida fija (cinco votos revelados, quién reparte, facilitador,
+  pluma y capa) y la escala para que quepa, más las casillas «Media» y «Acuerdo» de `ResultsPanel`.
+  Se descartó una mesa propia en `design-system/` porque divergiría de la real al primer cambio.
+- **Dos desviaciones visuales del brief**, pedidas al revisar las maquetas: un fondo con degradado
+  suave del acento (el brief decía «nada de degradados») y un botón relleno para «Crear sala», como
+  variante nueva `solid` de `Button`. `primary` sigue siendo de contorno en el resto de la app.
+- **Accesos de «Volver a lo tuyo»** con un icono por elemento, elegido a partir de su id con
+  `iconForSeed` (como el color de `hueForSeed`): equipos y partidas no tienen icono propio y así no
+  hay que guardar nada nuevo. Se distinguen por el texto pequeño («equipo» o la fecha).
+- **Sin aviso de servidor en la portada.** `main.tsx` ya arranca el calentamiento al cargar; en `/`
+  no se enseña `ServerWakeBanner`.
+- **Open Graph con URL absoluta opcional.** La imagen (`public/og-image.png`) necesita URL absoluta
+  para Slack y Teams; el build la toma de `VITE_PUBLIC_URL`, que `deploy.yml` construye a partir de
+  la variable de repositorio `WEB_HOST` si existe (`docs/06-despliegue.md` §5). Sin ella, la URL
+  queda relativa.
+- **Versión en el pie** inyectada por `vite.config.ts` desde `.release-please-manifest.json`.
