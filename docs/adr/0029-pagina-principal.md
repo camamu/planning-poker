@@ -48,6 +48,11 @@ tiene forma de saber qué hace la herramienta ni qué ofrece, y la app se quiere
   `features/game-table` con una partida fija (cinco votos revelados, quién reparte, facilitador,
   pluma y capa) y la escala para que quepa, más las casillas «Media» y «Acuerdo» de `ResultsPanel`.
   Se descartó una mesa propia en `design-system/` porque divergiría de la real al primer cambio.
+  Los asientos de la sala miden 112 px y no encogen, así que en un móvil (menos de 420 px de
+  ancho) la mesa de cinco quedaría a un tercio de su tamaño. Ahí se pinta con dos asientos, arriba
+  y abajo, sobre una mesa más pequeña: con tres, los laterales tapan el centro de la mesa.
+- **«Sin cuentas» como bloque de color sólido** (`accent-700` con texto claro, igual en los dos
+  temas): el acento claro del tema oscuro no da contraste AA con texto claro.
 - **Dos desviaciones visuales del brief**, pedidas al revisar las maquetas: un fondo con degradado
   suave del acento (el brief decía «nada de degradados») y un botón relleno para «Crear sala», como
   variante nueva `solid` de `Button`. `primary` sigue siendo de contorno en el resto de la app.
