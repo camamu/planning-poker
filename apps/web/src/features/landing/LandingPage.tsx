@@ -1,6 +1,6 @@
 import type { JSX, ReactNode } from 'react';
 import { Link } from 'react-router-dom';
-import { FeatureCard, Logo, Step } from '../../design-system/index.js';
+import { FeatureCard, Icon, Logo, Step } from '../../design-system/index.js';
 import { FEATURE_GROUPS, NO_ACCOUNTS, STEPS, SUBTITLE, TAGLINE } from './content.js';
 import { DemoTable } from './DemoTable.js';
 import { RememberedShortcuts } from './RememberedShortcuts.js';
@@ -90,14 +90,30 @@ export function LandingPage(): JSX.Element {
             </div>
           </LandingSection>
 
-          <section
-            className="grid gap-2.5 border-t py-7 md:grid-cols-[1fr_2fr] md:items-baseline lg:py-12"
-            style={{ borderColor: 'var(--pp-line)' }}
-          >
-            <h2 className="text-[21px] lg:text-[26px]">Sin cuentas</h2>
-            <p className="m-0 max-w-[60ch]" style={{ color: 'var(--pp-muted)' }}>
-              {NO_ACCOUNTS}
-            </p>
+          <section className="border-t py-7 lg:py-12" style={{ borderColor: 'var(--pp-line)' }}>
+            {/* Color fijo en los dos temas: el acento claro del tema oscuro no da contraste AA con texto claro. */}
+            <div
+              className="flex items-start gap-4 rounded-xl p-5 md:items-center lg:p-7"
+              style={{ background: 'var(--color-accent-700)' }}
+            >
+              <span
+                className="flex h-10 w-10 flex-none items-center justify-center rounded-full"
+                style={{ background: 'var(--color-neutral-100)', color: 'var(--color-accent-700)' }}
+              >
+                <Icon name="key" size={20} />
+              </span>
+              <div className="flex flex-col gap-1.5">
+                <h2
+                  className="text-[21px] lg:text-[26px]"
+                  style={{ color: 'var(--color-neutral-100)' }}
+                >
+                  Sin cuentas
+                </h2>
+                <p className="m-0 max-w-[60ch]" style={{ color: 'var(--color-neutral-100)' }}>
+                  {NO_ACCOUNTS}
+                </p>
+              </div>
+            </div>
           </section>
         </main>
 

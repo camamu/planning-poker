@@ -86,6 +86,12 @@ const ICONS = {
       <path d="M10.5 8.5l-3 6M13.5 8.5l3 6M9 17h6" />
     </>
   ),
+  key: (
+    <>
+      <circle cx="8" cy="15" r="4" />
+      <path d="M11 12l9-9M17 6l3 3M14 9l2 2" />
+    </>
+  ),
   server: (
     <>
       <rect x="3" y="4" width="18" height="7" rx="1.5" />
