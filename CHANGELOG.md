@@ -1,5 +1,63 @@
 # Changelog
 
+## [1.9.0](https://github.com/camamu/planning-poker/compare/planning-poker-v1.8.0...planning-poker-v1.9.0) (2026-11-01)
+
+
+### Features
+
+* **app:** caso de uso ImportIssues y detalles de tarea en AddIssue y en la vista ([7c4c69d](https://github.com/camamu/planning-poker/commit/7c4c69d1bbc46aef4f70897021f3133f8430e8ea))
+* **app:** casos de uso EditIssue, RemoveIssue y ReorderIssues ([1f73893](https://github.com/camamu/planning-poker/commit/1f7389342a5e9b9b84af9ffd7e5aa434edfee691))
+* **app:** casos de uso TransferFacilitator y ClaimFacilitator ([9615d15](https://github.com/camamu/planning-poker/commit/9615d152f623dc16aafd22d811799798f5d5d61e))
+* **app:** casos de uso y proyecciones de la votación en diferido ([8aff6a1](https://github.com/camamu/planning-poker/commit/8aff6a115ad547b5455fed2af606487fb41a8902))
+* **app:** envío de webhooks, resumen manual, prueba y gestión ([4caf642](https://github.com/camamu/planning-poker/commit/4caf642feef3042b554d51a19bd3bd8d04e35e6c))
+* **app:** puerto GameHistoryReader y caso de uso ListTeamGames ([f2e6399](https://github.com/camamu/planning-poker/commit/f2e63995b32fd69ceb7f089479dbe41d6eac874c))
+* **app:** read model toGameSummaryView y caso de uso GetGameSummary ([5011628](https://github.com/camamu/planning-poker/commit/50116288c857c52db3aa0964b5814f76d62013f2))
+* **app:** toGameView rellena previousRounds solo con rondas reveladas de la misma tarea ([1a76480](https://github.com/camamu/planning-poker/commit/1a7648092197f8727ffcd1bfed78299a05dbb2d1))
+* **ci:** dirección pública opcional para la imagen de Open Graph de la portada ([7c70ac9](https://github.com/camamu/planning-poker/commit/7c70ac9cfc850c939dcf19590d2dc9e000d4b30a))
+* **ci:** workflow manual warmup.yml para despertar la API antes de una sesión ([30ed050](https://github.com/camamu/planning-poker/commit/30ed050dacdb461ac5c180b35655eda75abc4bc8))
+* **contracts:** comandos y evento para ceder y tomar el relevo del facilitador ([e9c8e50](https://github.com/camamu/planning-poker/commit/e9c8e50c105f0791385e69bb7f3b060dbad314bc))
+* **contracts:** comandos y eventos para editar, borrar y reordenar tareas ([05b854e](https://github.com/camamu/planning-poker/commit/05b854e6d621717af476ddf50b4db26c07e4e7e3))
+* **contracts:** esquemas del cuerpo, comandos y vistas de los webhooks ([8112700](https://github.com/camamu/planning-poker/commit/8112700d8c72a709858acf9854a55123896d098e))
+* **contracts:** issueKeyFromUrl, lote de tareas y descripción y enlace en IssueView ([eb0b2c3](https://github.com/camamu/planning-poker/commit/eb0b2c3e88fd5526dc1803827edc6eefd8fc3847))
+* **contracts:** previousRounds en RoundView con las rondas reveladas de la misma tarea ([5194d9c](https://github.com/camamu/planning-poker/commit/5194d9c4c1bca9c8f5ba062eb1dc546cf0acc5f9))
+* **contracts:** vista GameSummaryView del resumen de la sesión ([d05424e](https://github.com/camamu/planning-poker/commit/d05424e35b3a14a081ef8ca1274f1ad9020927db))
+* **contracts:** vista TeamGameView y validación de la query del histórico del equipo ([8d7557e](https://github.com/camamu/planning-poker/commit/8d7557e14229da9292b40a1c67f8387379e7d58b))
+* **contracts:** vista y mensajes de la votación en diferido ([5831eee](https://github.com/camamu/planning-poker/commit/5831eee7ed7b16eeac8d7786623bfb73ae7be52e))
+* **domain:** ceder y tomar el relevo del facilitador con transferFacilitator y claimFacilitator ([d9d8485](https://github.com/camamu/planning-poker/commit/d9d8485a9ca635af7b0c353ca8759070c76933e0))
+* **domain:** editar, borrar y reordenar tareas con editIssue, removeIssue y reorderIssues ([d834f51](https://github.com/camamu/planning-poker/commit/d834f51363241c8ba6ced255575ebf9d11731c25))
+* **domain:** guardar cuándo se abre cada ronda y cuándo se estima cada tarea ([8f3f8c2](https://github.com/camamu/planning-poker/commit/8f3f8c2cf89c456d9ff53edbcedbd61f011edd93))
+* **domain:** importar tareas con importIssues y detalles opcionales en addIssue ([f6d4aa4](https://github.com/camamu/planning-poker/commit/f6d4aa4c47a0c971ab93e5c840ebb29c6e183169))
+* **domain:** roundsOf devuelve las rondas de una tarea en orden ([9393388](https://github.com/camamu/planning-poker/commit/9393388cfd32236037ffafe73cbbb1cbb775089f))
+* **domain:** votación en diferido con Round.mode y varias rondas abiertas ([350fc1c](https://github.com/camamu/planning-poker/commit/350fc1cce0ec97181bd94a71a4f10510e16f3170))
+* **domain:** webhooks del equipo con URL https, eventos y límite de tres ([97925b5](https://github.com/camamu/planning-poker/commit/97925b55ce4890befcd0e316099a839461b7d27f))
+* **infra:** comandos WS y eventos de la votación en diferido ([b993048](https://github.com/camamu/planning-poker/commit/b993048843c1af4e99e3e46b0c47e61b073dc788))
+* **infra:** lectores del histórico y GET /api/teams/:slug/games ([26264cd](https://github.com/camamu/planning-poker/commit/26264cdc30d3db249822c358ebd40923409187c5))
+* **infra:** persistir el modo de cada ronda (migración 0009) ([20eea1a](https://github.com/camamu/planning-poker/commit/20eea1a6bb2d7655b149aff20623e4b05be05aee))
+* **infra:** persistir los webhooks del equipo (migración 0010) ([d39a2d6](https://github.com/camamu/planning-poker/commit/d39a2d6b87f9a4925ffc49ca5f74a6fde47be7ca))
+* **infra:** ruta GET /api/games/:id/summary ([e934050](https://github.com/camamu/planning-poker/commit/e93405017640af88f5c45f68ae1ecc7d272bbb0a))
+* **infra:** ruta POST /issues/batch y evento issues_imported ([dcafb86](https://github.com/camamu/planning-poker/commit/dcafb8618bdabbee62db81f3792ba8b6158620a5))
+* **infra:** rutas REST y evento en vivo del traspaso de facilitador ([b390127](https://github.com/camamu/planning-poker/commit/b3901272606bd2018187c97c0d9b4cbe70999909))
+* **infra:** rutas REST y eventos en vivo para gestionar tareas ([9a1004b](https://github.com/camamu/planning-poker/commit/9a1004b671e55a4b08aaa491dca6687735aa4a3d))
+* **infra:** sender de webhooks con firma, reintentos y protección SSRF ([de05917](https://github.com/camamu/planning-poker/commit/de05917f46dea3f652ab8f6a0f36dde93f119686))
+* panel de gestión /admin para salas, equipos y barajas ([f003efb](https://github.com/camamu/planning-poker/commit/f003efb3dc6c45d5a284c48ef7b6ea3812bd8713))
+* **web:** ceder el facilitador, tomar el relevo y salir cediéndolo ([fc753b5](https://github.com/camamu/planning-poker/commit/fc753b5cabb45d16d12c76bf37b26d40765e00f5))
+* **web:** comparar con la ronda anterior en el panel de resultados ([80f4ff8](https://github.com/camamu/planning-poker/commit/80f4ff8d2ec644a4ba8cf5ce336d05d55b2284c0))
+* **web:** despierta la API al cargar y deshabilita lo que la necesita hasta que responde ([e175f24](https://github.com/camamu/planning-poker/commit/e175f24f21d56c533b3d51e3f9869d24d5ec3904))
+* **web:** editar, borrar y reordenar tareas desde el panel de la cola ([886149b](https://github.com/camamu/planning-poker/commit/886149b2b31b0b6514e67f9c8edfb7957032c58a))
+* **web:** exportar el resumen de sesión a CSV y Markdown ([ad4eb17](https://github.com/camamu/planning-poker/commit/ad4eb17d1d9b8faa5feba25347cafd707aa549a1))
+* **web:** importar tareas desde texto, CSV o enlaces ([59e7bfb](https://github.com/camamu/planning-poker/commit/59e7bfba2061bf2751fac294d741f2a5dfa4cab4))
+* **web:** mesa de la portada legible en móvil y bloque «sin cuentas» en color sólido ([1b4f7ba](https://github.com/camamu/planning-poker/commit/1b4f7bac817c91074a5fe4f365ff5d787524f8b8))
+* **web:** página de resumen de sesión y accesos desde la sala y el histórico ([3068135](https://github.com/camamu/planning-poker/commit/3068135a859def8f73e3770fd283f58a0d8659e7))
+* **web:** página principal en / y formulario de crear partida en /games/new ([8c86bcb](https://github.com/camamu/planning-poker/commit/8c86bcb0b81bed936d8a922927fe548df6ca7790))
+* **web:** pestaña Partidas del equipo y partidas recientes en la portada ([5d320a2](https://github.com/camamu/planning-poker/commit/5d320a2f7c5a2f85e3b2e26ef7be301d63435ede))
+* **web:** pestaña Webhooks del equipo, «Enviar resumen» y aviso de entrega fallida ([48a28f0](https://github.com/camamu/planning-poker/commit/48a28f0c6f921db0a767acbfa83484b50e937bba))
+* **web:** votación en diferido en el panel de tareas ([9c24695](https://github.com/camamu/planning-poker/commit/9c24695abe08d1c6442b9917eb55d4d2c35d1f63))
+
+
+### Bug Fixes
+
+* **web:** redondear la media en el resultado de la ronda ([9517745](https://github.com/camamu/planning-poker/commit/951774543ff1d4ea906126311fd46e3adf03aba3))
+
 ## [1.8.0](https://github.com/camamu/planning-poker/compare/planning-poker-v1.7.0...planning-poker-v1.8.0) (2026-10-22)
 
 
