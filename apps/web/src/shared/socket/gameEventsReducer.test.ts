@@ -1,5 +1,6 @@
 import type { GameView, ServerEvent } from '@pp/contracts';
 import { describe, expect, it } from 'vitest';
+import { asyncRoundView } from '../testing/viewFixtures.js';
 import { gameEventsReducer, needsResync } from './gameEventsReducer.js';
 
 function baseState(overrides: Partial<GameView> = {}): GameView {
@@ -28,7 +29,16 @@ function baseState(overrides: Partial<GameView> = {}): GameView {
         hat: null,
       },
     ],
-    issues: [{ id: 'issue-1', title: 'Login', status: 'VOTING', finalEstimate: null }],
+    issues: [
+      {
+        id: 'issue-1',
+        title: 'Login',
+        description: null,
+        externalUrl: null,
+        status: 'VOTING',
+        finalEstimate: null,
+      },
+    ],
     currentRound: {
       id: 'round-1',
       issueId: 'issue-1',
@@ -40,6 +50,7 @@ function baseState(overrides: Partial<GameView> = {}): GameView {
       dealerId: 'p1',
       timerDeadline: null,
     },
+    asyncRounds: [],
     ...overrides,
   };
 }
@@ -62,6 +73,17 @@ describe('gameEventsReducer', () => {
     const event: ServerEvent = { type: 'participant_left', version: 2, participantId: 'p2' };
     expect(gameEventsReducer(state, event)).toBe(state);
     expect(needsResync('participant_left')).toBe(true);
+  });
+
+  it('issues_imported no fabrica las tareas: deja el estado igual y pide un único resync', () => {
+    const state = baseState();
+    const event: ServerEvent = {
+      type: 'issues_imported',
+      version: 2,
+      issueIds: ['issue-2', 'issue-3', 'issue-4'],
+    };
+    expect(gameEventsReducer(state, event)).toBe(state);
+    expect(needsResync('issues_imported')).toBe(true);
   });
 
   it('issue_added no fabrica una issue: deja el estado igual (hace falta resync)', () => {
@@ -267,9 +289,30 @@ describe('gameEventsReducer', () => {
     function withQueue(): GameView {
       return baseState({
         issues: [
-          { id: 'issue-1', title: 'Login', status: 'VOTING', finalEstimate: null },
-          { id: 'issue-2', title: 'Pagos', status: 'PENDING', finalEstimate: null },
-          { id: 'issue-3', title: 'Informes', status: 'PENDING', finalEstimate: null },
+          {
+            id: 'issue-1',
+            title: 'Login',
+            description: null,
+            externalUrl: null,
+            status: 'VOTING',
+            finalEstimate: null,
+          },
+          {
+            id: 'issue-2',
+            title: 'Pagos',
+            description: null,
+            externalUrl: null,
+            status: 'PENDING',
+            finalEstimate: null,
+          },
+          {
+            id: 'issue-3',
+            title: 'Informes',
+            description: null,
+            externalUrl: null,
+            status: 'PENDING',
+            finalEstimate: null,
+          },
         ],
       });
     }
@@ -281,6 +324,8 @@ describe('gameEventsReducer', () => {
         issue: {
           id: 'issue-2',
           title: 'Pagos con tarjeta',
+          description: null,
+          externalUrl: null,
           status: 'PENDING',
           finalEstimate: null,
         },
@@ -351,5 +396,83 @@ describe('gameEventsReducer', () => {
       role: 'SPECTATOR',
     };
     expect(gameEventsReducer(null, event)).toBeNull();
+  });
+});
+
+describe('gameEventsReducer: votación en diferido', () => {
+  it('async_vote_cast marca que ha votado esa persona en esa tarea, sin carta', () => {
+    const state = baseState({ asyncRounds: [asyncRoundView('issue-2', { voterIds: ['p1'] })] });
+
+    const next = gameEventsReducer(state, {
+      type: 'async_vote_cast',
+      version: 5,
+      issueId: 'issue-2',
+      participantId: 'p2',
+    });
+
+    expect(next?.asyncRounds[0]?.voterIds).toEqual(['p1', 'p2']);
+    expect(next?.asyncRounds[0]?.ownCard).toBeNull();
+  });
+
+  it('async_vote_cast no duplica a quien cambia su voto', () => {
+    const state = baseState({ asyncRounds: [asyncRoundView('issue-2', { voterIds: ['p1'] })] });
+
+    const next = gameEventsReducer(state, {
+      type: 'async_vote_cast',
+      version: 5,
+      issueId: 'issue-2',
+      participantId: 'p1',
+    });
+
+    expect(next?.asyncRounds[0]?.voterIds).toEqual(['p1']);
+  });
+
+  it('async_vote_cast de una tarea que no tiene ronda en diferido no cambia nada', () => {
+    const state = baseState({ asyncRounds: [asyncRoundView('issue-2')] });
+
+    const next = gameEventsReducer(state, {
+      type: 'async_vote_cast',
+      version: 5,
+      issueId: 'otra',
+      participantId: 'p2',
+    });
+
+    expect(next).toBe(state);
+  });
+
+  it('issue_estimated retira la ronda en diferido de esa tarea y conserva las demás', () => {
+    const state = baseState({
+      asyncRounds: [asyncRoundView('issue-2', { status: 'REVEALED' }), asyncRoundView('issue-3')],
+    });
+
+    const next = gameEventsReducer(state, {
+      type: 'issue_estimated',
+      version: 6,
+      issueId: 'issue-2',
+      finalEstimate: '5',
+    });
+
+    expect(next?.asyncRounds.map((round) => round.issueId)).toEqual(['issue-3']);
+  });
+
+  it('abrir y revelar en lote piden un state_sync: el estado de cada ronda es por viewer', () => {
+    expect(needsResync('async_rounds_opened')).toBe(true);
+    expect(needsResync('async_rounds_revealed')).toBe(true);
+    expect(needsResync('async_vote_cast')).toBe(false);
+  });
+
+  it('async_rounds_opened y async_rounds_revealed no inventan un estado: lo deja a la resincronización', () => {
+    const state = baseState();
+
+    expect(
+      gameEventsReducer(state, { type: 'async_rounds_opened', version: 2, issueIds: ['issue-2'] }),
+    ).toBe(state);
+    expect(
+      gameEventsReducer(state, {
+        type: 'async_rounds_revealed',
+        version: 3,
+        issueIds: ['issue-2'],
+      }),
+    ).toBe(state);
   });
 });

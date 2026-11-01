@@ -3,6 +3,7 @@ import type { JSX } from 'react';
 import { Badge, Button, Tooltip } from '../../design-system/index.js';
 import type { DiscussionTimerState } from '../../shared/store/gameStore.js';
 import { formatCountdown } from '../game-table/hooks/useCountdown.js';
+import { formatPoints } from '../session-summary/summaryFormat.js';
 import { Confetti } from './Confetti.js';
 import { DiscussionTimerControls } from './DiscussionTimerControls.js';
 import { Distribution } from './Distribution.js';
@@ -24,6 +25,9 @@ export interface ResultsPanelProps {
   readonly onAcceptEstimate: (card: string) => void;
   readonly hasNextIssue: boolean;
   readonly onNextIssue: () => void;
+  /** Sin tareas pendientes y con la última estimada: se ofrece cerrar con el resumen (ADR 0025). */
+  readonly sessionFinished: boolean;
+  readonly summaryHref: string;
   readonly discussionTimer: DiscussionTimerState | null;
   readonly onStartDiscussionTimer: (roundId: string, seconds: number) => void;
   readonly onPauseDiscussionTimer: (roundId: string) => void;
@@ -138,7 +142,7 @@ function RevealedPanel(props: ResultsPanelProps & { round: RoundView }): JSX.Ele
 
       <div className="grid grid-cols-2 gap-2.5">
         {result.average !== null ? (
-          <StatTile label="Media" value={result.average.toString()} />
+          <StatTile label="Media" value={formatPoints(result.average)} />
         ) : (
           <StatTile label="Carta más votada" value={result.mostVoted ?? '—'} />
         )}
@@ -174,6 +178,16 @@ function RevealedPanel(props: ResultsPanelProps & { round: RoundView }): JSX.Ele
           onResume={props.onResumeDiscussionTimer}
           onAddSeconds={props.onAddDiscussionSeconds}
         />
+        {props.sessionFinished ? (
+          <a
+            href={props.summaryHref}
+            target="_blank"
+            rel="noopener noreferrer"
+            className="btn btn-primary w-full"
+          >
+            Ver resumen de la sesión
+          </a>
+        ) : null}
         <AcceptEstimateButton
           card={acceptedCard}
           canEstimate={props.canEstimate}
@@ -230,7 +244,7 @@ function AcceptEstimateButton({
   );
 }
 
-function StatTile({
+export function StatTile({
   label,
   value,
 }: {

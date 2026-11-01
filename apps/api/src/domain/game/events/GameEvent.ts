@@ -5,6 +5,7 @@ import type { GameSettings } from '../GameSettings.js';
 import type { Hat } from '../Hat.js';
 import type { GameId, IssueId, ParticipantId, RoundId } from '../ids.js';
 import type { ParticipantRole } from '../Participant.js';
+import type { AsyncRoundEntry } from '../Round.js';
 
 export type GameEvent = DomainEvent &
   (
@@ -38,6 +39,11 @@ export type GameEvent = DomainEvent &
         readonly nextId: ParticipantId;
       }
     | { readonly type: 'IssueAdded'; readonly gameId: GameId; readonly issueId: IssueId }
+    | {
+        readonly type: 'IssuesImported';
+        readonly gameId: GameId;
+        readonly issueIds: ReadonlyArray<IssueId>;
+      }
     | { readonly type: 'IssueEdited'; readonly gameId: GameId; readonly issueId: IssueId }
     | { readonly type: 'IssueRemoved'; readonly gameId: GameId; readonly issueId: IssueId }
     | {
@@ -64,6 +70,23 @@ export type GameEvent = DomainEvent &
         readonly participantId: ParticipantId;
       }
     | { readonly type: 'RoundRevealed'; readonly gameId: GameId; readonly roundId: RoundId }
+    | {
+        readonly type: 'AsyncRoundsOpened';
+        readonly gameId: GameId;
+        readonly rounds: ReadonlyArray<AsyncRoundEntry>;
+      }
+    | {
+        readonly type: 'AsyncVoteCast';
+        readonly gameId: GameId;
+        readonly roundId: RoundId;
+        readonly issueId: IssueId;
+        readonly participantId: ParticipantId;
+      }
+    | {
+        readonly type: 'AsyncRoundsRevealed';
+        readonly gameId: GameId;
+        readonly rounds: ReadonlyArray<AsyncRoundEntry>;
+      }
     | {
         readonly type: 'IssueEstimated';
         readonly gameId: GameId;

@@ -139,6 +139,8 @@ Añadida en el plan v2 (bloque 21, `ADR 0029`). Pídela en una conversación pro
 
 Cuando quede aprobada, el handoff solo trae los componentes de presentación a `design-system/`; la página y su contenido los monta Claude Code en `features/landing/`.
 
+> **Cómo se hizo al final (bloque 21, ADR 0029):** el diseño no pasó por Claude Design. Se eligió entre tres maquetas con los tokens Nocturne reales y se ajustó por comentarios. Dos cambios respecto a este encargo: la portada lleva un fondo con un degradado suave del color de acento, y «Crear sala» es un botón relleno (variante `solid`). La mesa de la cabecera es la `Table` real de la sala, no una composición aparte. **Pendiente:** los componentes nuevos (`Icon`, `FeatureCard`, `Step`, botón `solid`) aún no están en Claude Design; ver «Pendiente» en el ADR 0029.
+
 ---
 
 ## 6. Qué **no** pedirle

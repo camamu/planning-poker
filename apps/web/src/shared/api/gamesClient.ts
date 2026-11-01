@@ -6,10 +6,13 @@ import type {
   CreateGameCommandInput,
   DeckSummaryView,
   EditIssueCommandInput,
+  GameSummaryResponseView,
   GameView,
+  ImportIssuesCommandInput,
   JoinGameCommandInput,
   RemoveIssueCommandInput,
   ReorderIssuesCommandInput,
+  SendSessionSummaryResultView,
   TransferFacilitatorCommandInput,
   UpdateGameSettingsCommandInput,
 } from '@pp/contracts';
@@ -25,6 +28,10 @@ export interface JoinGameResult {
 
 export interface AddIssueResult {
   readonly issueId: string;
+}
+
+export interface ImportIssuesResult {
+  readonly issueIds: ReadonlyArray<string>;
 }
 
 export interface GameStateResult {
@@ -67,6 +74,16 @@ export function addIssue(gameId: string, input: AddIssueCommandInput): Promise<A
   });
 }
 
+export function importIssues(
+  gameId: string,
+  input: ImportIssuesCommandInput,
+): Promise<ImportIssuesResult> {
+  return requestJson(`/api/games/${gameId}/issues/batch`, {
+    method: 'POST',
+    body: JSON.stringify(input),
+  });
+}
+
 export function editIssue(
   gameId: string,
   issueId: string,
@@ -99,6 +116,21 @@ export function reorderIssues(gameId: string, input: ReorderIssuesCommandInput):
 export function getGameState(gameId: string, participantId: string): Promise<GameStateResult> {
   const query = new URLSearchParams({ participantId }).toString();
   return requestJson(`/api/games/${gameId}?${query}`);
+}
+
+export function getGameSummary(gameId: string): Promise<GameSummaryResponseView> {
+  return requestJson(`/api/games/${gameId}/summary`);
+}
+
+/** Envía el resumen a los webhooks del equipo y devuelve a cuántos llegó (ADR 0028). */
+export function sendSessionSummary(
+  gameId: string,
+  participantId: string,
+): Promise<SendSessionSummaryResultView> {
+  return requestJson(`/api/games/${gameId}/summary/webhook`, {
+    method: 'POST',
+    body: JSON.stringify({ participantId }),
+  });
 }
 
 export function updateGameSettings(

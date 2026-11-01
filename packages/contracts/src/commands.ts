@@ -46,6 +46,20 @@ export const saveCustomDeckCommandSchema = z.object({
 });
 export type SaveCustomDeckCommandInput = z.infer<typeof saveCustomDeckCommandSchema>;
 
+export const TEAM_GAMES_DEFAULT_LIMIT = 20;
+export const TEAM_GAMES_MAX_LIMIT = 100;
+
+/**
+ * REST — `GET /api/teams/:slug/games`. Paginación por fecha y no por desplazamiento (ADR 0024):
+ * `before` es el `createdAt` de la última partida de la página anterior. El token `k` lo lee la
+ * ruta aparte, como en el resto de rutas del equipo.
+ */
+export const teamGamesQuerySchema = z.object({
+  limit: z.coerce.number().int().min(1).max(TEAM_GAMES_MAX_LIMIT).default(TEAM_GAMES_DEFAULT_LIMIT),
+  before: z.iso.datetime().optional(),
+});
+export type TeamGamesQueryInput = z.infer<typeof teamGamesQuerySchema>;
+
 /** REST — `PATCH /api/games/:id/settings` */
 export const updateGameSettingsCommandSchema = z.object({
   participantId: z.string().trim().min(1),
@@ -118,25 +132,41 @@ export const claimFacilitatorCommandSchema = z.object({
 });
 export type ClaimFacilitatorCommandInput = z.infer<typeof claimFacilitatorCommandSchema>;
 
+/** `externalUrl` solo admite http(s): se pinta como enlace y no debe poder ser `javascript:`. */
+const externalUrlSchema = z
+  .string()
+  .trim()
+  .pipe(z.url({ protocol: /^https?$/ }));
+
 /** REST — `POST /api/games/:id/issues` */
 export const addIssueCommandSchema = z.object({
   title: z.string().trim().min(1),
+  description: z.string().trim().optional(),
+  externalUrl: externalUrlSchema.optional(),
 });
 export type AddIssueCommandInput = z.infer<typeof addIssueCommandSchema>;
 
 /**
+ * Tope de tareas por importación (ADR 0023): `PostgresGameRepository.save()` reescribe todas las
+ * issues de la partida, y una importación enorme alargaría cada guardado posterior.
+ */
+export const MAX_IMPORTED_ISSUES = 200;
+
+/** REST — `POST /api/games/:id/issues/batch`. Todas o ninguna: un título vacío rechaza el lote entero. */
+export const importIssuesCommandSchema = z.object({
+  issues: z.array(addIssueCommandSchema).min(1).max(MAX_IMPORTED_ISSUES),
+});
+export type ImportIssuesCommandInput = z.infer<typeof importIssuesCommandSchema>;
+
+/**
  * REST — `PATCH /api/games/:id/issues/:issueId`. `description` y `externalUrl` ausentes dejan lo
- * que había (ADR 0019). `externalUrl` solo admite http(s): se pintará como enlace (bloque 15).
+ * que había (ADR 0019).
  */
 export const editIssueCommandSchema = z.object({
   participantId: z.string().trim().min(1),
   title: z.string().trim().min(1),
   description: z.string().trim().optional(),
-  externalUrl: z
-    .string()
-    .trim()
-    .pipe(z.url({ protocol: /^https?$/ }))
-    .optional(),
+  externalUrl: externalUrlSchema.optional(),
 });
 export type EditIssueCommandInput = z.infer<typeof editIssueCommandSchema>;
 
@@ -195,8 +225,38 @@ export const wsSetEstimateCommandSchema = z.object({
   gameId: z.string().trim().min(1),
   participantId: z.string().trim().min(1),
   card: z.string().trim().min(1),
+  /** Ausente = la ronda actual de la mesa; presente = una tarea revelada en diferido (ADR 0027). */
+  issueId: z.string().trim().min(1).optional(),
 });
 export type WsSetEstimateCommandInput = z.infer<typeof wsSetEstimateCommandSchema>;
+
+/** Tope de tareas por petición en diferido: `save()` reescribe todas las rondas de la partida. */
+const MAX_ASYNC_ISSUES_PER_COMMAND = 200;
+
+/** WS cliente→servidor — `open_async_rounds` (abre varias tareas pendientes para votar en diferido) */
+export const wsOpenAsyncRoundsCommandSchema = z.object({
+  gameId: z.string().trim().min(1),
+  participantId: z.string().trim().min(1),
+  issueIds: z.array(z.string().trim().min(1)).min(1).max(MAX_ASYNC_ISSUES_PER_COMMAND),
+});
+export type WsOpenAsyncRoundsCommandInput = z.infer<typeof wsOpenAsyncRoundsCommandSchema>;
+
+/** WS cliente→servidor — `async_vote` */
+export const wsAsyncVoteCommandSchema = z.object({
+  gameId: z.string().trim().min(1),
+  participantId: z.string().trim().min(1),
+  issueId: z.string().trim().min(1),
+  card: z.string().trim().min(1),
+});
+export type WsAsyncVoteCommandInput = z.infer<typeof wsAsyncVoteCommandSchema>;
+
+/** WS cliente→servidor — `reveal_async`. `issueIds` ausente = todas las rondas con votos. */
+export const wsRevealAsyncCommandSchema = z.object({
+  gameId: z.string().trim().min(1),
+  participantId: z.string().trim().min(1),
+  issueIds: z.array(z.string().trim().min(1)).min(1).max(MAX_ASYNC_ISSUES_PER_COMMAND).optional(),
+});
+export type WsRevealAsyncCommandInput = z.infer<typeof wsRevealAsyncCommandSchema>;
 
 /**
  * WS cliente→servidor — `emoji_thrown`. No pasa por ningún caso de uso (docs/adr/

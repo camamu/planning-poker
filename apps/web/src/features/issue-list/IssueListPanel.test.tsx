@@ -1,6 +1,7 @@
 import type { IssueView } from '@pp/contracts';
-import { cleanup, fireEvent, render, screen } from '@testing-library/react';
+import { cleanup, fireEvent, render, screen, waitFor } from '@testing-library/react';
 import { afterEach, describe, expect, it, vi } from 'vitest';
+import { asyncRoundView, asyncVotingProps } from '../async-voting/asyncVotingFixtures.js';
 import { IssueListPanel } from './IssueListPanel.js';
 import type { IssueListPanelProps } from './IssueListPanel.js';
 
@@ -11,6 +12,8 @@ const issue = (
 ): IssueView => ({
   id,
   title: `Tarea ${id}`,
+  description: null,
+  externalUrl: null,
   status,
   finalEstimate,
 });
@@ -29,10 +32,12 @@ function renderPanel(overrides: Partial<IssueListPanelProps> = {}): IssueListPan
     currentIssueId: 'mesa',
     canStartRound: false,
     onAddIssue: vi.fn(),
+    onImportIssues: vi.fn(() => Promise.resolve()),
     onRenameIssue: vi.fn(),
     onDeleteIssue: vi.fn(),
     onReorderIssues: vi.fn(),
     onStartRound: vi.fn(),
+    asyncVoting: asyncVotingProps(),
     onClose: vi.fn(),
     ...overrides,
   };
@@ -190,5 +195,115 @@ describe('IssueListPanel: gestión de tareas', () => {
     fireEvent.click(screen.getByText('Tarea p2'));
 
     expect(props.onStartRound).toHaveBeenCalledWith('p2');
+  });
+});
+
+describe('IssueListPanel: importar tareas y enlaces', () => {
+  afterEach(cleanup);
+
+  it('abre el diálogo de importación y le pasa el lote a onImportIssues', async () => {
+    const props = renderPanel();
+
+    fireEvent.click(screen.getByRole('button', { name: 'Importar tareas…' }));
+    fireEvent.change(screen.getByLabelText('Tareas'), { target: { value: 'Una\nOtra' } });
+    fireEvent.click(screen.getByRole('button', { name: 'Importar 2 tareas' }));
+
+    await waitFor(() => {
+      expect(props.onImportIssues).toHaveBeenCalledWith([{ title: 'Una' }, { title: 'Otra' }]);
+    });
+    await waitFor(() => {
+      expect(screen.queryByRole('dialog')).not.toBeInTheDocument();
+    });
+  });
+
+  it('muestra un enlace solo en las tareas con externalUrl', () => {
+    renderPanel({
+      issues: [
+        { ...issue('p1', 'PENDING'), externalUrl: 'https://acme.atlassian.net/browse/ABC-1' },
+        issue('p2', 'PENDING'),
+      ],
+      currentIssueId: null,
+    });
+
+    const link = screen.getByRole('link', { name: 'Abrir «Tarea p1» en una pestaña nueva' });
+    expect(link).toHaveAttribute('href', 'https://acme.atlassian.net/browse/ABC-1');
+    expect(link).toHaveAttribute('target', '_blank');
+    expect(link).toHaveAttribute('rel', 'noopener noreferrer');
+    expect(screen.getAllByRole('link')).toHaveLength(1);
+  });
+
+  it('no pinta como enlace un externalUrl que no sea http(s)', () => {
+    renderPanel({
+      issues: [{ ...issue('p1', 'PENDING'), externalUrl: 'javascript:alert(1)' }],
+      currentIssueId: null,
+    });
+
+    expect(screen.queryByRole('link')).not.toBeInTheDocument();
+  });
+});
+
+describe('IssueListPanel: votación en diferido', () => {
+  afterEach(() => {
+    cleanup();
+    vi.restoreAllMocks();
+  });
+
+  function select(id: string): void {
+    fireEvent.click(
+      screen.getByRole('checkbox', { name: `Seleccionar «Tarea ${id}» para votar en diferido` }),
+    );
+  }
+
+  it('no ofrece abrir en diferido mientras no haya tareas marcadas', () => {
+    renderPanel();
+
+    expect(
+      screen.queryByRole('button', { name: /Abrir para votar en diferido/ }),
+    ).not.toBeInTheDocument();
+  });
+
+  it('abre en diferido las tareas marcadas, en el orden de la cola, y desmarca después', () => {
+    const props = renderPanel();
+
+    select('p3');
+    select('p1');
+    fireEvent.click(screen.getByRole('button', { name: 'Abrir para votar en diferido (2)' }));
+
+    expect(props.asyncVoting.onOpen).toHaveBeenCalledWith(['p1', 'p3']);
+    expect(
+      screen.queryByRole('button', { name: /Abrir para votar en diferido/ }),
+    ).not.toBeInTheDocument();
+    expect(screen.getByRole('checkbox', { name: /«Tarea p1»/ })).not.toBeChecked();
+  });
+
+  it('solo se pueden marcar las tareas por estimar, no la de la mesa ni las ya estimadas', () => {
+    renderPanel();
+
+    expect(screen.getAllByRole('checkbox')).toHaveLength(3);
+    expect(screen.queryByRole('checkbox', { name: /«Tarea mesa»/ })).not.toBeInTheDocument();
+    expect(screen.queryByRole('checkbox', { name: /«Tarea est»/ })).not.toBeInTheDocument();
+  });
+
+  it('las tareas con una ronda en diferido salen de «Por estimar» y aparecen en su sección', () => {
+    renderPanel({
+      asyncVoting: asyncVotingProps({
+        rounds: [asyncRoundView('p2', { voterIds: ['p1'] })],
+      }),
+    });
+
+    expect(screen.getByText('Votando en diferido')).toBeInTheDocument();
+    expect(screen.getByText('1 de 3 han votado')).toBeInTheDocument();
+    expect(screen.queryByRole('checkbox', { name: /«Tarea p2»/ })).not.toBeInTheDocument();
+    expect(screen.getAllByRole('checkbox')).toHaveLength(2);
+  });
+
+  it('reordenar las tareas por estimar deja en su sitio las que están en diferido', () => {
+    const props = renderPanel({
+      asyncVoting: asyncVotingProps({ rounds: [asyncRoundView('p2')] }),
+    });
+
+    fireEvent.click(screen.getByRole('button', { name: 'Bajar «Tarea p1»' }));
+
+    expect(props.onReorderIssues).toHaveBeenCalledWith(['est', 'p3', 'mesa', 'p2', 'p1']);
   });
 });

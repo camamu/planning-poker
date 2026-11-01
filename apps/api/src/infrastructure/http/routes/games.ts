@@ -5,13 +5,16 @@ import {
   claimFacilitatorCommandSchema,
   createGameCommandSchema,
   editIssueCommandSchema,
+  importIssuesCommandSchema,
   joinGameCommandSchema,
   removeIssueCommandSchema,
   removeParticipantCommandSchema,
   reorderIssuesCommandSchema,
+  sendSessionSummaryCommandSchema,
   transferFacilitatorCommandSchema,
   updateGameSettingsCommandSchema,
 } from '@pp/contracts';
+import type { AddIssueCommandInput } from '@pp/contracts';
 import type { FastifyInstance } from 'fastify';
 import type { AddIssue } from '../../../application/use-cases/AddIssue.js';
 import type { ChangeGameDeck } from '../../../application/use-cases/ChangeGameDeck.js';
@@ -20,11 +23,14 @@ import type { ClaimFacilitator } from '../../../application/use-cases/ClaimFacil
 import type { CreateGame } from '../../../application/use-cases/CreateGame.js';
 import type { EditIssue } from '../../../application/use-cases/EditIssue.js';
 import type { GetGameState } from '../../../application/use-cases/GetGameState.js';
+import type { GetGameSummary } from '../../../application/use-cases/GetGameSummary.js';
+import type { ImportIssues } from '../../../application/use-cases/ImportIssues.js';
 import type { JoinGame } from '../../../application/use-cases/JoinGame.js';
 import type { ListGameDecks } from '../../../application/use-cases/ListGameDecks.js';
 import type { RemoveIssue } from '../../../application/use-cases/RemoveIssue.js';
 import type { RemoveParticipant } from '../../../application/use-cases/RemoveParticipant.js';
 import type { ReorderIssues } from '../../../application/use-cases/ReorderIssues.js';
+import type { SendSessionSummary } from '../../../application/use-cases/SendSessionSummary.js';
 import type { TransferFacilitator } from '../../../application/use-cases/TransferFacilitator.js';
 import type { UpdateGameSettings } from '../../../application/use-cases/UpdateGameSettings.js';
 import { GameId } from '../../../domain/game/ids.js';
@@ -38,10 +44,13 @@ export interface GameRoutesDependencies {
   readonly transferFacilitator: TransferFacilitator;
   readonly claimFacilitator: ClaimFacilitator;
   readonly addIssue: AddIssue;
+  readonly importIssues: ImportIssues;
   readonly editIssue: EditIssue;
   readonly removeIssue: RemoveIssue;
   readonly reorderIssues: ReorderIssues;
   readonly getGameState: GetGameState;
+  readonly getGameSummary: GetGameSummary;
+  readonly sendSessionSummary: SendSessionSummary;
   readonly updateGameSettings: UpdateGameSettings;
   readonly changeGameDeck: ChangeGameDeck;
   readonly listGameDecks: ListGameDecks;
@@ -63,6 +72,14 @@ interface IssueParams extends GameIdParams {
 
 interface ViewerQuery {
   readonly participantId?: string;
+}
+
+/** `exactOptionalPropertyTypes`: un `undefined` explícito no es lo mismo que la clave ausente. */
+function issueDetails(entry: AddIssueCommandInput): { description?: string; externalUrl?: string } {
+  return {
+    ...(entry.description !== undefined ? { description: entry.description } : {}),
+    ...(entry.externalUrl !== undefined ? { externalUrl: entry.externalUrl } : {}),
+  };
 }
 
 export function registerGameRoutes(app: FastifyInstance, deps: GameRoutesDependencies): void {
@@ -113,6 +130,29 @@ export function registerGameRoutes(app: FastifyInstance, deps: GameRoutesDepende
       }
     },
   );
+
+  app.get<{ Params: GameIdParams }>('/api/games/:id/summary', async (request, reply) => {
+    try {
+      await reply.send(await deps.getGameSummary.execute({ gameId: request.params.id }));
+    } catch (error) {
+      sendError(reply, error);
+    }
+  });
+
+  // Envía el resumen a los webhooks del equipo y espera el resultado (ADR 0028).
+  app.post<{ Params: GameIdParams }>('/api/games/:id/summary/webhook', async (request, reply) => {
+    try {
+      const command = sendSessionSummaryCommandSchema.parse(request.body);
+      await reply.send(
+        await deps.sendSessionSummary.execute({
+          gameId: request.params.id,
+          participantId: command.participantId,
+        }),
+      );
+    } catch (error) {
+      sendError(reply, error);
+    }
+  });
 
   app.post<{ Params: GameIdParams }>('/api/games/:id/participants', async (request, reply) => {
     try {
@@ -178,8 +218,22 @@ export function registerGameRoutes(app: FastifyInstance, deps: GameRoutesDepende
       const issueId = await deps.addIssue.execute({
         gameId: request.params.id,
         title: command.title,
+        ...issueDetails(command),
       });
       await reply.code(201).send({ issueId });
+    } catch (error) {
+      sendError(reply, error);
+    }
+  });
+
+  app.post<{ Params: GameIdParams }>('/api/games/:id/issues/batch', async (request, reply) => {
+    try {
+      const command = importIssuesCommandSchema.parse(request.body);
+      const issueIds = await deps.importIssues.execute({
+        gameId: request.params.id,
+        issues: command.issues.map((entry) => ({ title: entry.title, ...issueDetails(entry) })),
+      });
+      await reply.code(201).send({ issueIds });
     } catch (error) {
       sendError(reply, error);
     }

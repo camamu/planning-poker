@@ -8,6 +8,8 @@ import { loadGame } from './loadGame.js';
 export interface AddIssueCommand {
   readonly gameId: string;
   readonly title: string;
+  readonly description?: string;
+  readonly externalUrl?: string;
 }
 
 export class AddIssue {
@@ -22,7 +24,10 @@ export class AddIssue {
     const game = await loadGame(this.games, GameId.of(command.gameId));
     const issueId = IssueId.of(this.ids.generate());
 
-    game.addIssue(issueId, command.title, this.clock.now());
+    game.addIssue(issueId, command.title, this.clock.now(), {
+      description: command.description,
+      externalUrl: command.externalUrl,
+    });
 
     await this.games.save(game);
     await this.events.publishAll(game.pullDomainEvents());

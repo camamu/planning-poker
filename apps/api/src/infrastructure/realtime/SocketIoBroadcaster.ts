@@ -12,6 +12,11 @@ export class SocketIoBroadcaster implements RealtimeBroadcaster {
     return Promise.resolve();
   }
 
+  notifyGame(gameId: GameId, event: EphemeralEvent): Promise<void> {
+    this.io.to(gameRoom(gameId)).emit(event.type, event);
+    return Promise.resolve();
+  }
+
   closeGame(gameId: GameId): Promise<void> {
     const room = gameRoom(gameId);
     const event: EphemeralEvent = { type: 'game_closed' };

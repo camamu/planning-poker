@@ -84,6 +84,8 @@ jobs:
         env:
           VITE_API_URL: https://${{ vars.API_HOST }}
           VITE_WS_URL: https://${{ vars.API_HOST }}
+          # Opcional: sin `WEB_HOST`, la imagen de Open Graph queda con URL relativa (ADR 0029).
+          VITE_PUBLIC_URL: ${{ vars.WEB_HOST && format('https://{0}', vars.WEB_HOST) || '' }}
         run: pnpm --filter @pp/web build
       # docs/adr/0011-cloudflare-workers-en-vez-de-pages.md: el wizard de Pages en cuentas nuevas
       # crea un Worker con assets, no un proyecto Pages clásico — se despliega con `wrangler deploy`

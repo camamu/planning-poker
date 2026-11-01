@@ -1,7 +1,9 @@
 import type { GameView } from '@pp/contracts';
 import type { RenderHookResult } from '@testing-library/react';
-import { act, renderHook } from '@testing-library/react';
-import { describe, expect, it, vi } from 'vitest';
+import { act, cleanup, renderHook } from '@testing-library/react';
+import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
+import { rememberedGames } from '../../../shared/games/rememberedGames.js';
+import { asyncRoundView } from '../../async-voting/asyncVotingFixtures.js';
 import { useGameStore } from '../../../shared/store/gameStore.js';
 import type { UseGameTableResult } from './useGameTable.js';
 import { useGameTable } from './useGameTable.js';
@@ -46,6 +48,7 @@ const baseGame: GameView = {
     dealerId: null,
     timerDeadline: null,
   },
+  asyncRounds: [],
 };
 
 /** `connect()` corre en el efecto de montaje y limpia el estado, así que se siembra después. */
@@ -183,6 +186,31 @@ describe('useGameTable', () => {
     expect(result.current.errorMessage).toBe('No puedes quitar a otro.');
   });
 
+  describe('partidas recientes', () => {
+    // Sin esto siguen montados los hooks de los tests anteriores y también recuerdan su partida.
+    beforeEach(() => {
+      cleanup();
+      localStorage.clear();
+    });
+
+    it('recuerda la partida al entrar en la sala para volver a ella desde la portada', () => {
+      renderWith('p1', null);
+
+      expect(rememberedGames().map((game) => [game.id, game.name])).toEqual([
+        ['game-1', 'Partida'],
+      ]);
+    });
+
+    it('no recuerda la partida mientras el estado cargado es el de otra sala', () => {
+      renderHook(() => useGameTable('game-2', 'p1'));
+      act(() => {
+        useGameStore.setState({ game: baseGame });
+      });
+
+      expect(rememberedGames()).toEqual([]);
+    });
+  });
+
   describe('traspaso de facilitador', () => {
     function withFacilitatorOnline(online: boolean, status: 'connected' | 'disconnected'): void {
       act(() => {
@@ -296,6 +324,96 @@ describe('useGameTable', () => {
       expect(removeParticipantRequest).not.toHaveBeenCalled();
       expect(result.current.hasLeft).toBe(false);
       expect(result.current.errorMessage).toBe('No existe el participante p9.');
+    });
+  });
+
+  describe('votación en diferido', () => {
+    // Cada test monta más de un hook: sin desmontarlos, React sigue trabajando tras cerrar jsdom.
+    afterEach(() => {
+      cleanup();
+    });
+
+    function withGame(overrides: Partial<GameView>, viewerId = 'p1'): UseGameTableResult {
+      const { result } = renderHook(() => useGameTable('game-1', viewerId));
+      act(() => {
+        useGameStore.setState({ game: { ...baseGame, ...overrides }, asyncSelected: {} });
+      });
+      return result.current;
+    }
+
+    const dealerSettings = { ...baseGame.settings, whoCanReveal: 'DEALER' } as const;
+
+    it('con el reparto «dealer» y sin ronda en la mesa, solo el facilitador puede revelar en diferido', () => {
+      const overrides = { settings: dealerSettings, currentRound: null };
+
+      expect(withGame(overrides, 'p1').canRevealAsync).toBe(true);
+      expect(withGame(overrides, 'p2').canRevealAsync).toBe(false);
+    });
+
+    it('con el reparto «dealer» y una ronda en la mesa, sigue mandando el dealer', () => {
+      const round = baseGame.currentRound;
+      if (!round) throw new Error('el fixture no tiene ronda');
+      const overrides = { settings: dealerSettings, currentRound: { ...round, dealerId: 'p2' } };
+
+      expect(withGame(overrides, 'p2').canRevealAsync).toBe(true);
+      expect(withGame(overrides, 'p1').canRevealAsync).toBe(false);
+    });
+
+    it('con otro reparto, revelar en diferido es lo mismo que revelar en la mesa', () => {
+      const table = withGame({ currentRound: null }, 'p2');
+
+      expect(table.canRevealAsync).toBe(true);
+      expect(table.canReveal).toBe(true);
+    });
+
+    it('cuenta las rondas abiertas en las que el viewer todavía no ha votado', () => {
+      const issues = ['a', 'b', 'c'].map((id) => ({
+        id,
+        title: id,
+        description: null,
+        externalUrl: null,
+        status: 'PENDING' as const,
+        finalEstimate: null,
+      }));
+      const overrides = {
+        issues,
+        asyncRounds: [
+          asyncRoundView('a', { voterIds: ['p1'] }),
+          asyncRoundView('b'),
+          asyncRoundView('c', { status: 'REVEALED' }),
+        ],
+      };
+
+      expect(withGame(overrides, 'p1').asyncToVote).toBe(1);
+      expect(withGame(overrides, 'p2').asyncToVote).toBe(2);
+    });
+
+    it('un espectador no tiene nada por votar', () => {
+      const overrides = {
+        issues: [
+          {
+            id: 'a',
+            title: 'a',
+            description: null,
+            externalUrl: null,
+            status: 'PENDING' as const,
+            finalEstimate: null,
+          },
+        ],
+        asyncRounds: [asyncRoundView('a')],
+        participants: [
+          {
+            id: 'p1',
+            displayName: 'Yo',
+            role: 'SPECTATOR' as const,
+            isFacilitator: true,
+            online: true,
+            hat: null,
+          },
+        ],
+      };
+
+      expect(withGame(overrides, 'p1').asyncToVote).toBe(0);
     });
   });
 });

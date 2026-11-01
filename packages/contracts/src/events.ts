@@ -6,6 +6,7 @@ import type {
   ParticipantRoleView,
   RoundResultView,
 } from './views.js';
+import type { WebhookEventName } from './webhooks.js';
 
 /**
  * Todos los eventos servidor→cliente llevan `version`, el contador incremental de la
@@ -37,6 +38,11 @@ export type ServerEvent =
       readonly nextId: string;
     })
   | (ServerEventBase & { readonly type: 'issue_added'; readonly issueId: string })
+  // Un solo evento para toda la importación (ADR 0023): el cliente hace un único `resync`.
+  | (ServerEventBase & {
+      readonly type: 'issues_imported';
+      readonly issueIds: ReadonlyArray<string>;
+    })
   | (ServerEventBase & { readonly type: 'issue_edited'; readonly issue: IssueView })
   // `dealerId` acompaña a los dos eventos que mueven la posición de la tarea actual en la cola
   // (Game.currentDealer()): sin él los clientes pintarían un dealer que ya no es el del servidor.
@@ -72,6 +78,22 @@ export type ServerEvent =
       readonly roundId: string;
       readonly votes: ReadonlyArray<{ readonly participantId: string; readonly card: string }>;
       readonly result: RoundResultView;
+    })
+  // Los dos de apertura y revelado en lote piden `resync`: el estado de cada ronda (quién ha votado,
+  // y las cartas tras revelar) es por viewer, y un parche común no puede llevarlo (ADR 0027).
+  | (ServerEventBase & {
+      readonly type: 'async_rounds_opened';
+      readonly issueIds: ReadonlyArray<string>;
+    })
+  // Invariante 7: nunca lleva `card`, solo la señal de que ese participante ya votó esa tarea.
+  | (ServerEventBase & {
+      readonly type: 'async_vote_cast';
+      readonly issueId: string;
+      readonly participantId: string;
+    })
+  | (ServerEventBase & {
+      readonly type: 'async_rounds_revealed';
+      readonly issueIds: ReadonlyArray<string>;
     })
   | (ServerEventBase & {
       readonly type: 'issue_estimated';
@@ -118,4 +140,10 @@ export type EphemeralEvent =
       readonly remainingMs: number;
     }
   // La partida se ha borrado desde el panel de gestión: no hay estado que sincronizar después.
-  | { readonly type: 'game_closed' };
+  | { readonly type: 'game_closed' }
+  // Un envío agotó los reintentos (ADR 0028). Solo avisa: nunca deshace lo que lo provocó.
+  | {
+      readonly type: 'webhook_failed';
+      readonly event: WebhookEventName;
+      readonly issueId: string | null;
+    };

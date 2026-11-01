@@ -5,15 +5,24 @@ export interface ModalProps {
   readonly title: string;
   readonly children: ReactNode;
   readonly actions?: ReactNode;
+  /** `wide` para contenido que necesita más de 440 px, como una tabla de vista previa. */
+  readonly size?: 'default' | 'wide';
   readonly onClose?: () => void;
 }
 
-export function Modal({ open, title, children, actions, onClose }: ModalProps): JSX.Element | null {
+export function Modal({
+  open,
+  title,
+  children,
+  actions,
+  size = 'default',
+  onClose,
+}: ModalProps): JSX.Element | null {
   if (!open) return null;
   return (
     <div className="dialog-backdrop" onClick={onClose} role="presentation">
       <div
-        className="dialog"
+        className={size === 'wide' ? 'dialog dialog-wide' : 'dialog'}
         role="dialog"
         aria-modal="true"
         aria-labelledby="pp-modal-title"

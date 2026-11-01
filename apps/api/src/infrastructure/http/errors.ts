@@ -6,12 +6,14 @@ import { InvalidAdminCredentialsError } from '../../application/use-cases/Invali
 import { ParticipantHasLeftError } from '../../application/use-cases/ParticipantHasLeftError.js';
 import { TeamNotFoundError } from '../../application/use-cases/TeamNotFoundError.js';
 import { DomainError } from '../../domain/shared/DomainError.js';
+import { WebhookNotFoundError } from '../../domain/team/Team.js';
 
 const NOT_FOUND_ERRORS = [
   GameNotFoundError,
   TeamNotFoundError,
   DeckNotFoundError,
   ParticipantHasLeftError,
+  WebhookNotFoundError,
 ];
 
 /**

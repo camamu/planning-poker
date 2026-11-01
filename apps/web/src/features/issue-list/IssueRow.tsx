@@ -1,3 +1,4 @@
+import { isHttpUrl } from '@pp/contracts';
 import type { IssueView } from '@pp/contracts';
 import { useRef, useState } from 'react';
 import type { DragEvent, JSX, SubmitEvent } from 'react';
@@ -17,6 +18,12 @@ export interface IssueRowReorder {
   readonly onDragEnd: () => void;
 }
 
+/** Marca la tarea para abrirla en diferido junto con otras (ADR 0027). */
+export interface IssueRowSelect {
+  readonly checked: boolean;
+  readonly onChange: (checked: boolean) => void;
+}
+
 export interface IssueRowProps {
   readonly issue: IssueView;
   readonly accent?: boolean;
@@ -26,6 +33,7 @@ export interface IssueRowProps {
   /** Ausente si la tarea ya tiene ronda: solo se borra lo que nunca se ha votado (ADR 0019). */
   readonly onDelete?: (() => void) | undefined;
   readonly reorder?: IssueRowReorder | undefined;
+  readonly select?: IssueRowSelect | undefined;
 }
 
 export function IssueRow({
@@ -36,6 +44,7 @@ export function IssueRow({
   onRename,
   onDelete,
   reorder,
+  select,
 }: IssueRowProps): JSX.Element {
   const rowRef = useRef<HTMLDivElement>(null);
   const [menuOpen, setMenuOpen] = useState(false);
@@ -92,6 +101,18 @@ export function IssueRow({
           opacity: reorder?.isDragging ? 0.4 : muted ? 0.72 : 1,
         }}
       >
+        {select ? (
+          <input
+            type="checkbox"
+            className="ml-1 flex-none"
+            checked={select.checked}
+            aria-label={`Seleccionar «${issue.title}» para votar en diferido`}
+            onChange={(event) => {
+              select.onChange(event.target.checked);
+            }}
+          />
+        ) : null}
+
         {reorder ? (
           <span
             draggable
@@ -138,6 +159,19 @@ export function IssueRow({
             {issue.title}
           </span>
         )}
+
+        {!editing && issue.externalUrl !== null && isHttpUrl(issue.externalUrl) ? (
+          <a
+            href={issue.externalUrl}
+            target="_blank"
+            rel="noopener noreferrer"
+            className="btn btn-ghost"
+            title={issue.externalUrl}
+            aria-label={`Abrir «${issue.title}» en una pestaña nueva`}
+          >
+            ↗
+          </a>
+        ) : null}
 
         {issue.finalEstimate !== null ? (
           <span

@@ -8,6 +8,9 @@ import { GameName } from '../../../src/domain/game/GameName.js';
 import { GameSettings } from '../../../src/domain/game/GameSettings.js';
 import { Hat } from '../../../src/domain/game/Hat.js';
 import { GameId, IssueId, ParticipantId, RoundId } from '../../../src/domain/game/ids.js';
+import { Issue } from '../../../src/domain/game/Issue.js';
+import { Participant } from '../../../src/domain/game/Participant.js';
+import { Round } from '../../../src/domain/game/Round.js';
 
 const NOW = new Date('2026-08-07T10:00:00Z');
 
@@ -79,6 +82,32 @@ export function defineGameRepositoryContractTests(
 
       const reloaded = await repository.findById(GameId.of('game-3'));
       expect(reloaded?.allIssues().map((issue) => issue.title)).toEqual(['Primero', 'Segundo']);
+    });
+
+    it('conserva la descripción y el enlace de las tareas importadas, y que otras no los tienen, tras recargar', async () => {
+      const repository = await makeRepository();
+      const { game } = newGame('game-import');
+      game.importIssues(
+        [
+          {
+            id: IssueId.of('issue-1'),
+            title: 'ABC-123',
+            description: 'Con OAuth',
+            externalUrl: 'https://jira.test/browse/ABC-123',
+          },
+          { id: IssueId.of('issue-2'), title: 'Sin extras' },
+        ],
+        NOW,
+      );
+      await repository.save(game);
+
+      const reloaded = await repository.findById(GameId.of('game-import'));
+      const withLink = reloaded?.findIssue(IssueId.of('issue-1'));
+      expect(withLink?.description).toBe('Con OAuth');
+      expect(withLink?.externalUrl).toBe('https://jira.test/browse/ABC-123');
+      const plain = reloaded?.findIssue(IssueId.of('issue-2'));
+      expect(plain?.description).toBeUndefined();
+      expect(plain?.externalUrl).toBeUndefined();
     });
 
     it('conserva el orden y el título de las tareas tras reordenarlas, editarlas y borrar una', async () => {
@@ -349,6 +378,135 @@ export function defineGameRepositoryContractTests(
         new Date(NOW.getTime() + 45_000),
       );
     });
+    it('conserva cuándo se abrió cada ronda y cuándo se estimó cada tarea tras recargar', async () => {
+      const repository = await makeRepository();
+      const { game, facilitatorId } = newGame('game-times');
+      const openedAt = new Date('2026-08-07T10:01:00Z');
+      const estimatedAt = new Date('2026-08-07T10:04:30Z');
+      game.addIssue(IssueId.of('issue-1'), 'Implementar login', NOW);
+      game.startVotingRound(RoundId.of('round-1'), IssueId.of('issue-1'), openedAt);
+      game.castVote(facilitatorId, CardValue.of('8'), openedAt);
+      game.reveal(facilitatorId, openedAt);
+      game.setFinalEstimate(CardValue.of('8'), facilitatorId, estimatedAt);
+      await repository.save(game);
+
+      const reloaded = await repository.findById(GameId.of('game-times'));
+
+      expect(reloaded?.currentRound()?.currentOpenedAt()).toEqual(openedAt);
+      expect(reloaded?.findIssue(IssueId.of('issue-1'))?.currentEstimatedAt()).toEqual(estimatedAt);
+    });
+
+    it('recarga con tiempo desconocido las rondas y tareas guardadas sin él', async () => {
+      const repository = await makeRepository();
+      const facilitatorId = ParticipantId.of('game-old-facilitator');
+      const issueId = IssueId.of('issue-1');
+      await repository.save(
+        Game.reconstitute({
+          id: GameId.of('game-old'),
+          name: GameName.of('Sprint 1'),
+          deck: Deck.fibonacci(),
+          settings: GameSettings.of({ autoReveal: false, whoCanReveal: 'FACILITATOR_ONLY' }),
+          participants: [Participant.join(facilitatorId, DisplayName.of('Ada'), 'VOTER', true, 0)],
+          issues: [
+            Issue.reconstitute(
+              issueId,
+              'Antigua',
+              undefined,
+              undefined,
+              'ESTIMATED',
+              CardValue.of('5'),
+              null,
+            ),
+          ],
+          rounds: [
+            Round.reconstitute(
+              RoundId.of('round-1'),
+              issueId,
+              1,
+              'CLOSED',
+              [],
+              NOW,
+              null,
+              null,
+              'LIVE',
+            ),
+          ],
+        }),
+      );
+
+      const reloaded = await repository.findById(GameId.of('game-old'));
+
+      expect(reloaded?.currentRound()?.currentOpenedAt()).toBeNull();
+      expect(reloaded?.findIssue(issueId)?.currentEstimatedAt()).toBeNull();
+    });
+
+    it('conserva el modo de cada ronda y los votos de las rondas en diferido tras recargar', async () => {
+      const repository = await makeRepository();
+      const { game, facilitatorId } = newGame('game-async');
+      game.addIssue(IssueId.of('issue-1'), 'En la mesa', NOW);
+      game.addIssue(IssueId.of('issue-2'), 'En diferido', NOW);
+      game.startVotingRound(RoundId.of('round-live'), IssueId.of('issue-1'), NOW);
+      game.openAsyncRounds(
+        [{ roundId: RoundId.of('round-async'), issueId: IssueId.of('issue-2') }],
+        facilitatorId,
+        NOW,
+      );
+      game.castAsyncVote(facilitatorId, IssueId.of('issue-2'), CardValue.of('8'), NOW);
+      await repository.save(game);
+
+      const reloaded = await repository.findById(GameId.of('game-async'));
+
+      const [asyncRound] = reloaded?.roundsOf(IssueId.of('issue-2')) ?? [];
+      expect(asyncRound?.mode).toBe('ASYNC');
+      expect(asyncRound?.isOpen()).toBe(true);
+      expect(asyncRound?.hasSameVote(facilitatorId, CardValue.of('8'))).toBe(true);
+      expect(reloaded?.currentRound()?.mode).toBe('LIVE');
+      expect(reloaded?.activeAsyncRounds().map((round) => round.id.value)).toEqual(['round-async']);
+    });
+
+    it('conserva el orden de las rondas en vivo y en diferido intercaladas', async () => {
+      const repository = await makeRepository();
+      const { game, facilitatorId } = newGame('game-order');
+      game.addIssue(IssueId.of('issue-1'), 'Primera', NOW);
+      game.addIssue(IssueId.of('issue-2'), 'Segunda', NOW);
+      game.startVotingRound(RoundId.of('round-live'), IssueId.of('issue-1'), NOW);
+      game.openAsyncRounds(
+        [{ roundId: RoundId.of('round-async'), issueId: IssueId.of('issue-2') }],
+        facilitatorId,
+        NOW,
+      );
+      await repository.save(game);
+
+      const reloaded = await repository.findById(GameId.of('game-order'));
+
+      expect(reloaded?.allRounds().map((round) => round.id.value)).toEqual([
+        'round-live',
+        'round-async',
+      ]);
+      expect(reloaded?.currentRound()?.id.value).toBe('round-live');
+    });
+
+    it('al llevar a la mesa una tarea en diferido y guardar, la ronda asíncrona deja de existir', async () => {
+      const repository = await makeRepository();
+      const { game, facilitatorId } = newGame('game-absorbed');
+      game.addIssue(IssueId.of('issue-1'), 'Login', NOW);
+      game.openAsyncRounds(
+        [{ roundId: RoundId.of('round-async'), issueId: IssueId.of('issue-1') }],
+        facilitatorId,
+        NOW,
+      );
+      game.castAsyncVote(facilitatorId, IssueId.of('issue-1'), CardValue.of('5'), NOW);
+      await repository.save(game);
+
+      const stored = await repository.findById(GameId.of('game-absorbed'));
+      stored?.startVotingRound(RoundId.of('round-live'), IssueId.of('issue-1'), NOW);
+      if (stored) await repository.save(stored);
+      const reloaded = await repository.findById(GameId.of('game-absorbed'));
+
+      expect(reloaded?.allRounds().map((round) => round.id.value)).toEqual(['round-live']);
+      expect(reloaded?.currentRound()?.hasSameVote(facilitatorId, CardValue.of('5'))).toBe(true);
+    });
+
     it('listSummaries() cuenta participantes, issues e issues estimadas de cada partida', async () => {
       const repository = await makeRepository();
       const { game, facilitatorId } = newGame('game-summary');

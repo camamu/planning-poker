@@ -1,4 +1,4 @@
-import type { ServerEvent } from '@pp/contracts';
+import type { EphemeralEvent, ServerEvent } from '@pp/contracts';
 import type { GameId } from '../../domain/game/ids.js';
 
 /**
@@ -8,6 +8,11 @@ import type { GameId } from '../../domain/game/ids.js';
  */
 export interface RealtimeBroadcaster {
   broadcastToGame(gameId: GameId, event: ServerEvent): Promise<void>;
+  /**
+   * Un aviso que no es un hecho de la partida: sin `version`, y perderlo no deja a nadie
+   * desincronizado (p. ej. `webhook_failed`).
+   */
+  notifyGame(gameId: GameId, event: EphemeralEvent): Promise<void>;
   /** Avisa a quien siga en la mesa de que la partida ya no existe y vacía la room. */
   closeGame(gameId: GameId): Promise<void>;
 }

@@ -7,13 +7,16 @@ export class InMemoryGameRepository implements GameRepository {
   // Equivale al `default now()` de `games.created_at`: el agregado no conoce su fecha de creación.
   private readonly createdAt = new Map<string, Date>();
 
+  /** `now` es inyectable para que los tests de contrato controlen la fecha de creación. */
+  constructor(private readonly now: () => Date = () => new Date()) {}
+
   findById(id: GameId): Promise<Game | undefined> {
     return Promise.resolve(this.games.get(id.value));
   }
 
   save(game: Game): Promise<void> {
     this.games.set(game.id.value, game);
-    if (!this.createdAt.has(game.id.value)) this.createdAt.set(game.id.value, new Date());
+    if (!this.createdAt.has(game.id.value)) this.createdAt.set(game.id.value, this.now());
     return Promise.resolve();
   }
 

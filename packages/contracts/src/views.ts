@@ -20,6 +20,10 @@ export interface ParticipantView {
 export interface IssueView {
   readonly id: string;
   readonly title: string;
+  /** `null` = sin descripción (ausente o vacía en el dominio). */
+  readonly description: string | null;
+  /** Siempre http(s): se valida en el borde y se pinta como enlace. */
+  readonly externalUrl: string | null;
   readonly status: IssueStatusView;
   readonly finalEstimate: string | null;
 }
@@ -69,6 +73,24 @@ export interface RoundView {
   readonly timerDeadline: string | null;
 }
 
+/**
+ * Una ronda en diferido que sigue viva para la sala: abierta, o revelada y pendiente de estimar
+ * (ADR 0027). Invariante 7: mientras está abierta solo lleva quién ha votado y la carta del propio
+ * viewer; `votes` y `result` llegan únicamente cuando la ronda está revelada.
+ */
+export interface AsyncRoundView {
+  readonly roundId: string;
+  readonly issueId: string;
+  readonly status: RoundStatusView;
+  /** Quién ha votado, sin la carta. */
+  readonly voterIds: ReadonlyArray<string>;
+  /** La carta del propio viewer, o `null` si no ha votado. Nunca la de otro. */
+  readonly ownCard: string | null;
+  /** Vacío mientras la ronda está abierta. */
+  readonly votes: ReadonlyArray<{ readonly participantId: string; readonly card: string }>;
+  readonly result: RoundResultView | null;
+}
+
 export interface GameSettingsView {
   readonly autoReveal: boolean;
   readonly whoCanReveal: WhoCanRevealView;
@@ -88,12 +110,75 @@ export interface GameView {
   readonly participants: ReadonlyArray<ParticipantView>;
   readonly issues: ReadonlyArray<IssueView>;
   readonly currentRound: RoundView | null;
+  /** Rondas en diferido vivas, en el orden en que se abrieron (ADR 0027). */
+  readonly asyncRounds: ReadonlyArray<AsyncRoundView>;
+}
+
+/**
+ * Una tarea en el resumen de la sesión. Solo agregados: el resumen se comparte fuera de la sala y
+ * no lleva ningún voto individual (ADR 0025).
+ */
+export interface GameSummaryIssueView extends IssueView {
+  /** Rondas reveladas de la tarea; una ronda abierta no cuenta. */
+  readonly rounds: number;
+  /** De la última ronda revelada. `null` si la tarea aún no tiene ninguna. */
+  readonly agreementPercentage: number | null;
+  readonly average: number | null;
+  /** De abrir la primera ronda a la estimación final. `null` si falta cualquiera de los dos tiempos. */
+  readonly durationMs: number | null;
+}
+
+export interface GameSummaryTotalsView {
+  /** Tareas con estimación final. */
+  readonly estimatedCount: number;
+  /** Tareas sin estimación final: pendientes o en votación. */
+  readonly pendingCount: number;
+  /** Suma de las estimaciones numéricas. `null` si ninguna lo es (baraja de tallas). */
+  readonly points: number | null;
+  /** Recuento por valor de las estimaciones no numéricas; `?` y `☕` no cuentan. */
+  readonly nonNumericEstimates: Record<string, number>;
+  /** Tareas estimadas cuya última ronda revelada terminó en unanimidad. */
+  readonly unanimousCount: number;
+  /** Tareas que necesitaron más de una ronda revelada. */
+  readonly multiRoundCount: number;
+  /** Media de las duraciones conocidas. `null` si no hay ninguna. */
+  readonly averageDurationMs: number | null;
+  /** Participantes distintos que votaron en alguna ronda revelada. */
+  readonly voterCount: number;
+}
+
+/** `GET /api/games/:id/summary` (ADR 0025). */
+export interface GameSummaryView {
+  readonly id: string;
+  readonly name: string;
+  readonly issues: ReadonlyArray<GameSummaryIssueView>;
+  readonly totals: GameSummaryTotalsView;
+}
+
+/**
+ * `GET /api/games/:id/summary`: el resumen más un dato que no pertenece al resumen en sí. Se separa
+ * de `GameSummaryView` porque el webhook `session.summary` envía solo el resumen (ADR 0028).
+ */
+export interface GameSummaryResponseView extends GameSummaryView {
+  /** La partida es de un equipo con algún webhook suscrito a `session.summary`. */
+  readonly canSendToTeam: boolean;
 }
 
 export interface TeamView {
   readonly id: string;
   readonly slug: string;
   readonly name: string;
+}
+
+/** Una partida en el histórico del equipo (`GET /api/teams/:slug/games`, ADR 0024). */
+export interface TeamGameView {
+  readonly id: string;
+  readonly name: string;
+  /** ISO 8601. Es también el cursor `before` de la página siguiente. */
+  readonly createdAt: string;
+  readonly issueCount: number;
+  readonly estimatedCount: number;
+  readonly participantCount: number;
 }
 
 /** `teamId: null` = baraja de sistema (visible para todos, no editable). */

@@ -3,7 +3,9 @@ import Fastify from 'fastify';
 import { Pool } from 'pg';
 import { Server as SocketIoServer } from 'socket.io';
 import { AddIssue } from './application/use-cases/AddIssue.js';
+import { AddWebhook } from './application/use-cases/AddWebhook.js';
 import { AuthenticateTeam } from './application/use-cases/AuthenticateTeam.js';
+import { CastAsyncVote } from './application/use-cases/CastAsyncVote.js';
 import { CastVote } from './application/use-cases/CastVote.js';
 import { CreateGame } from './application/use-cases/CreateGame.js';
 import { CreateTeam } from './application/use-cases/CreateTeam.js';
@@ -13,10 +15,14 @@ import { DeleteGame } from './application/use-cases/DeleteGame.js';
 import { DeleteTeam } from './application/use-cases/DeleteTeam.js';
 import { EditIssue } from './application/use-cases/EditIssue.js';
 import { GetGameState } from './application/use-cases/GetGameState.js';
+import { GetGameSummary } from './application/use-cases/GetGameSummary.js';
+import { DispatchWebhooks } from './application/use-cases/DispatchWebhooks.js';
+import { ImportIssues } from './application/use-cases/ImportIssues.js';
 import { JoinGame } from './application/use-cases/JoinGame.js';
 import { ListDecks } from './application/use-cases/ListDecks.js';
 import { ListDecksForAdmin } from './application/use-cases/ListDecksForAdmin.js';
 import { ListGamesForAdmin } from './application/use-cases/ListGamesForAdmin.js';
+import { ListTeamGames } from './application/use-cases/ListTeamGames.js';
 import { ListTeamsForAdmin } from './application/use-cases/ListTeamsForAdmin.js';
 import { LogInAdmin } from './application/use-cases/LogInAdmin.js';
 import { RegenerateTeamToken } from './application/use-cases/RegenerateTeamToken.js';
@@ -26,11 +32,17 @@ import { RemoveIssue } from './application/use-cases/RemoveIssue.js';
 import { RemoveParticipant } from './application/use-cases/RemoveParticipant.js';
 import { ReorderIssues } from './application/use-cases/ReorderIssues.js';
 import { TransferFacilitator } from './application/use-cases/TransferFacilitator.js';
+import { ListWebhooks } from './application/use-cases/ListWebhooks.js';
+import { OpenAsyncRounds } from './application/use-cases/OpenAsyncRounds.js';
+import { RemoveWebhook } from './application/use-cases/RemoveWebhook.js';
+import { RevealAsyncRounds } from './application/use-cases/RevealAsyncRounds.js';
 import { RevealRound } from './application/use-cases/RevealRound.js';
 import { SaveCustomDeck } from './application/use-cases/SaveCustomDeck.js';
+import { SendSessionSummary } from './application/use-cases/SendSessionSummary.js';
 import { StartQuickRound } from './application/use-cases/StartQuickRound.js';
 import { StartVotingRound } from './application/use-cases/StartVotingRound.js';
 import { SetFinalEstimate } from './application/use-cases/SetFinalEstimate.js';
+import { TestWebhook } from './application/use-cases/TestWebhook.js';
 import { TimeoutReveal } from './application/use-cases/TimeoutReveal.js';
 import { UpdateCustomDeck } from './application/use-cases/UpdateCustomDeck.js';
 import { ChangeGameDeck } from './application/use-cases/ChangeGameDeck.js';
@@ -46,10 +58,12 @@ import {
 } from './infrastructure/http/routes/admin.js';
 import { registerGameRoutes } from './infrastructure/http/routes/games.js';
 import { registerHealthRoutes } from './infrastructure/http/routes/health.js';
+import { CompositeEventPublisher } from './infrastructure/events/CompositeEventPublisher.js';
 import { registerTeamRoutes } from './infrastructure/http/routes/teams.js';
 import { UuidGenerator } from './infrastructure/ids/UuidGenerator.js';
 import { createDb } from './infrastructure/persistence/postgres/db.js';
 import { PostgresDeckRepository } from './infrastructure/persistence/postgres/PostgresDeckRepository.js';
+import { PostgresGameHistoryReader } from './infrastructure/persistence/postgres/PostgresGameHistoryReader.js';
 import { PostgresGameRepository } from './infrastructure/persistence/postgres/PostgresGameRepository.js';
 import { PostgresTeamRepository } from './infrastructure/persistence/postgres/PostgresTeamRepository.js';
 import { DiscussionTimerTracker } from './infrastructure/realtime/DiscussionTimerTracker.js';
@@ -59,6 +73,8 @@ import { SocketIoBroadcaster } from './infrastructure/realtime/SocketIoBroadcast
 import { PresenceTracker } from './infrastructure/realtime/PresenceTracker.js';
 import { createPresenceListener } from './infrastructure/realtime/presenceListener.js';
 import { WsEventPublisher } from './infrastructure/realtime/WsEventPublisher.js';
+import { RandomSecretGenerator } from './infrastructure/security/RandomSecretGenerator.js';
+import { HttpWebhookSender } from './infrastructure/webhooks/HttpWebhookSender.js';
 import { HmacAdminSessions } from './infrastructure/security/HmacAdminSessions.js';
 import { HmacTokenHasher } from './infrastructure/security/HmacTokenHasher.js';
 import { ScryptAdminCredentials } from './infrastructure/security/ScryptAdminCredentials.js';
@@ -76,6 +92,7 @@ pool.on('error', (error) => {
 
 const db = createDb(pool);
 const games = new PostgresGameRepository(db);
+const gameHistory = new PostgresGameHistoryReader(db);
 const teams = new PostgresTeamRepository(db);
 const decks = new PostgresDeckRepository(db);
 const clock = new SystemClock();
@@ -94,7 +111,17 @@ registerHealthRoutes(app, pool, env.APP_VERSION);
 
 const io = new SocketIoServer(app.server, { cors: { origin: env.CORS_ORIGIN } });
 const broadcaster = new SocketIoBroadcaster(io);
-const events = new WsEventPublisher(games, broadcaster, versions);
+const webhookSender = new HttpWebhookSender();
+// El origen del front, que ya es `CORS_ORIGIN`, para el enlace de la partida en el cuerpo de los webhooks.
+const webBaseUrl = env.CORS_ORIGIN;
+// Los webhooks van en segundo plano: una entrega con reintentos tarda y no debe retrasar la partida.
+const events = new CompositeEventPublisher(
+  new WsEventPublisher(games, broadcaster, versions),
+  [new DispatchWebhooks(games, teams, webhookSender, broadcaster, ids, webBaseUrl)],
+  (error) => {
+    app.log.error(error, 'no se pudo entregar un webhook');
+  },
+);
 
 const reconcileAutoReveal = new ReconcileAutoReveal(games, events, clock, presence);
 presence.onChange(
@@ -106,10 +133,11 @@ presence.onChange(
 const createGame = new CreateGame(games, decks, teams, events, clock, ids);
 const joinGame = new JoinGame(games, events, clock, ids);
 const addIssue = new AddIssue(games, events, clock, ids);
+const importIssues = new ImportIssues(games, events, clock, ids);
 const editIssue = new EditIssue(games, events, clock);
 const removeIssue = new RemoveIssue(games, events, clock);
 const reorderIssues = new ReorderIssues(games, events, clock);
-const startVotingRound = new StartVotingRound(games, events, clock, ids);
+const startVotingRound = new StartVotingRound(games, events, clock, ids, presence);
 const startQuickRound = new StartQuickRound(games, events, clock, ids);
 const castVote = new CastVote(games, events, clock, presence);
 const removeParticipant = new RemoveParticipant(games, events, clock, presence);
@@ -118,18 +146,35 @@ const claimFacilitator = new ClaimFacilitator(games, events, clock, presence);
 const revealRound = new RevealRound(games, events, clock);
 const timeoutReveal = new TimeoutReveal(games, events, clock);
 const setFinalEstimate = new SetFinalEstimate(games, events, clock);
+const openAsyncRounds = new OpenAsyncRounds(games, events, clock, ids);
+const castAsyncVote = new CastAsyncVote(games, events, clock);
+const revealAsyncRounds = new RevealAsyncRounds(games, events, clock);
 const updateGameSettings = new UpdateGameSettings(games, events, clock);
 const changeGameDeck = new ChangeGameDeck(games, decks, events, clock);
 const changeParticipantHat = new ChangeParticipantHat(games, events, clock);
 const listGameDecks = new ListGameDecks(games, decks);
 const getGameState = new GetGameState(games, presence);
+const getGameSummary = new GetGameSummary(games, teams);
+const sendSessionSummary = new SendSessionSummary(
+  games,
+  teams,
+  webhookSender,
+  clock,
+  ids,
+  webBaseUrl,
+);
 
 const createTeam = new CreateTeam(teams, tokenHasher, ids);
 const authenticateTeam = new AuthenticateTeam(teams, tokenHasher);
 const listDecks = new ListDecks(decks, teams);
+const listTeamGames = new ListTeamGames(teams, tokenHasher, gameHistory);
 const saveCustomDeck = new SaveCustomDeck(decks, teams, tokenHasher, ids);
 const updateCustomDeck = new UpdateCustomDeck(decks, teams, tokenHasher);
 const deleteCustomDeck = new DeleteCustomDeck(decks, teams, tokenHasher);
+const listWebhooks = new ListWebhooks(teams, tokenHasher);
+const addWebhook = new AddWebhook(teams, tokenHasher, ids, new RandomSecretGenerator());
+const removeWebhook = new RemoveWebhook(teams, tokenHasher);
+const testWebhook = new TestWebhook(teams, tokenHasher, webhookSender, clock, ids);
 
 registerGameRoutes(app, {
   createGame,
@@ -138,10 +183,13 @@ registerGameRoutes(app, {
   transferFacilitator,
   claimFacilitator,
   addIssue,
+  importIssues,
   editIssue,
   removeIssue,
   reorderIssues,
   getGameState,
+  getGameSummary,
+  sendSessionSummary,
   updateGameSettings,
   changeGameDeck,
   changeParticipantHat,
@@ -152,9 +200,14 @@ registerTeamRoutes(app, {
   createTeam,
   authenticateTeam,
   listDecks,
+  listTeamGames,
   saveCustomDeck,
   updateCustomDeck,
   deleteCustomDeck,
+  listWebhooks,
+  addWebhook,
+  removeWebhook,
+  testWebhook,
 });
 if (env.ADMIN_USERNAME !== undefined && env.ADMIN_PASSWORD_HASH !== undefined) {
   // Con el hash de la contraseña en la clave, cambiarla cierra todas las sesiones abiertas.
@@ -191,6 +244,9 @@ registerSocketGateway(io, {
   revealRound,
   timeoutReveal,
   setFinalEstimate,
+  openAsyncRounds,
+  castAsyncVote,
+  revealAsyncRounds,
   versions,
   games,
   discussionTimer,

@@ -2,7 +2,7 @@ import { useEffect, useRef, useState } from 'react';
 import type { JSX } from 'react';
 import { Link } from 'react-router-dom';
 import { Avatar, Button, Toast } from '../../design-system/index.js';
-import { addIssue } from '../../shared/api/gamesClient.js';
+import { addIssue, importIssues } from '../../shared/api/gamesClient.js';
 import {
   playImpactSound,
   playReactionSound,
@@ -10,9 +10,11 @@ import {
   playThrowSound,
   playVoteSound,
 } from '../../shared/audio/sounds.js';
+import { nextTableIssueId } from '../async-voting/asyncQueue.js';
 import { DeckSettingsPanel } from '../deck-settings/DeckSettingsPanel.js';
 import { IssueListPanel } from '../issue-list/IssueListPanel.js';
 import { ResultsPanel } from '../results-panel/ResultsPanel.js';
+import { isSessionFinished } from '../session-summary/isSessionFinished.js';
 import { THROW_FLIGHT_MS } from './components/EmojiThrowLayer.js';
 import { FacilitatorAbsentBanner } from './components/FacilitatorAbsentBanner.js';
 import { Hand } from './components/Hand.js';
@@ -136,7 +138,8 @@ export function GameTablePage({
   }
 
   const { game, round } = table;
-  const nextPendingIssueId = game.issues.find((issue) => issue.status === 'PENDING')?.id ?? null;
+  const nextPendingIssueId = nextTableIssueId(game.issues, game.asyncRounds);
+  const summaryHref = `/games/${gameId}/summary`;
   const me = game.participants.find((p) => p.id === participantId);
   const isMyTurnToVote = me?.role === 'VOTER';
 
@@ -192,6 +195,8 @@ export function GameTablePage({
         viewerId={participantId}
         viewerHat={me?.hat ?? null}
         onChangeHat={table.changeHat}
+        summaryHref={summaryHref}
+        asyncToVote={table.asyncToVote}
         onToggleIssues={() => {
           setIssuesOpen((open) => !open);
         }}
@@ -322,6 +327,8 @@ export function GameTablePage({
             canEstimate={table.canReveal}
             onAcceptEstimate={table.setFinalEstimate}
             hasNextIssue={nextPendingIssueId !== null}
+            sessionFinished={isSessionFinished(game.issues, round?.issueId ?? null)}
+            summaryHref={summaryHref}
             onNextIssue={() => {
               if (nextPendingIssueId) table.startRound(nextPendingIssueId);
             }}
@@ -356,10 +363,29 @@ export function GameTablePage({
               onAddIssue={(title) => {
                 void addIssue(gameId, { title });
               }}
+              onImportIssues={async (issues) => {
+                await importIssues(gameId, { issues: [...issues] });
+              }}
               onRenameIssue={table.renameIssue}
               onDeleteIssue={table.deleteIssue}
               onReorderIssues={table.reorderIssues}
               onStartRound={table.startRound}
+              asyncVoting={{
+                rounds: table.asyncRounds,
+                viewerId: participantId,
+                viewerCanVote: isMyTurnToVote,
+                participants: game.participants,
+                deckCards: game.deck.cards,
+                canChangeVote: game.settings.allowVoteChange,
+                canReveal: table.canRevealAsync,
+                pendingCards: table.asyncPendingCards,
+                onOpen: table.openAsyncRounds,
+                onVote: table.castAsyncVote,
+                onReveal: table.revealAsync,
+                onAcceptEstimate: (issueId, card) => {
+                  table.setFinalEstimate(card, issueId);
+                },
+              }}
               onClose={() => {
                 setIssuesOpen(false);
               }}
