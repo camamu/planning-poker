@@ -66,3 +66,14 @@ tiene forma de saber qué hace la herramienta ni qué ofrece, y la app se quiere
   la variable de repositorio `WEB_HOST` si existe (`docs/06-despliegue.md` §5). Sin ella, la URL
   queda relativa.
 - **Versión en el pie** inyectada por `vite.config.ts` desde `.release-please-manifest.json`.
+
+## Pendiente
+
+- **Sincronizar `design-system/` con Claude Design.** `Icon`, `FeatureCard`, `Step`, la variante
+  `solid` de `Button` y el token `--pp-on-accent` existen solo en el repo, no en el proyecto Nocturne
+  de Claude Design. Se hace desde Claude Code en local, sobre `develop` una vez fusionado el bloque:
+  `/design-login` una vez y después `/design-sync`. No se pudo hacer desde la sesión en la nube que
+  implementó el bloque porque `/design-login` necesita una sesión interactiva. Claude Design como
+  aplicación independiente cierra el 14 de diciembre de 2026 y pasa a estar dentro de Claude: si el
+  proyecto se mueve antes, sincronizar contra su nueva ubicación. Al terminar, borrar este apartado y
+  la nota equivalente de `04-brief-diseno.md` §5.7.
