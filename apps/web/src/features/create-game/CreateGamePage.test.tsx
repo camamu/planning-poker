@@ -95,7 +95,7 @@ describe('CreateGamePage', () => {
     it('al crear la partida de un equipo no distrae con las recientes', () => {
       rememberGame({ id: 'game-1', name: 'Sprint 41' });
 
-      renderPage('/?team=backend');
+      renderPage('/games/new?team=backend');
 
       expect(screen.queryByText('Partidas recientes')).not.toBeInTheDocument();
     });

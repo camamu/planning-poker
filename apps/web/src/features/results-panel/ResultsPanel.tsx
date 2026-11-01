@@ -244,7 +244,7 @@ function AcceptEstimateButton({
   );
 }
 
-function StatTile({
+export function StatTile({
   label,
   value,
 }: {

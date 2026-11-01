@@ -104,7 +104,7 @@ export function CreateGamePage(): JSX.Element {
         <p className="text-xs" style={{ color: 'var(--pp-muted)' }}>
           Con las barajas de{' '}
           <strong>{teams.find((t) => t.slug === teamSlug)?.name ?? teamSlug}</strong> ·{' '}
-          <Link to="/">salir del equipo</Link>
+          <Link to="/games/new">salir del equipo</Link>
         </p>
       ) : null}
       <form
@@ -218,7 +218,7 @@ function TeamShortcuts({ teams }: { readonly teams: ReadonlyArray<RememberedTeam
         >
           <span className="truncate text-sm">{team.name}</span>
           <div className="flex flex-none gap-2">
-            <Link to={`/?team=${team.slug}`}>
+            <Link to={`/games/new?team=${team.slug}`}>
               <Button variant="secondary">Usar sus barajas</Button>
             </Link>
             <Link to={`/t/${team.slug}?k=${team.token}`}>

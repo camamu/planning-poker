@@ -54,6 +54,8 @@
   --pp-line: #3f424d;
   --pp-felt: #1b1d2c;
   --pp-back: #2b2741;
+  /* Texto sobre un relleno de acento (`btn-solid`). */
+  --pp-on-accent: #161826;
 
   /* Solo para la marca (logo); la UI sigue con un único acento. */
   --pp-brand-warm: #f2b86b;
@@ -69,6 +71,7 @@
   --pp-line: #cfd3e5;
   --pp-felt: #dbdff1;
   --pp-back: #cfd3e5;
+  --pp-on-accent: #f3f5fe;
   --pp-brand-warm: #f0a84f;
   --shadow-sm: 0 0 0 1px #cfd3e5;
   --shadow-md: 0 0 0 1px #cfd3e5, 0 6px 18px rgba(41, 43, 49, 0.1);
