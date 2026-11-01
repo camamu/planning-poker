@@ -51,6 +51,8 @@ import { TimeoutReveal } from '../../../src/application/use-cases/TimeoutReveal.
 import { UpdateCustomDeck } from '../../../src/application/use-cases/UpdateCustomDeck.js';
 import { UpdateGameSettings } from '../../../src/application/use-cases/UpdateGameSettings.js';
 import { LoginThrottle } from '../../../src/infrastructure/http/LoginThrottle.js';
+import { registerHttpRateLimit } from '../../../src/infrastructure/http/rateLimit.js';
+import { registerApiSecurityHeaders } from '../../../src/infrastructure/http/securityHeaders.js';
 import { registerAdminRoutes } from '../../../src/infrastructure/http/routes/admin.js';
 import { registerGameRoutes } from '../../../src/infrastructure/http/routes/games.js';
 import { registerTeamRoutes } from '../../../src/infrastructure/http/routes/teams.js';
@@ -63,10 +65,19 @@ import { DiscussionTimerTracker } from '../../../src/infrastructure/realtime/Dis
 import { GameVersionTracker } from '../../../src/infrastructure/realtime/GameVersionTracker.js';
 import { PresenceTracker } from '../../../src/infrastructure/realtime/PresenceTracker.js';
 import { createPresenceListener } from '../../../src/infrastructure/realtime/presenceListener.js';
-import { registerSocketGateway } from '../../../src/infrastructure/realtime/SocketIoGateway.js';
+import {
+  registerSocketGateway,
+  SOCKET_MAX_PAYLOAD_BYTES,
+} from '../../../src/infrastructure/realtime/SocketIoGateway.js';
+import { SocketRateLimits } from '../../../src/infrastructure/realtime/SocketRateLimits.js';
 import { CompositeEventPublisher } from '../../../src/infrastructure/events/CompositeEventPublisher.js';
 import { SocketIoBroadcaster } from '../../../src/infrastructure/realtime/SocketIoBroadcaster.js';
 import { WsEventPublisher } from '../../../src/infrastructure/realtime/WsEventPublisher.js';
+import { fastifyTrustProxy } from '../../../src/infrastructure/security/clientIp.js';
+import {
+  DEFAULT_RATE_LIMIT_POLICY,
+  type RateLimitPolicy,
+} from '../../../src/infrastructure/security/rateLimitPolicy.js';
 import { RandomSecretGenerator } from '../../../src/infrastructure/security/RandomSecretGenerator.js';
 import { HmacAdminSessions } from '../../../src/infrastructure/security/HmacAdminSessions.js';
 import { HmacTokenHasher } from '../../../src/infrastructure/security/HmacTokenHasher.js';
@@ -84,6 +95,10 @@ export interface TestServerOptions {
   readonly presenceGraceMs?: number;
   /** Quién entrega los webhooks; por defecto el real, con su protección SSRF activa. */
   readonly webhookSender?: WebhookSender;
+  /** Los límites de uso; por defecto los reales, para que los e2e ejerciten lo que corre en producción. */
+  readonly rateLimitPolicy?: RateLimitPolicy;
+  /** Proxies de confianza (`TRUST_PROXY_HOPS`). */
+  readonly trustedProxyHops?: number;
 }
 
 /** Origen del front en los cuerpos de los webhooks de los tests. */
@@ -101,7 +116,9 @@ export interface TestServer {
  * (eso ya lo cubre `tests/contract` contra Postgres real).
  */
 export async function startTestServer(options: TestServerOptions = {}): Promise<TestServer> {
-  const app = Fastify({ logger: false });
+  const trustedProxyHops = options.trustedProxyHops ?? 0;
+  const rateLimitPolicy = options.rateLimitPolicy ?? DEFAULT_RATE_LIMIT_POLICY;
+  const app = Fastify({ logger: false, trustProxy: fastifyTrustProxy(trustedProxyHops) });
 
   const games = new InMemoryGameRepository();
   const teams = new InMemoryTeamRepository();
@@ -116,7 +133,10 @@ export async function startTestServer(options: TestServerOptions = {}): Promise<
     warmupMs: 0,
   });
 
-  const io = new SocketIoServer(app.server);
+  registerHttpRateLimit(app, rateLimitPolicy.http, clock);
+  registerApiSecurityHeaders(app, { hsts: false });
+
+  const io = new SocketIoServer(app.server, { maxHttpBufferSize: SOCKET_MAX_PAYLOAD_BYTES });
   const broadcaster = new SocketIoBroadcaster(io);
   const webhookSender = options.webhookSender ?? new HttpWebhookSender();
   const events = new CompositeEventPublisher(
@@ -244,6 +264,8 @@ export async function startTestServer(options: TestServerOptions = {}): Promise<
     discussionTimer,
     presence,
     clock,
+    rateLimits: new SocketRateLimits(rateLimitPolicy.socket),
+    trustedProxyHops,
   });
 
   await app.listen({ port: 0, host: '127.0.0.1' });

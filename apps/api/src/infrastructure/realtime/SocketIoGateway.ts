@@ -29,10 +29,16 @@ import type { GameRepository } from '../../application/ports/GameRepository.js';
 import { DomainError } from '../../domain/shared/DomainError.js';
 import type { Clock } from '../../domain/shared/Clock.js';
 import { GameId, ParticipantId } from '../../domain/game/ids.js';
+import { resolveClientIp } from '../security/clientIp.js';
+import { RATE_LIMIT_MESSAGE, RateLimitedError } from '../security/RateLimiter.js';
 import type { DiscussionTimerTracker } from './DiscussionTimerTracker.js';
 import { gameRoom } from './gameRoom.js';
 import type { GameVersionTracker } from './GameVersionTracker.js';
 import type { PresenceTracker } from './PresenceTracker.js';
+import type { SocketRateLimits } from './SocketRateLimits.js';
+
+/** Ningún evento del cliente se acerca a esto; es la cota contra paquetes de megabytes (ADR 0031). */
+export const SOCKET_MAX_PAYLOAD_BYTES = 32 * 1024;
 
 export interface SocketGatewayDependencies {
   readonly getGameState: GetGameState;
@@ -51,6 +57,9 @@ export interface SocketGatewayDependencies {
   readonly discussionTimer: DiscussionTimerTracker;
   readonly presence: PresenceTracker;
   readonly clock: Clock;
+  readonly rateLimits: SocketRateLimits;
+  /** `TRUST_PROXY_HOPS`: los mismos saltos de proxy de confianza que usa Fastify para `request.ip`. */
+  readonly trustedProxyHops: number;
 }
 
 /**
@@ -62,6 +71,8 @@ export interface SocketGatewayDependencies {
  * la gateway los reenvía directamente, igual que hace `join` con `state_sync`.
  */
 export function registerSocketGateway(io: Server, deps: SocketGatewayDependencies): void {
+  registerRateLimiting(io, deps);
+
   io.on('connection', (socket) => {
     socket.on('disconnect', () => {
       deps.presence.disconnect(socket.id);
@@ -106,7 +117,9 @@ export function registerSocketGateway(io: Server, deps: SocketGatewayDependencie
 
     socket.on('vote', (payload: unknown) => {
       void handle(socket, async () => {
-        await deps.castVote.execute(wsVoteCommandSchema.parse(payload));
+        const command = wsVoteCommandSchema.parse(payload);
+        limitVotes(deps, command.gameId, command.participantId);
+        await deps.castVote.execute(command);
       });
     });
 
@@ -149,7 +162,9 @@ export function registerSocketGateway(io: Server, deps: SocketGatewayDependencie
 
     socket.on('async_vote', (payload: unknown) => {
       void handle(socket, async () => {
-        await deps.castAsyncVote.execute(wsAsyncVoteCommandSchema.parse(payload));
+        const command = wsAsyncVoteCommandSchema.parse(payload);
+        limitVotes(deps, command.gameId, command.participantId);
+        await deps.castAsyncVote.execute(command);
       });
     });
 
@@ -197,6 +212,43 @@ export function registerSocketGateway(io: Server, deps: SocketGatewayDependencie
   });
 }
 
+/**
+ * Conexiones por IP (rechazadas con `connect_error`) y eventos por socket (el paquete se descarta y
+ * el socket recibe un `error` con el mensaje, que el front ya enseña). Va como middleware para no
+ * tocar cada manejador; el tope de votos por participante necesita el payload ya validado y está en
+ * los manejadores de `vote` y `async_vote` (ADR 0031).
+ */
+function registerRateLimiting(io: Server, deps: SocketGatewayDependencies): void {
+  io.use((socket, next) => {
+    const forwardedFor = socket.handshake.headers['x-forwarded-for'];
+    const ip = resolveClientIp({
+      remoteAddress: socket.handshake.address,
+      forwardedFor: Array.isArray(forwardedFor) ? forwardedFor.join(',') : forwardedFor,
+      trustedHops: deps.trustedProxyHops,
+    });
+    const verdict = deps.rateLimits.allowConnection(ip, deps.clock.now().getTime());
+    next(verdict.allowed ? undefined : new Error('rate_limited'));
+  });
+
+  io.on('connection', (socket) => {
+    socket.use(([event], next) => {
+      const verdict = deps.rateLimits.allowEvent(socket.id, event, deps.clock.now().getTime());
+      if (verdict.allowed) {
+        next();
+        return;
+      }
+      // Sin llamar a `next(error)`: Socket.IO lo trataría como un error del servidor y, sin
+      // listener de `error` en el socket, lo volcaría a la consola en cada exceso.
+      socket.emit('error', { type: 'error', message: RATE_LIMIT_MESSAGE });
+    });
+  });
+}
+
+function limitVotes(deps: SocketGatewayDependencies, gameId: string, participantId: string): void {
+  const verdict = deps.rateLimits.allowVote(gameId, participantId, deps.clock.now().getTime());
+  if (!verdict.allowed) throw new RateLimitedError();
+}
+
 async function handle(socket: Socket, action: () => Promise<void> | void): Promise<void> {
   try {
     await action();
@@ -211,6 +263,7 @@ async function handle(socket: Socket, action: () => Promise<void> | void): Promi
 
 function toErrorMessage(error: unknown): string {
   if (error instanceof ZodError) return 'Payload inválido.';
+  if (error instanceof RateLimitedError) return error.message;
   if (error instanceof GameNotFoundError) return error.message;
   if (error instanceof DomainError) return error.message;
   throw error;
