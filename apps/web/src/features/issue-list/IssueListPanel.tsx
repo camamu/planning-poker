@@ -1,3 +1,4 @@
+import { MAX_ISSUE_TITLE_LENGTH } from '@pp/contracts';
 import type { IssueView } from '@pp/contracts';
 import { useState } from 'react';
 import type { JSX, SubmitEvent } from 'react';
@@ -207,6 +208,7 @@ export function IssueListPanel(props: IssueListPanelProps): JSX.Element {
           <Input
             value={title}
             placeholder="Añadir una tarea…"
+            maxLength={MAX_ISSUE_TITLE_LENGTH}
             onChange={(event) => {
               setTitle(event.target.value);
             }}

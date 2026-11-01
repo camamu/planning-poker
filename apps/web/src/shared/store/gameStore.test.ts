@@ -1,17 +1,18 @@
 import type { GameSettingsView, GameView } from '@pp/contracts';
-import { beforeEach, describe, expect, it, vi } from 'vitest';
+import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import { asyncRoundView } from '../testing/viewFixtures.js';
 import { useGameStore } from './gameStore.js';
 
-const { handlers, emit } = vi.hoisted(() => ({
+const { handlers, emit, connect } = vi.hoisted(() => ({
   handlers: new Map<string, (event: unknown) => void>(),
   emit: vi.fn(),
+  connect: vi.fn(),
 }));
 
 vi.mock('../socket/connection.js', () => ({
   getSocket: () => ({
     connected: false,
-    connect: vi.fn(),
+    connect,
     disconnect: vi.fn(),
     emit,
     on: (event: string, handler: (payload: unknown) => void) => {
@@ -433,5 +434,32 @@ describe('gameStore: votación en diferido', () => {
     });
 
     expect(useGameStore.getState().asyncSelected).toEqual({});
+  });
+});
+
+describe('gameStore: conexión rechazada por exceso de uso (ADR 0031)', () => {
+  beforeEach(() => {
+    vi.useFakeTimers();
+    connect.mockClear();
+  });
+
+  afterEach(() => {
+    vi.useRealTimers();
+  });
+
+  it('reintenta conectar pasados unos segundos, porque Socket.IO no lo hace solo', () => {
+    handlers.get('connect_error')?.(new Error('rate_limited'));
+
+    expect(useGameStore.getState().status).toBe('disconnected');
+    expect(connect).not.toHaveBeenCalled();
+    vi.advanceTimersByTime(15_000);
+    expect(connect).toHaveBeenCalledTimes(1);
+  });
+
+  it('no añade su propio reintento a los fallos de transporte, que Socket.IO ya reintenta', () => {
+    handlers.get('connect_error')?.(new Error('websocket error'));
+    vi.advanceTimersByTime(60_000);
+
+    expect(connect).not.toHaveBeenCalled();
   });
 });

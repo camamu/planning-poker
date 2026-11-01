@@ -1,3 +1,9 @@
+import {
+  MAX_ISSUE_DESCRIPTION_LENGTH,
+  MAX_ISSUE_TITLE_LENGTH,
+  MAX_URL_LENGTH,
+  addIssueCommandSchema,
+} from '@pp/contracts';
 import { describe, expect, it } from 'vitest';
 import { parseIssueInput } from './parseIssueInput.js';
 
@@ -180,5 +186,54 @@ describe('parseIssueInput — CSV', () => {
 
   it('tolera filas con menos celdas que la cabecera', () => {
     expect(parseIssueInput('summary,description,link\nLogin')).toEqual([{ title: 'Login' }]);
+  });
+});
+
+describe('parseIssueInput — límites del servidor', () => {
+  it('recorta con una elipsis un título que excede MAX_ISSUE_TITLE_LENGTH', () => {
+    const [issue] = parseIssueInput('x'.repeat(MAX_ISSUE_TITLE_LENGTH + 50));
+
+    expect(issue?.title).toHaveLength(MAX_ISSUE_TITLE_LENGTH);
+    expect(issue?.title.endsWith('…')).toBe(true);
+  });
+
+  it('no toca un título que cabe justo', () => {
+    const title = 'x'.repeat(MAX_ISSUE_TITLE_LENGTH);
+
+    expect(parseIssueInput(title)).toEqual([{ title }]);
+  });
+
+  it('no parte un par sustituto al recortar', () => {
+    const [issue] = parseIssueInput('😀'.repeat(MAX_ISSUE_TITLE_LENGTH));
+
+    expect(issue?.title).not.toMatch(/[\ud800-\udbff](?![\udc00-\udfff])/);
+    expect(issue?.title.length).toBeLessThanOrEqual(MAX_ISSUE_TITLE_LENGTH);
+  });
+
+  it('recorta la descripción de una fila de CSV que excede MAX_ISSUE_DESCRIPTION_LENGTH', () => {
+    const [issue] = parseIssueInput(
+      `summary,description\nLogin,${'d'.repeat(MAX_ISSUE_DESCRIPTION_LENGTH + 10)}`,
+    );
+
+    expect(issue?.description).toHaveLength(MAX_ISSUE_DESCRIPTION_LENGTH);
+  });
+
+  it('descarta un enlace de más de MAX_URL_LENGTH caracteres y conserva la tarea', () => {
+    const link = `https://acme.test/${'a'.repeat(MAX_URL_LENGTH)}`;
+
+    expect(parseIssueInput(`summary,link\nLogin,${link}`)).toEqual([{ title: 'Login' }]);
+  });
+
+  it('todo lo que sale del importador lo acepta el servidor aunque la entrada exceda los máximos', () => {
+    const huge = [
+      'x'.repeat(MAX_ISSUE_TITLE_LENGTH * 2),
+      `summary,description,link\n${'t'.repeat(500)},${'d'.repeat(9000)},https://acme.test/${'a'.repeat(3000)}`,
+    ];
+
+    for (const text of huge) {
+      for (const issue of parseIssueInput(text)) {
+        expect(addIssueCommandSchema.safeParse(issue).success).toBe(true);
+      }
+    }
   });
 });

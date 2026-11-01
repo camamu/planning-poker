@@ -1,5 +1,6 @@
 import { useState } from 'react';
 import type { JSX, SubmitEvent } from 'react';
+import { MAX_PLAYER_NAME_LENGTH } from '@pp/contracts';
 import type { ParticipantRoleView } from '@pp/contracts';
 import { Button, Input, Logo, SegmentedControl } from '../../design-system/index.js';
 import { joinGame } from '../../shared/api/gamesClient.js';
@@ -53,6 +54,7 @@ export function JoinGamePage({ gameId, onJoined }: JoinGamePageProps): JSX.Eleme
       >
         <Input
           label="Tu nombre"
+          maxLength={MAX_PLAYER_NAME_LENGTH}
           value={displayName}
           onChange={(event) => {
             setDisplayName(event.target.value);

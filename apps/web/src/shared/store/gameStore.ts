@@ -1,9 +1,13 @@
+import { RATE_LIMITED_CONNECTION_ERROR } from '@pp/contracts';
 import type { EphemeralEvent, GameView, IssueView, ServerEvent } from '@pp/contracts';
 import { create } from 'zustand';
 import { editIssue, removeIssue, reorderIssues } from '../api/gamesClient.js';
 import { getSocket } from '../socket/connection.js';
 import { WEBHOOK_EVENT_LABELS } from '../webhooks/webhookEventLabels.js';
 import { gameEventsReducer, needsResync } from '../socket/gameEventsReducer.js';
+
+/** Un rechazo no suma al cupo y la ventana de conexiones es de un minuto: cada 15 s se prueba sin castigar. */
+const RATE_LIMITED_RETRY_MS = 15_000;
 
 export type ConnectionStatus = 'idle' | 'connecting' | 'connected' | 'disconnected';
 
@@ -341,6 +345,15 @@ socket.on('connect', () => {
 });
 socket.on('disconnect', () => {
   useGameStore.setState({ status: 'disconnected' });
+});
+// Socket.IO reintenta solo los fallos de transporte, no una conexión que el servidor rechaza por
+// exceso de uso (ADR 0031): sin esto la mesa se quedaría muerta hasta recargar la página.
+socket.on('connect_error', (error: Error) => {
+  if (error.message !== RATE_LIMITED_CONNECTION_ERROR) return;
+  useGameStore.setState({ status: 'disconnected' });
+  setTimeout(() => {
+    socket.connect();
+  }, RATE_LIMITED_RETRY_MS);
 });
 socket.on('error', (event: { message: string }) => {
   const { asyncSelected, gameId, participantId } = useGameStore.getState();

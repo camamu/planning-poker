@@ -1,3 +1,4 @@
+import { MAX_TEAM_NAME_LENGTH } from '@pp/contracts';
 import { useState } from 'react';
 import type { JSX, SubmitEvent } from 'react';
 import { Link } from 'react-router-dom';
@@ -79,6 +80,7 @@ export function CreateTeamPage(): JSX.Element {
       >
         <Input
           label="Nombre del equipo"
+          maxLength={MAX_TEAM_NAME_LENGTH}
           value={name}
           onChange={(event) => {
             setName(event.target.value);
