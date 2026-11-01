@@ -1,6 +1,7 @@
 import type { ButtonHTMLAttributes, JSX } from 'react';
 
-export type ButtonVariant = 'primary' | 'secondary' | 'ghost';
+/** `solid` es la llamada a la acción de una página (la portada); `primary` sigue siendo el de contorno. */
+export type ButtonVariant = 'solid' | 'primary' | 'secondary' | 'ghost';
 
 export interface ButtonProps extends ButtonHTMLAttributes<HTMLButtonElement> {
   readonly variant?: ButtonVariant;

@@ -171,7 +171,7 @@ export function TeamPage(): JSX.Element {
                   ))}
                 </div>
                 <div className="flex gap-2">
-                  <Link to={`/?team=${slug}&deckId=${deck.id}`}>
+                  <Link to={`/games/new?team=${slug}&deckId=${deck.id}`}>
                     <Button variant="secondary">Crear partida con esta baraja</Button>
                   </Link>
                   {deck.teamId ? (

@@ -67,6 +67,19 @@ h4 {
 .btn-primary:active:not(:disabled) {
   background: color-mix(in srgb, var(--color-accent) 22%, transparent);
 }
+.btn-solid {
+  color: var(--pp-on-accent);
+  background: var(--color-accent);
+  border-color: var(--color-accent);
+  font-weight: 600;
+}
+.btn-solid:hover:not(:disabled) {
+  background: color-mix(in srgb, var(--color-accent) 85%, var(--color-text));
+  border-color: color-mix(in srgb, var(--color-accent) 85%, var(--color-text));
+}
+.btn-solid:active:not(:disabled) {
+  background: color-mix(in srgb, var(--color-accent) 75%, var(--color-text));
+}
 .btn-secondary {
   border-color: var(--pp-line);
   color: var(--pp-muted);
