@@ -1,5 +1,12 @@
 # Changelog
 
+## [1.9.1](https://github.com/camamu/planning-poker/compare/planning-poker-v1.9.0...planning-poker-v1.9.1) (2026-11-04)
+
+
+### Bug Fixes
+
+* **web:** sigue sondeando la API tras rendirse para quitar el aviso de error ([#99](https://github.com/camamu/planning-poker/issues/99)) ([ba1604f](https://github.com/camamu/planning-poker/commit/ba1604f8316094c53c0eaf3ee225f4ab1a2c72df))
+
 ## [1.9.0](https://github.com/camamu/planning-poker/compare/planning-poker-v1.8.0...planning-poker-v1.9.0) (2026-11-01)
 
 
