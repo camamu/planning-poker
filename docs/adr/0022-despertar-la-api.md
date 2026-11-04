@@ -62,6 +62,11 @@ que no responde y lo interpreta como un fallo.
   `connect()` solo duplicaría ese mecanismo. Unirse por primera vez sí espera, porque es un `POST`.
 - **El panel `/admin` queda fuera**: no está en el alcance del bloque y quien lo usa es la persona
   que mantiene la app, no el equipo en una planificación.
+- **Rendirse ya no es definitivo.** Tras los 90 s la máquina emite `unreachable` pero sigue
+  sondeando cada 15 s, y `recheck()` (pestaña visible de nuevo, evento `online`) pregunta al
+  momento. Antes dejaba de preguntar para siempre, y un arranque en frío largo o una pestaña en
+  segundo plano (temporizadores frenados) dejaban el aviso de error clavado con la API ya
+  levantada y los botones deshabilitados. «Reintentar» sigue funcionando y salta la espera.
 - **Bloque 21.** La página principal pide calentar «en silencio, sin banner»; el calentamiento ya es
   global y arranca al cargar cualquier ruta, así que el bloque 21 solo tendrá que ocultar el banner
   en `/` (por ejemplo, comprobando la ruta en `ServerWakeBanner`), no volver a lanzar nada.

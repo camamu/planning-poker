@@ -9,6 +9,8 @@ export interface ServerWarmupOptions {
   /** Presupuesto total de reintentos: Render free tarda hasta ~1 min en arrancar en frío. */
   readonly giveUpAfterMs?: number;
   readonly attemptTimeoutMs?: number;
+  /** Cada cuánto sigue preguntando tras `unreachable`, por si la API despierta más tarde. */
+  readonly slowPollMs?: number;
 }
 
 export interface ServerWarmup {
@@ -16,6 +18,8 @@ export interface ServerWarmup {
   start: () => void;
   /** Tras `unreachable`: vuelve a intentarlo sin pasar otra vez por «comprobando». */
   retry: () => void;
+  /** Pregunta ya (pestaña visible de nuevo, red recuperada) en vez de esperar al siguiente sondeo. */
+  recheck: () => void;
   stop: () => void;
 }
 
@@ -23,6 +27,7 @@ const WAKING_AFTER_MS = 2_000;
 const GIVE_UP_AFTER_MS = 90_000;
 const ATTEMPT_TIMEOUT_MS = 5_000;
 const MAX_BACKOFF_MS = 5_000;
+const SLOW_POLL_MS = 15_000;
 
 type Phase = 'idle' | 'running' | 'ready';
 
@@ -34,10 +39,13 @@ export function createServerWarmup(options: ServerWarmupOptions): ServerWarmup {
   const wakingAfterMs = options.wakingAfterMs ?? WAKING_AFTER_MS;
   const giveUpAfterMs = options.giveUpAfterMs ?? GIVE_UP_AFTER_MS;
   const attemptTimeoutMs = options.attemptTimeoutMs ?? ATTEMPT_TIMEOUT_MS;
+  const slowPollMs = options.slowPollMs ?? SLOW_POLL_MS;
 
   let phase: Phase = 'idle';
   let generation = 0;
   let wakingTimer: ReturnType<typeof setTimeout> | undefined;
+  let gaveUp = false;
+  let wakeSlowPoll: (() => void) | undefined;
 
   async function probe(timeoutMs: number): Promise<boolean> {
     const controller = new AbortController();
@@ -71,26 +79,41 @@ export function createServerWarmup(options: ServerWarmupOptions): ServerWarmup {
       }, wakingAfterMs);
     }
 
+    gaveUp = false;
     for (let attempt = 0; ; attempt += 1) {
       const remaining = giveUpAfterMs - (Date.now() - startedAt);
-      const answered = await probe(Math.max(1, Math.min(attemptTimeoutMs, remaining)));
+      const answered = await probe(
+        gaveUp ? attemptTimeoutMs : Math.max(1, Math.min(attemptTimeoutMs, remaining)),
+      );
       if (!isCurrent()) return;
 
       if (answered) {
         clearTimeout(wakingTimer);
+        gaveUp = false;
         phase = 'ready';
         options.onStatus('ready');
         return;
       }
 
-      const wait = Math.min(1_000 * 2 ** attempt, MAX_BACKOFF_MS);
-      if (Date.now() - startedAt + wait >= giveUpAfterMs) {
+      // Tras rendirse seguimos sondeando despacio: un arranque en frío largo o una pestaña en segundo
+      // plano (temporizadores frenados) no pueden dejar el aviso de error clavado con la API ya arriba.
+      if (
+        !gaveUp &&
+        Date.now() - startedAt + Math.min(1_000 * 2 ** attempt, MAX_BACKOFF_MS) >= giveUpAfterMs
+      ) {
         clearTimeout(wakingTimer);
-        phase = 'idle';
+        gaveUp = true;
         options.onStatus('unreachable');
-        return;
       }
-      await new Promise<void>((resolve) => setTimeout(resolve, wait));
+      const wait = gaveUp ? slowPollMs : Math.min(1_000 * 2 ** attempt, MAX_BACKOFF_MS);
+      await new Promise<void>((resolve) => {
+        const timer = setTimeout(resolve, wait);
+        wakeSlowPoll = () => {
+          clearTimeout(timer);
+          resolve();
+        };
+      });
+      wakeSlowPoll = undefined;
       if (!isCurrent()) return;
     }
   }
@@ -101,12 +124,18 @@ export function createServerWarmup(options: ServerWarmupOptions): ServerWarmup {
       void run('checking');
     },
     retry() {
-      if (phase !== 'idle') return;
+      if (phase === 'ready' || (phase === 'running' && !gaveUp)) return;
       void run('waking');
+    },
+    recheck() {
+      if (phase === 'running' && gaveUp) wakeSlowPoll?.();
     },
     stop() {
       generation += 1;
       clearTimeout(wakingTimer);
+      wakeSlowPoll?.();
+      wakeSlowPoll = undefined;
+      gaveUp = false;
       phase = 'idle';
     },
   };
