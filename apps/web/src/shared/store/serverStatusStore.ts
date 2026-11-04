@@ -19,6 +19,14 @@ export const useServerStatusStore = create<ServerStatusState>((set) => {
     },
   });
 
+  if (typeof window !== 'undefined') {
+    // Al volver a la pestaña o recuperar la red no hay que esperar al siguiente sondeo lento.
+    window.addEventListener('online', warmup.recheck);
+    document.addEventListener('visibilitychange', () => {
+      if (document.visibilityState === 'visible') warmup.recheck();
+    });
+  }
+
   return {
     status: 'checking',
     start: warmup.start,

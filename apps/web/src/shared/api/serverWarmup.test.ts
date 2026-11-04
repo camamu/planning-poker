@@ -98,7 +98,7 @@ describe('serverWarmup', () => {
     expect(Math.max(...gaps)).toBeLessThanOrEqual(5_100);
   });
 
-  it('pasa a unreachable al agotar los reintentos y no sigue llamando', async () => {
+  it('pasa a unreachable al agotar los reintentos y sigue sondeando despacio', async () => {
     const { warmup, statuses, fetchSpy } = setup(['hang']);
 
     warmup.start();
@@ -107,7 +107,49 @@ describe('serverWarmup', () => {
     expect(statuses).toEqual(['checking', 'waking', 'unreachable']);
     const callsAtGiveUp = fetchSpy.mock.calls.length;
     await vi.advanceTimersByTimeAsync(60_000);
-    expect(fetchSpy).toHaveBeenCalledTimes(callsAtGiveUp);
+    const slowCalls = fetchSpy.mock.calls.length - callsAtGiveUp;
+    expect(slowCalls).toBeGreaterThanOrEqual(2);
+    expect(slowCalls).toBeLessThanOrEqual(4);
+  });
+
+  it('se recupera solo si la API contesta después de haberse rendido', async () => {
+    let healthy = false;
+    const statuses: ServerStatus[] = [];
+    const warmup = createServerWarmup({
+      healthUrl: 'https://api.test/health',
+      fetch: vi.fn<typeof fetch>(() =>
+        Promise.resolve(new Response('', { status: healthy ? 200 : 503 })),
+      ),
+      onStatus: (status) => statuses.push(status),
+    });
+    warmup.start();
+    await vi.advanceTimersByTimeAsync(95_000);
+    expect(statuses.at(-1)).toBe('unreachable');
+
+    healthy = true;
+    await vi.advanceTimersByTimeAsync(20_000);
+
+    expect(statuses.at(-1)).toBe('ready');
+  });
+
+  it('recheck tras unreachable pregunta ya, sin esperar al siguiente sondeo', async () => {
+    let healthy = false;
+    const statuses: ServerStatus[] = [];
+    const warmup = createServerWarmup({
+      healthUrl: 'https://api.test/health',
+      fetch: vi.fn<typeof fetch>(() =>
+        Promise.resolve(new Response('', { status: healthy ? 200 : 503 })),
+      ),
+      onStatus: (status) => statuses.push(status),
+    });
+    warmup.start();
+    await vi.advanceTimersByTimeAsync(95_000);
+
+    healthy = true;
+    warmup.recheck();
+    await vi.advanceTimersByTimeAsync(0);
+
+    expect(statuses.at(-1)).toBe('ready');
   });
 
   it('retry tras unreachable vuelve a intentarlo directamente en waking', async () => {
