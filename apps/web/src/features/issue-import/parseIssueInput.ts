@@ -1,4 +1,10 @@
-import { isHttpUrl, issueKeyFromUrl } from '@pp/contracts';
+import {
+  MAX_ISSUE_DESCRIPTION_LENGTH,
+  MAX_ISSUE_TITLE_LENGTH,
+  MAX_URL_LENGTH,
+  isHttpUrl,
+  issueKeyFromUrl,
+} from '@pp/contracts';
 
 export interface ParsedIssue {
   readonly title: string;
@@ -50,13 +56,32 @@ function detectSeparator(text: string): string {
   return counts.reduce((best, next) => (next.count > best.count ? next : best)).separator;
 }
 
+/**
+ * El servidor rechaza una importación entera si una tarea excede un máximo (ADR 0023: todas o
+ * ninguna), así que lo que no cabe se recorta aquí con una elipsis en lugar de tumbar el lote. Sin
+ * partir un par sustituto: medio emoji no es texto válido.
+ */
+function clamp(text: string, max: number): string {
+  if (text.length <= max) return text;
+  let end = max - 1;
+  const last = text.charCodeAt(end - 1);
+  if (last >= 0xd800 && last <= 0xdbff) end -= 1;
+  return `${text.slice(0, end).trimEnd()}…`;
+}
+
+/** Un enlace que no cabe no se recorta (quedaría roto): se descarta y la tarea se conserva. */
+function usableLink(link: string): string | undefined {
+  return isHttpUrl(link) && link.length <= MAX_URL_LENGTH ? link : undefined;
+}
+
 function issueFromLine(raw: string): ParsedIssue[] {
   const line = raw.trim();
   if (line === '') return [];
-  if (/^\S+$/.test(line) && isHttpUrl(line)) {
-    return [{ title: issueKeyFromUrl(line), externalUrl: line }];
+  const link = /^\S+$/.test(line) ? usableLink(line) : undefined;
+  if (link !== undefined) {
+    return [{ title: clamp(issueKeyFromUrl(link), MAX_ISSUE_TITLE_LENGTH), externalUrl: link }];
   }
-  return [{ title: line }];
+  return [{ title: clamp(line, MAX_ISSUE_TITLE_LENGTH) }];
 }
 
 function issueFromCsvRow(header: ReadonlyArray<string>, row: ReadonlyArray<string>): ParsedIssue[] {
@@ -65,8 +90,7 @@ function issueFromCsvRow(header: ReadonlyArray<string>, row: ReadonlyArray<strin
     return (index === -1 ? '' : (row[index] ?? '')).trim();
   };
 
-  const link = cell(LINK_COLUMNS);
-  const externalUrl = isHttpUrl(link) ? link : undefined;
+  const externalUrl = usableLink(cell(LINK_COLUMNS));
   // Sin resumen, la clave y, en último caso, la clave del enlace: una fila no se pierde por no
   // traer el título (p. ej. un CSV con solo `key` y `link`).
   const title =
@@ -78,8 +102,10 @@ function issueFromCsvRow(header: ReadonlyArray<string>, row: ReadonlyArray<strin
   const description = cell(DESCRIPTION_COLUMNS);
   return [
     {
-      title,
-      ...(description === '' ? {} : { description }),
+      title: clamp(title, MAX_ISSUE_TITLE_LENGTH),
+      ...(description === ''
+        ? {}
+        : { description: clamp(description, MAX_ISSUE_DESCRIPTION_LENGTH) }),
       ...(externalUrl === undefined ? {} : { externalUrl }),
     },
   ];

@@ -1,3 +1,4 @@
+import { MAX_TEAM_NAME_LENGTH } from '@pp/contracts';
 import type { AdminTeamView } from '@pp/contracts';
 import { useCallback, useState } from 'react';
 import type { JSX } from 'react';
@@ -117,6 +118,7 @@ export function TeamsSection({ token, query, onUnauthorized }: AdminSectionProps
           <div className="flex flex-col gap-2">
             <Input
               label="Nombre del equipo"
+              maxLength={MAX_TEAM_NAME_LENGTH}
               value={newName}
               onChange={(event) => {
                 setNewName(event.target.value);

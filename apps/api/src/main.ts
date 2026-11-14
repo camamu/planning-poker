@@ -52,6 +52,8 @@ import { ListGameDecks } from './application/use-cases/ListGameDecks.js';
 import { UpdateGameSettings } from './application/use-cases/UpdateGameSettings.js';
 import { loadEnv } from './infrastructure/config/env.js';
 import { LoginThrottle } from './infrastructure/http/LoginThrottle.js';
+import { registerHttpRateLimit } from './infrastructure/http/rateLimit.js';
+import { registerApiSecurityHeaders } from './infrastructure/http/securityHeaders.js';
 import {
   registerAdminRoutes,
   registerDisabledAdminRoutes,
@@ -68,11 +70,17 @@ import { PostgresGameRepository } from './infrastructure/persistence/postgres/Po
 import { PostgresTeamRepository } from './infrastructure/persistence/postgres/PostgresTeamRepository.js';
 import { DiscussionTimerTracker } from './infrastructure/realtime/DiscussionTimerTracker.js';
 import { GameVersionTracker } from './infrastructure/realtime/GameVersionTracker.js';
-import { registerSocketGateway } from './infrastructure/realtime/SocketIoGateway.js';
+import {
+  registerSocketGateway,
+  SOCKET_MAX_PAYLOAD_BYTES,
+} from './infrastructure/realtime/SocketIoGateway.js';
+import { SocketRateLimits } from './infrastructure/realtime/SocketRateLimits.js';
 import { SocketIoBroadcaster } from './infrastructure/realtime/SocketIoBroadcaster.js';
 import { PresenceTracker } from './infrastructure/realtime/PresenceTracker.js';
 import { createPresenceListener } from './infrastructure/realtime/presenceListener.js';
 import { WsEventPublisher } from './infrastructure/realtime/WsEventPublisher.js';
+import { fastifyTrustProxy } from './infrastructure/security/clientIp.js';
+import { DEFAULT_RATE_LIMIT_POLICY } from './infrastructure/security/rateLimitPolicy.js';
 import { RandomSecretGenerator } from './infrastructure/security/RandomSecretGenerator.js';
 import { HttpWebhookSender } from './infrastructure/webhooks/HttpWebhookSender.js';
 import { HmacAdminSessions } from './infrastructure/security/HmacAdminSessions.js';
@@ -83,7 +91,10 @@ import { SystemClock } from './infrastructure/time/SystemClock.js';
 const env = loadEnv();
 const ADMIN_SESSION_TTL_MS = 8 * 60 * 60 * 1000;
 
-const app = Fastify({ logger: { level: env.LOG_LEVEL } });
+const app = Fastify({
+  logger: { level: env.LOG_LEVEL },
+  trustProxy: fastifyTrustProxy(env.TRUST_PROXY_HOPS),
+});
 const pool = new Pool({ connectionString: env.DATABASE_URL });
 
 pool.on('error', (error) => {
@@ -107,9 +118,21 @@ await app.register(cors, {
   origin: env.CORS_ORIGIN,
   methods: ['GET', 'POST', 'PATCH', 'PUT', 'DELETE'],
 });
+// Después de CORS: un 429 sin `Access-Control-Allow-Origin` llega al navegador como error de red.
+registerHttpRateLimit(app, DEFAULT_RATE_LIMIT_POLICY.http, clock);
+registerApiSecurityHeaders(app, { hsts: env.NODE_ENV === 'production' });
+if (env.NODE_ENV === 'production' && env.TRUST_PROXY_HOPS === 0) {
+  app.log.warn(
+    'TRUST_PROXY_HOPS=0: si la API está detrás de un proxy, todos los clientes compartirán IP y ' +
+      'sus límites de uso. Ver docs/06-despliegue.md §4.',
+  );
+}
 registerHealthRoutes(app, pool, env.APP_VERSION);
 
-const io = new SocketIoServer(app.server, { cors: { origin: env.CORS_ORIGIN } });
+const io = new SocketIoServer(app.server, {
+  cors: { origin: env.CORS_ORIGIN },
+  maxHttpBufferSize: SOCKET_MAX_PAYLOAD_BYTES,
+});
 const broadcaster = new SocketIoBroadcaster(io);
 const webhookSender = new HttpWebhookSender();
 // El origen del front, que ya es `CORS_ORIGIN`, para el enlace de la partida en el cuerpo de los webhooks.
@@ -252,6 +275,8 @@ registerSocketGateway(io, {
   discussionTimer,
   presence,
   clock,
+  rateLimits: new SocketRateLimits(DEFAULT_RATE_LIMIT_POLICY.socket),
+  trustedProxyHops: env.TRUST_PROXY_HOPS,
 });
 
 app.addHook('onClose', async () => {

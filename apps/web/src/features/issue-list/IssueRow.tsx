@@ -1,4 +1,4 @@
-import { isHttpUrl } from '@pp/contracts';
+import { isHttpUrl, MAX_ISSUE_TITLE_LENGTH } from '@pp/contracts';
 import type { IssueView } from '@pp/contracts';
 import { useRef, useState } from 'react';
 import type { DragEvent, JSX, SubmitEvent } from 'react';
@@ -131,6 +131,7 @@ export function IssueRow({
             <div className="min-w-0 flex-1">
               <Input
                 aria-label="Título de la tarea"
+                maxLength={MAX_ISSUE_TITLE_LENGTH}
                 autoFocus
                 value={draft}
                 onChange={(event) => {

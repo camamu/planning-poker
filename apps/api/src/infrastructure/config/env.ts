@@ -10,6 +10,8 @@ const envSchema = z
     LOG_LEVEL: z.enum(['fatal', 'error', 'warn', 'info', 'debug', 'trace']).default('info'),
     SESSION_SECRET: z.string().min(1),
     APP_VERSION: z.string().default('dev'),
+    // Proxies de confianza entre el cliente y la API (Cloudflare, balanceador…): ver ADR 0031.
+    TRUST_PROXY_HOPS: z.coerce.number().int().min(0).max(10).default(0),
     // Opcionales a la vez: sin ninguno de los dos, el panel de gestión queda desactivado (ADR 0030).
     ADMIN_USERNAME: z.string().min(1).optional(),
     ADMIN_PASSWORD_HASH: z

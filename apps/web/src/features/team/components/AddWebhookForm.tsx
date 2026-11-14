@@ -1,4 +1,4 @@
-import { WEBHOOK_EVENTS } from '@pp/contracts';
+import { MAX_URL_LENGTH, WEBHOOK_EVENTS } from '@pp/contracts';
 import type { AddWebhookCommandInput, WebhookEventName } from '@pp/contracts';
 import { useState } from 'react';
 import type { JSX, SubmitEvent } from 'react';
@@ -54,6 +54,7 @@ export function AddWebhookForm({ disabled, onSubmit }: AddWebhookFormProps): JSX
         label="URL del receptor"
         type="url"
         placeholder="https://…"
+        maxLength={MAX_URL_LENGTH}
         value={url}
         disabled={disabled}
         onChange={(event) => {

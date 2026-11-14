@@ -95,10 +95,21 @@ VPS, no de parchear con más automatismos.
    SESSION_SECRET     → generado, guardado como secreto de Render
    ADMIN_USERNAME     → usuario del panel /admin (opcional, junto con el siguiente)
    ADMIN_PASSWORD_HASH→ salida de `pnpm --filter @pp/api admin:hash-password`, como secreto
+   TRUST_PROXY_HOPS   → proxies de confianza delante de la API (ver más abajo; probablemente 2)
    ```
    Sin `ADMIN_USERNAME`/`ADMIN_PASSWORD_HASH` el panel de gestión queda desactivado (`/api/admin/*`
    responde 503); ver `docs/adr/0030-panel-de-gestion.md`. Cambiar la contraseña (o
    `SESSION_SECRET`) cierra todas las sesiones de administración abiertas.
+   **`TRUST_PROXY_HOPS`** (`docs/adr/0031-endurecimiento.md`) es cuántos proxies hay entre el
+   cliente y la API. Con Cloudflare y el balanceador de Render por delante se espera `2`; por
+   defecto es `0` (sin proxy, el valor correcto en local) y entonces todos los clientes comparten
+   IP y, con ella, los límites de uso por IP y el freno del login de `/admin`. La API avisa al
+   arrancar en producción si queda en `0`. **Es la única variable que falla sin dar error**: un
+   valor demasiado bajo junta a todo el mundo en un solo contador, y uno demasiado alto deja que
+   el cliente falsifique su IP con `X-Forwarded-For`. Para comprobarlo en el primer despliegue,
+   abrir cualquier ruta de la API y mirar en los logs de Render el `remoteAddress` de esa
+   petición: tiene que ser la IP pública de quien la hizo, no la de un proxy (el valor se
+   corrige sin tocar código, solo la variable).
    `APP_VERSION` no se define aquí: viaja dentro de la imagen, inyectada por `publish.yml` con el tag
    de la release, y es lo que `deploy.yml` comprueba contra `/health`.
 4. Copiar la **Deploy Hook URL** de Settings y guardarla como secreto `RENDER_DEPLOY_HOOK_URL` en
@@ -138,6 +149,12 @@ VPS, no de parchear con más automatismos.
    lo usa para que la imagen de Open Graph de la portada tenga URL absoluta, que es lo que Slack y
    Teams necesitan para enseñarla al pegar el enlace (ADR 0029). Sin ella el título y la
    descripción se ven igual; solo puede faltar la imagen.
+7. Las cabeceras de seguridad de la web (CSP, `Referrer-Policy: no-referrer`…) salen de
+   `apps/web/build/securityHeaders.ts`, que el build escribe en `dist/_headers` y Cloudflare aplica
+   a cada respuesta. La CSP necesita el origen de la API, que ya está en `VITE_API_URL`; no hay
+   nada que configurar a mano. Cambiar de tipografía, de servicio de analítica o de origen de
+   imágenes obliga a tocar ese fichero, o la CSP lo bloqueará (ADR 0031). La imagen `web`
+   autoalojada (`sirv`) no aplica `_headers`: quien la use debe poner las cabeceras en su proxy.
 
 ---
 
@@ -165,5 +182,9 @@ Al vivir la API y el front en dominios diferentes (`*.onrender.com` y `*.workers
 - [ ] `heartbeat.yml` corriendo en cron, verificado manualmente una vez con `workflow_dispatch`
 - [ ] Simulado un "despertar en frío": cerrar toda pestaña, esperar 20+ minutos, abrir el enlace y
       confirmar que carga (aunque tarde) en vez de dar error
+- [ ] `TRUST_PROXY_HOPS` comprobada: el `remoteAddress` de los logs de la API es la IP pública del
+      cliente (§4), no la de un proxy
+- [ ] La web carga sin violaciones de CSP en la consola del navegador (pestaña «Consola» con la
+      portada, crear partida y entrar a la mesa)
 - [ ] Documentado en el README dónde vive cada pieza y cómo se despliega, para quien no haya seguido
       esta conversación

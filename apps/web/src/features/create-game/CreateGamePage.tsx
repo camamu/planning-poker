@@ -1,3 +1,4 @@
+import { MAX_GAME_NAME_LENGTH, MAX_PLAYER_NAME_LENGTH } from '@pp/contracts';
 import type { DeckSummaryView } from '@pp/contracts';
 import { useEffect, useState } from 'react';
 import type { JSX, SubmitEvent } from 'react';
@@ -115,6 +116,7 @@ export function CreateGamePage(): JSX.Element {
       >
         <Input
           label="Nombre de la partida"
+          maxLength={MAX_GAME_NAME_LENGTH}
           value={name}
           onChange={(event) => {
             setName(event.target.value);
@@ -123,6 +125,7 @@ export function CreateGamePage(): JSX.Element {
         />
         <Input
           label="Tu nombre (facilitador)"
+          maxLength={MAX_PLAYER_NAME_LENGTH}
           value={facilitatorName}
           onChange={(event) => {
             setFacilitatorName(event.target.value);
