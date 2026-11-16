@@ -2,6 +2,7 @@ import type { EphemeralEvent, GameView, IssueView, ServerEvent } from '@pp/contr
 import { create } from 'zustand';
 import { editIssue, removeIssue, reorderIssues } from '../api/gamesClient.js';
 import { getSocket } from '../socket/connection.js';
+import { useServerStatusStore } from './serverStatusStore.js';
 import { WEBHOOK_EVENT_LABELS } from '../webhooks/webhookEventLabels.js';
 import { gameEventsReducer, needsResync } from '../socket/gameEventsReducer.js';
 
@@ -336,6 +337,9 @@ const socket = getSocket();
 // cliente deja de recibir eventos y la mesa se queda congelada aunque los cambios sí se guarden.
 socket.on('connect', () => {
   useGameStore.setState({ status: 'connected' });
+  // Si el socket conecta, la API está despierta aunque `/health` aún no haya contestado: sin esto el
+  // aviso «Despertando el servidor…» seguía en pantalla con la mesa ya funcionando y acababa en error.
+  useServerStatusStore.getState().markReady();
   const { gameId, participantId } = useGameStore.getState();
   if (gameId && participantId) socket.emit('join', { gameId, participantId });
 });

@@ -67,6 +67,10 @@ que no responde y lo interpreta como un fallo.
   momento. Antes dejaba de preguntar para siempre, y un arranque en frío largo o una pestaña en
   segundo plano (temporizadores frenados) dejaban el aviso de error clavado con la API ya
   levantada y los botones deshabilitados. «Reintentar» sigue funcionando y salta la espera.
+- **El socket también cuenta como «despierta».** Al conectar, `gameStore` llama a
+  `serverStatus.markReady()`, que corta los sondeos y pasa a `ready`. `/health` puede fallar por
+  motivos propios (CORS, un proxy, un timeout) con la API ya sirviendo; sin esto, en la mesa se
+  veía «Despertando el servidor…» con el socket conectado y, a los 90 s, el aviso de error.
 - **Bloque 21.** La página principal pide calentar «en silencio, sin banner»; el calentamiento ya es
   global y arranca al cargar cualquier ruta, así que el bloque 21 solo tendrá que ocultar el banner
   en `/` (por ejemplo, comprobando la ruta en `ServerWakeBanner`), no volver a lanzar nada.
