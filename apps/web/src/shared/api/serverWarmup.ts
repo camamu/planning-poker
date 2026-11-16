@@ -20,6 +20,11 @@ export interface ServerWarmup {
   retry: () => void;
   /** Pregunta ya (pestaña visible de nuevo, red recuperada) en vez de esperar al siguiente sondeo. */
   recheck: () => void;
+  /**
+   * Otra vía ya demostró que la API está despierta (el socket conectó): `/health` puede seguir
+   * fallando por motivos propios (CORS, un proxy, un timeout) y no debe dejar el aviso clavado.
+   */
+  markReady: () => void;
   stop: () => void;
 }
 
@@ -129,6 +134,16 @@ export function createServerWarmup(options: ServerWarmupOptions): ServerWarmup {
     },
     recheck() {
       if (phase === 'running' && gaveUp) wakeSlowPoll?.();
+    },
+    markReady() {
+      if (phase === 'ready') return;
+      generation += 1;
+      clearTimeout(wakingTimer);
+      wakeSlowPoll?.();
+      wakeSlowPoll = undefined;
+      gaveUp = false;
+      phase = 'ready';
+      options.onStatus('ready');
     },
     stop() {
       generation += 1;
