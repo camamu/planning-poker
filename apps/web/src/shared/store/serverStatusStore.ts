@@ -8,6 +8,8 @@ interface ServerStatusState {
   start: () => void;
   /** Tras `unreachable`: vuelve a intentarlo. */
   retry: () => void;
+  /** Otra conexión con la API (el socket) ya respondió: el servidor está despierto. */
+  markReady: () => void;
 }
 
 export const useServerStatusStore = create<ServerStatusState>((set) => {
@@ -31,6 +33,7 @@ export const useServerStatusStore = create<ServerStatusState>((set) => {
     status: 'checking',
     start: warmup.start,
     retry: warmup.retry,
+    markReady: warmup.markReady,
   };
 });
 

@@ -201,4 +201,27 @@ describe('serverWarmup', () => {
     expect(fetchSpy).toHaveBeenCalledTimes(callsWhenStopped);
     expect(statuses).toEqual(['checking']);
   });
+  it('markReady quita el aviso aunque /health siga sin contestar y deja de sondear', async () => {
+    const { warmup, statuses, fetchSpy } = setup(['network-error']);
+
+    warmup.start();
+    await vi.advanceTimersByTimeAsync(3_000);
+    warmup.markReady();
+    const callsWhenReady = fetchSpy.mock.calls.length;
+    await vi.advanceTimersByTimeAsync(120_000);
+
+    expect(statuses).toEqual(['checking', 'waking', 'ready']);
+    expect(fetchSpy).toHaveBeenCalledTimes(callsWhenReady);
+  });
+
+  it('markReady tras unreachable sustituye el error por ready', async () => {
+    const { warmup, statuses } = setup(['hang']);
+
+    warmup.start();
+    await vi.advanceTimersByTimeAsync(95_000);
+    warmup.markReady();
+    warmup.markReady();
+
+    expect(statuses).toEqual(['checking', 'waking', 'unreachable', 'ready']);
+  });
 });
