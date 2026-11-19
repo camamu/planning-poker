@@ -1,5 +1,14 @@
 # Changelog
 
+## [1.9.2](https://github.com/camamu/planning-poker/compare/planning-poker-v1.9.1...planning-poker-v1.9.2) (2026-11-19)
+
+
+### Bug Fixes
+
+* **web:** quita el aviso de despertar en cuanto conecta el socket ([dd459ed](https://github.com/camamu/planning-poker/commit/dd459ed945ff8c88bd5c5b848fc8036f4612eee9))
+* **web:** quita el aviso de despertar en cuanto conecta el socket ([e64fa50](https://github.com/camamu/planning-poker/commit/e64fa50fcc4b0cd01c0c3a9bf7db7a1d2b5aa6ab))
+* **web:** quita el aviso de despertar en cuanto conecta el socket ([4c75db1](https://github.com/camamu/planning-poker/commit/4c75db14c0dfcdb0de46771c973c21bdfc220e83))
+
 ## [1.9.1](https://github.com/camamu/planning-poker/compare/planning-poker-v1.9.0...planning-poker-v1.9.1) (2026-11-04)
 
 
