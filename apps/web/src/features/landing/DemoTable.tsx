@@ -1,6 +1,8 @@
 import type { GameView, ParticipantView, RoundResultView, RoundView } from '@pp/contracts';
-import { useRef } from 'react';
+import { useRef, useState } from 'react';
 import type { JSX } from 'react';
+import { Snowfall } from '../../design-system/index.js';
+import { readSnowOff, useSeason } from '../../shared/season/season.js';
 import { Table } from '../game-table/components/Table.js';
 import { useContainerSize } from '../game-table/hooks/useContainerSize.js';
 import { orderSeatsWithViewerAt } from '../game-table/seatLayout.js';
@@ -147,12 +149,16 @@ export function DemoTable(): JSX.Element {
   const { game, round } = demoRound(layout);
   const average = formatPoints(layout.result.average);
   const agreement = `${layout.result.agreementPercentage.toString()}%`;
+  // En invierno también nieva aquí, con el mismo muñeco que en la sala (ADR 0031). La preferencia
+  // «sin nieve» se lee del navegador sin pasar por el store de la partida, que la portada no carga.
+  const [snowing] = useState(() => !readSnowOff());
+  const season = useSeason();
 
   return (
     <div
       role="img"
       aria-label={`Ejemplo de ronda revelada: ${layout.players.length.toString()} votos, media ${average} y un ${agreement} de acuerdo`}
-      className="flex flex-col gap-2.5 rounded-2xl p-3"
+      className="relative flex flex-col gap-2.5 rounded-2xl p-3"
       style={{
         background: 'color-mix(in srgb, var(--color-surface) 55%, transparent)',
         boxShadow: '0 0 0 1px var(--pp-line)',
@@ -188,6 +194,9 @@ export function DemoTable(): JSX.Element {
         <StatTile label="Media" value={average} />
         <StatTile label="Acuerdo" value={agreement} />
       </div>
+      {season === 'winter' && snowing ? (
+        <Snowfall floorRef={frameRef} snowmanHat={null} snowmanHue={289} />
+      ) : null}
     </div>
   );
 }

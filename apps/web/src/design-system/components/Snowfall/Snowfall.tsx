@@ -38,11 +38,6 @@ const HINTS = {
   already: 'Ya tienes muñeco. Derrítelo para hacer otro',
 } as const;
 
-interface Hint {
-  readonly text: string;
-  readonly top: number;
-}
-
 interface HatPlacement {
   readonly left: number;
   readonly top: number;
@@ -187,7 +182,9 @@ export function Snowfall({
   const sceneRef = useRef<SnowScene | null>(null);
   // El bucle de animación vive fuera de React: lee los valores del último render por aquí.
   const latest = useRef({ floorRef, capSelector, snowmanHue, onSnowmanChange });
-  const [hint, setHint] = useState<Hint | null>(null);
+  const [hint, setHint] = useState<string | null>(null);
+  // Aparte del texto: el suelo puede moverse con el aviso ya en pantalla (la mesa termina de medirse).
+  const [hintTop, setHintTop] = useState(0);
   const [hatPlacement, setHatPlacement] = useState<HatPlacement | null>(null);
 
   useEffect(() => {
@@ -214,10 +211,11 @@ export function Snowfall({
     let lastStage: SnowmanStage = 'none';
     let lastHat: HatPlacement | null = null;
     let measured = false;
+    let lastHintTop = 0;
     let frame = 0;
 
     const showHint = (text: string, ms = 2800): void => {
-      setHint({ text, top: scene.floor.y - 64 });
+      setHint(text);
       clearTimeout(hintTimeout);
       hintTimeout = setTimeout(() => {
         setHint(null);
@@ -234,6 +232,11 @@ export function Snowfall({
       const density = Math.max(0.45, Math.min(1.2, geometry.width / 1000));
       scene.setFlakeCount(reducedMotion ? 0 : Math.round(90 * density), !measured);
       colors = readSnowColors(canvas);
+      const top = scene.floor.y - 64;
+      if (Math.abs(top - lastHintTop) > 1) {
+        lastHintTop = top;
+        setHintTop(top);
+      }
       if (!measured) showHint(HINTS.intro, 9000);
       measured = true;
     };
@@ -304,13 +307,13 @@ export function Snowfall({
           role="status"
           className="pointer-events-none absolute left-4 z-20 rounded-full px-3 py-1.5 text-xs font-semibold"
           style={{
-            top: hint.top,
+            top: hintTop,
             background: 'var(--color-accent)',
             color: 'var(--pp-on-accent)',
             boxShadow: '0 6px 18px rgba(0,0,0,.3)',
           }}
         >
-          {hint.text}
+          {hint}
         </div>
       ) : null}
     </>
