@@ -129,7 +129,8 @@ export const FEATURE_GROUPS: ReadonlyArray<FeatureGroupContent> = [
       {
         icon: 'snow',
         title: 'Nieve en Navidad',
-        description: 'Del 1 de diciembre al 6 de enero nieva en la mesa y puedes hacer un muñeco.',
+        description:
+          'Del 1 de diciembre al 6 de enero nieva en la mesa, haces un muñeco y lanzas bolas de nieve.',
       },
       {
         icon: 'deal',
