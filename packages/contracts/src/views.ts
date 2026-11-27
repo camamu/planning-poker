@@ -1,6 +1,18 @@
 /** Mismo catálogo que `HAT_IDS` del dominio; `hatIds` en commands.ts lo valida en el borde. */
 export type HatIdView =
-  'cowboy' | 'wizard' | 'propeller' | 'crown' | 'top-hat' | 'party' | 'pirate' | 'viking' | 'chef';
+  | 'cowboy'
+  | 'wizard'
+  | 'propeller'
+  | 'crown'
+  | 'top-hat'
+  | 'party'
+  | 'pirate'
+  | 'viking'
+  | 'chef'
+  | 'santa'
+  | 'beanie'
+  | 'reindeer'
+  | 'elf';
 export type ParticipantRoleView = 'VOTER' | 'SPECTATOR';
 export type IssueStatusView = 'PENDING' | 'VOTING' | 'ESTIMATED';
 export type RoundStatusView = 'OPEN' | 'REVEALED' | 'CLOSED';
@@ -98,6 +110,8 @@ export interface GameSettingsView {
   readonly allowVoteChange: boolean;
   readonly celebrate: boolean;
   readonly throwEmojis: boolean;
+  /** «Nevada»: solo se nota en temporada de invierno (ADR 0031). */
+  readonly snow: boolean;
   readonly countdownSeconds: number | null;
   readonly revealOnTimeout: boolean;
 }
