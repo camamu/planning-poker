@@ -1,5 +1,15 @@
 # Changelog
 
+## [1.11.0](https://github.com/camamu/planning-poker/compare/planning-poker-v1.10.0...planning-poker-v1.11.0) (2026-11-27)
+
+
+### Features
+
+* **web:** bola de nieve lanzable en temporada ([0e16b78](https://github.com/camamu/planning-poker/commit/0e16b7802160feae494482156696d4083c343824))
+* **web:** bola de nieve, nieve en la portada, consenso nevado y cascabel ([8785200](https://github.com/camamu/planning-poker/commit/8785200ab75b1b1c83f855f5c6c8c21c3c059035))
+* **web:** consenso nevado y cascabel al revelar en invierno ([5f3a966](https://github.com/camamu/planning-poker/commit/5f3a9663c0b1a21bab2378a0bd94792a125b6f99))
+* **web:** nieve en la portada ([3c38adf](https://github.com/camamu/planning-poker/commit/3c38adf972640e7ced8c487865644ed0f34f63e9))
+
 ## [1.10.0](https://github.com/camamu/planning-poker/compare/planning-poker-v1.9.2...planning-poker-v1.10.0) (2026-11-27)
 
 
