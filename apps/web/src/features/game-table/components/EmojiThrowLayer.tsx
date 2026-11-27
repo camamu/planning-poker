@@ -1,9 +1,13 @@
+import { Fragment } from 'react';
 import type { CSSProperties, JSX } from 'react';
 import type { EmojiInFlight } from '../../../shared/store/gameStore.js';
 import type { SeatPosition, ThrowOffset } from '../seatLayout.js';
+import { SNOWBALL } from '../snowball.js';
 
 export const THROW_FLIGHT_MS = 620;
 export const THROW_TOTAL_MS = 1000;
+/** El pegote de la bola de nieve dura lo que le queda al lanzamiento antes de que se retire (2,5 s). */
+const SPLAT_MS = 1800;
 
 /** `CSSProperties` no admite custom properties por defecto; `ppThrowArc` las necesita para su geometría por lanzamiento. */
 type ThrowStyle = CSSProperties & { [key: `--pp-${string}`]: string };
@@ -55,14 +59,33 @@ export function EmojiThrowLayer({
               animation: 'ppReact 2.2s ease-out forwards',
             };
 
+        const snowball = entry.emoji === SNOWBALL;
+        const target =
+          throwing && entry.toParticipantId ? seatsById.get(entry.toParticipantId) : null;
         return (
-          <span
-            key={entry.id}
-            className="pointer-events-none absolute z-10 -translate-x-1/2 text-2xl"
-            style={style}
-          >
-            {entry.emoji}
-          </span>
+          <Fragment key={entry.id}>
+            <span
+              className="pointer-events-none absolute z-10 -translate-x-1/2 text-2xl"
+              style={style}
+            >
+              {snowball && throwing ? (
+                <span className="pp-snowball" aria-hidden="true" />
+              ) : (
+                entry.emoji
+              )}
+            </span>
+            {snowball && target ? (
+              <span
+                className="pp-snow-splat pointer-events-none absolute z-10"
+                style={{
+                  left: target.left,
+                  top: target.top,
+                  animation: `ppSnowSplat ${SPLAT_MS.toString()}ms ease-out ${THROW_FLIGHT_MS.toString()}ms both`,
+                }}
+                aria-hidden="true"
+              />
+            ) : null}
+          </Fragment>
         );
       })}
     </>
