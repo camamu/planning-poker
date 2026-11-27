@@ -1,5 +1,5 @@
 import type { GameView, ParticipantView, RoundView } from '@pp/contracts';
-import { cleanup, render, screen } from '@testing-library/react';
+import { cleanup, fireEvent, render, screen } from '@testing-library/react';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import { orderSeatsWithViewerAt } from '../seatLayout.js';
 import { Table } from './Table.js';
@@ -57,7 +57,7 @@ const game: GameView = {
   asyncRounds: [],
 };
 
-function renderTable(compact: boolean): void {
+function renderTable(compact: boolean, onSeatActions?: (participantId: string) => void): void {
   render(
     <Table
       game={game}
@@ -66,6 +66,7 @@ function renderTable(compact: boolean): void {
       viewerId="carla"
       selectedCard={null}
       compact={compact}
+      onSeatActions={onSeatActions}
     />,
   );
 }
@@ -111,5 +112,15 @@ describe('Table en el móvil', () => {
 
     expect(seatOf('Tú')).toHaveStyle({ left: '50%', top: '96%' });
     expect(screen.getByText('Estimando ahora · Pagar con Bizum')).toBeInTheDocument();
+  });
+
+  it('el facilitador abre las acciones tocando el asiento de otro, y no el suyo', () => {
+    const onSeatActions = vi.fn();
+    renderTable(true, onSeatActions);
+
+    fireEvent.click(screen.getByText('Bea'));
+    expect(onSeatActions).toHaveBeenCalledWith('bea');
+
+    expect(seatOf('Tú')).not.toHaveAttribute('role', 'button');
   });
 });

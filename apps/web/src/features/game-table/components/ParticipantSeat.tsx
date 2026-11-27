@@ -38,7 +38,6 @@ const LOOK = {
     crown: 'text-[11px]',
     dealer: 'h-[17px] w-[17px] text-[9px]',
     badge: 'max-w-[104px] px-2 py-[3px] text-[10px]',
-    makeFacilitator: 'right-7 top-1',
     cape: 'h-[74px] w-16',
   },
   compact: {
@@ -50,7 +49,6 @@ const LOOK = {
     crown: 'text-[10px]',
     dealer: 'h-[14px] w-[14px] text-[8px]',
     badge: 'max-w-[78px] px-1.5 py-[2px] text-[9px]',
-    makeFacilitator: 'left-1 top-1',
     cape: 'h-14 w-12',
   },
 } as const;
@@ -81,7 +79,8 @@ export function ParticipantSeat(props: ParticipantSeatProps): JSX.Element {
       {props.onMakeFacilitator ? (
         <button
           type="button"
-          className={`absolute flex h-5 w-5 items-center justify-center rounded-full text-[10px] ${look.makeFacilitator}`}
+          // A la izquierda y por encima: junto al ✕ quedaba debajo de la carta en cuanto votaba.
+          className="absolute left-1 top-1 z-10 flex h-5 w-5 items-center justify-center rounded-full text-[10px]"
           style={{ background: 'rgba(22,24,38,.85)', color: 'var(--color-neutral-100)' }}
           aria-label={`Hacer facilitador a ${props.displayName}`}
           title={`Hacer facilitador a ${props.displayName}`}
@@ -96,7 +95,7 @@ export function ParticipantSeat(props: ParticipantSeatProps): JSX.Element {
       {props.onRemove ? (
         <button
           type="button"
-          className="absolute right-1 top-1 flex h-5 w-5 items-center justify-center rounded-full text-[10px]"
+          className="absolute right-1 top-1 z-10 flex h-5 w-5 items-center justify-center rounded-full text-[10px]"
           style={{ background: 'rgba(22,24,38,.85)', color: 'var(--color-neutral-100)' }}
           aria-label={`Quitar a ${props.displayName}`}
           onClick={(event) => {

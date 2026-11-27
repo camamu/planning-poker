@@ -32,6 +32,11 @@ export interface TableProps {
   /** Solo para el facilitador: ceder el rol al participante de ese asiento. */
   readonly onMakeFacilitatorSeat?: ((participantId: string) => void) | undefined;
   /**
+   * Solo para el facilitador en el móvil: tocar un asiento ajeno abre sus acciones, en vez de los
+   * botones 🔑 y ✕ de cada asiento, que allí no llegan al mínimo táctil (ADR 0032).
+   */
+  readonly onSeatActions?: ((participantId: string) => void) | undefined;
+  /**
    * Móvil en vertical (docs/06-handoff-diseno.md §8): la tarea va encima de la mesa y los asientos
    * en una rejilla de cuatro columnas en vez de en elipse (ADR 0032).
    */
@@ -54,6 +59,7 @@ export function Table({
   seatCursor,
   onRemoveSeat,
   onMakeFacilitatorSeat,
+  onSeatActions,
   compact = false,
 }: TableProps): JSX.Element {
   const issue = round ? game.issues.find((candidate) => candidate.id === round.issueId) : undefined;
@@ -134,7 +140,11 @@ export function Table({
                 ? () => {
                     onSeatClick(seat.id);
                   }
-                : undefined
+                : onSeatActions && seat.id !== viewerId
+                  ? () => {
+                      onSeatActions(seat.id);
+                    }
+                  : undefined
             }
           />
         );

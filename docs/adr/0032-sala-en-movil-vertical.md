@@ -33,6 +33,21 @@ desde el móvil (`docs/04-brief-diseno.md`), y el handoff ya traía la sala móv
   768 px la mesa sigue en elipse pero los botones ya no caben en la cabecera.
 - **Tablet en vertical**: por debajo de `lg` la mesa en elipse gana hueco arriba y abajo para los
   asientos que sobresalen, que pisaban la cabecera y la fila de espectadores.
+- **Acciones del facilitador sin botones pequeños**: en la mesa compacta los 🔑 y ✕ de cada asiento
+  (20 px, por debajo del mínimo táctil de 44 px del handoff) desaparecen; tocar el asiento de otro, o
+  la ficha de un mirón, abre `SeatActionsDialog` con «Hacer facilitador» y «Quitar de la partida».
+  Elegir ahí ya es la confirmación. En escritorio siguen los botones con su `window.confirm`, y en
+  ninguno de los dos se ofrecen sobre uno mismo (antes la ficha de mirón propia los enseñaba).
+- **Nieve en el móvil**: con la mano fija abajo, el suelo donde cuaja la nieve (el borde de abajo de
+  la escena) quedaba detrás de ella, y con él el montón, el muñeco y el aviso «Arrastra sobre la
+  nieve…». En la sala compacta el suelo es el borde de abajo de la mesa, con hueco para el montón.
+- **Diálogos dentro de la pantalla** (`.dialog` en `tokens/base.css`): el fondo es una única celda del
+  tamaño de la pantalla y el diálogo hace scroll si no cabe. Antes crecían con su contenido: el de
+  invitar (por el enlace) y el de emojis se salían por la derecha, y con los gorros de invierno el de
+  sombreros no cabía de alto y «Listo» quedaba fuera de alcance.
+- **«1 mirón», no «1 mirones»**: el meta de la cabecera (`roomMeta`) concuerda en número.
+- **El 🔑 de cada asiento, a la izquierda y por encima** (escritorio): junto al ✕ quedaba debajo de la
+  carta en cuanto esa persona votaba, y no se le podía ceder el rol hasta revelar.
 
 ## Consecuencias
 
