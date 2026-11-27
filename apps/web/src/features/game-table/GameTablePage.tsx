@@ -1,7 +1,7 @@
 import { useEffect, useRef, useState } from 'react';
 import type { JSX } from 'react';
 import { Link } from 'react-router-dom';
-import { Avatar, Button, hueForSeed, Snowfall, Toast } from '../../design-system/index.js';
+import { Button, hueForSeed, Snowfall, Toast } from '../../design-system/index.js';
 import type { SnowfallHandle } from '../../design-system/index.js';
 import { addIssue, importIssues } from '../../shared/api/gamesClient.js';
 import { useSeason } from '../../shared/season/season.js';
@@ -19,14 +19,19 @@ import { IssueListPanel } from '../issue-list/IssueListPanel.js';
 import { ResultsPanel } from '../results-panel/ResultsPanel.js';
 import { isSessionFinished } from '../session-summary/isSessionFinished.js';
 import { THROW_FLIGHT_MS } from './components/EmojiThrowLayer.js';
+import { EmojiControls } from './components/EmojiControls.js';
 import { FacilitatorAbsentBanner } from './components/FacilitatorAbsentBanner.js';
 import { Hand } from './components/Hand.js';
 import { LeaveFacilitatorDialog } from './components/LeaveFacilitatorDialog.js';
+import { SeatActionsDialog } from './components/SeatActionsDialog.js';
+import { SpectatorChip } from './components/SpectatorChip.js';
 import { Table } from './components/Table.js';
 import { TopBar } from './components/TopBar.js';
 import { useDiscussionTimer } from './hooks/useDiscussionTimer.js';
 import { useEmojiThrow } from './hooks/useEmojiThrow.js';
 import { useGameTable } from './hooks/useGameTable.js';
+import { roomMeta } from './roomMeta.js';
+import { COMPACT_HEADER_QUERY, COMPACT_ROOM_QUERY, useMediaQuery } from './hooks/useMediaQuery.js';
 
 export interface GameTablePageProps {
   readonly gameId: string;
@@ -46,10 +51,13 @@ export function GameTablePage({
   const [issuesOpen, setIssuesOpen] = useState(false);
   const [settingsOpen, setSettingsOpen] = useState(false);
   const [leaveDialogOpen, setLeaveDialogOpen] = useState(false);
+  const [seatActionsFor, setSeatActionsFor] = useState<string | null>(null);
   const season = useSeason();
   const sceneRef = useRef<HTMLDivElement>(null);
   const snowfallRef = useRef<SnowfallHandle>(null);
   const [snowmanDone, setSnowmanDone] = useState(false);
+  const compact = useMediaQuery(COMPACT_ROOM_QUERY);
+  const compactHeader = useMediaQuery(COMPACT_HEADER_QUERY);
 
   const previousEmojiCountRef = useRef(0);
   const pendingImpactTimeoutsRef = useRef(new Set<ReturnType<typeof setTimeout>>());
@@ -154,6 +162,26 @@ export function GameTablePage({
   // Temporada + ajuste de sala + preferencia de cada uno (ADR 0031).
   const roomSnows = season === 'winter' && game.settings.snow;
   const snowing = roomSnows && !table.snowOff;
+  // En el móvil el botón de revelar no se mueve nunca: va fijo abajo con la mano (ADR 0032).
+  const revealInDock = compact && isMyTurnToVote && round?.status === 'OPEN' && table.canReveal;
+
+  const hand =
+    round && isMyTurnToVote ? (
+      <Hand
+        cards={game.deck.cards}
+        selected={table.selectedCard}
+        disabled={round.status !== 'OPEN'}
+        hint={round.status === 'OPEN' ? 'Elige tu carta' : 'La ronda ya está revelada'}
+        onSelect={(card) => {
+          table.castVote(card);
+          playVoteSound(table.muted);
+        }}
+        emoji={emoji}
+        viewerId={participantId}
+        throwEmojisEnabled={game.settings.throwEmojis}
+        compact={compact}
+      />
+    ) : null;
 
   function confirmTransfer(targetId: string): void {
     const name = game.participants.find((p) => p.id === targetId)?.displayName ?? 'esta persona';
@@ -195,7 +223,7 @@ export function GameTablePage({
       ) : null}
       <TopBar
         gameName={game.name}
-        meta={`${(game.deck.cards.length - 2).toString()} valores · ${table.totalVoters.toString()} votantes · ${table.spectators.length.toString()} mirones`}
+        meta={roomMeta(game.deck.cards, table.totalVoters, table.spectators.length)}
         remainingMs={round?.status === 'OPEN' ? table.remainingMs : null}
         muted={table.muted}
         onToggleMuted={table.toggleMuted}
@@ -216,12 +244,22 @@ export function GameTablePage({
         onToggleSettings={() => {
           setSettingsOpen((open) => !open);
         }}
+        compact={compactHeader}
       />
       <div className="grid min-h-0 flex-1 grid-cols-1 lg:grid-cols-[1fr_316px]">
         <div className="relative flex min-w-0 flex-col" style={{ background: 'var(--pp-felt)' }}>
           {/* Su borde de abajo es el suelo donde cuaja la nieve: justo encima de la mano. */}
-          <div ref={sceneRef} className="flex min-h-0 flex-1 flex-col">
-            <div className="flex min-h-0 flex-1 items-center justify-center p-6">
+          <div ref={compact ? undefined : sceneRef} className="flex min-h-0 flex-1 flex-col">
+            {/* En el móvil la mano se queda fija abajo y taparía ese suelo: allí cuaja debajo de la
+                mesa, con hueco para el montón. */}
+            <div
+              ref={compact ? sceneRef : undefined}
+              className={`flex min-h-0 flex-1 items-center justify-center ${
+                // Los asientos de arriba y abajo sobresalen de la mesa: sin hueco, en una tablet
+                // en vertical pisan la cabecera y la fila de espectadores.
+                compact ? `px-4 pt-4 ${snowing ? 'pb-9' : 'pb-3'}` : 'px-6 py-16 lg:p-6'
+              }`}
+            >
               {table.seats.length === 0 ? (
                 <p className="text-sm" style={{ color: 'var(--pp-muted)' }}>
                   Todavía no hay nadie sentado a la mesa.
@@ -236,69 +274,57 @@ export function GameTablePage({
                   emojisInFlight={emoji.emojisInFlight}
                   seatCursor={emoji.armedEmoji ? 'crosshair' : undefined}
                   onSeatClick={emoji.armedEmoji ? emoji.throwAtSeat : undefined}
-                  onRemoveSeat={table.isFacilitator ? confirmRemove : undefined}
-                  onMakeFacilitatorSeat={table.isFacilitator ? confirmTransfer : undefined}
+                  onRemoveSeat={table.isFacilitator && !compact ? confirmRemove : undefined}
+                  onMakeFacilitatorSeat={
+                    table.isFacilitator && !compact ? confirmTransfer : undefined
+                  }
+                  onSeatActions={table.isFacilitator && compact ? setSeatActionsFor : undefined}
+                  compact={compact}
                 />
               )}
             </div>
 
-            <div className="flex flex-none items-center gap-2.5 px-7 pb-3">
+            {compact && round && isMyTurnToVote && game.settings.throwEmojis ? (
+              <div className="flex-none px-4 pb-3">
+                <EmojiControls emoji={emoji} viewerId={participantId} compact />
+              </div>
+            ) : null}
+
+            <div
+              className={`flex flex-none flex-wrap items-center gap-2.5 pb-3 ${compact ? 'px-4' : 'px-7'}`}
+            >
               <span className="pp-kicker">Mirando desde la barrera</span>
-              <div className="flex gap-2">
-                {table.spectators.map((spectator) => (
-                  <div
-                    key={spectator.id}
-                    className="flex items-center gap-1.5 rounded-full py-1 pl-1 pr-2.5"
-                    style={{
-                      border: '1px dashed var(--pp-line)',
-                      opacity: spectator.online ? 1 : 0.45,
-                    }}
-                    title={
-                      spectator.online ? undefined : `${spectator.displayName} está desconectado`
-                    }
-                  >
-                    <Avatar seed={spectator.id} size={20} opacity={0.85} hat={spectator.hat} />
-                    <span className="text-[11px]" style={{ color: 'var(--pp-muted)' }}>
-                      {spectator.displayName}
-                    </span>
-                    {spectator.isFacilitator ? (
-                      <span
-                        className="text-[11px]"
-                        role="img"
-                        aria-label="Facilitador"
-                        title="Facilitador"
-                      >
-                        👑
-                      </span>
-                    ) : null}
-                    {table.isFacilitator ? (
-                      <button
-                        type="button"
-                        className="text-[10px]"
-                        aria-label={`Hacer facilitador a ${spectator.displayName}`}
-                        title={`Hacer facilitador a ${spectator.displayName}`}
-                        onClick={() => {
-                          confirmTransfer(spectator.id);
-                        }}
-                      >
-                        🔑
-                      </button>
-                    ) : null}
-                    {table.isFacilitator ? (
-                      <button
-                        type="button"
-                        className="text-[10px]"
-                        style={{ color: 'var(--pp-muted)' }}
-                        aria-label={`Quitar a ${spectator.displayName}`}
-                        onClick={() => {
-                          confirmRemove(spectator.id);
-                        }}
-                      >
-                        ✕
-                      </button>
-                    ) : null}
-                  </div>
-                ))}
+              <div className="flex flex-wrap gap-2">
+                {table.spectators.map((spectator) => {
+                  const canManage = table.isFacilitator && spectator.id !== participantId;
+                  return (
+                    <SpectatorChip
+                      key={spectator.id}
+                      spectator={spectator}
+                      onOpenActions={
+                        canManage && compact
+                          ? () => {
+                              setSeatActionsFor(spectator.id);
+                            }
+                          : undefined
+                      }
+                      onMakeFacilitator={
+                        canManage && !compact
+                          ? () => {
+                              confirmTransfer(spectator.id);
+                            }
+                          : undefined
+                      }
+                      onRemove={
+                        canManage && !compact
+                          ? () => {
+                              confirmRemove(spectator.id);
+                            }
+                          : undefined
+                      }
+                    />
+                  );
+                })}
                 {snowing && snowmanDone ? (
                   <div
                     className="flex items-center gap-1.5 rounded-full py-1 pl-2.5 pr-2"
@@ -310,7 +336,8 @@ export function GameTablePage({
                     <span className="text-[11px]">⛄ Copito</span>
                     <button
                       type="button"
-                      className="text-[10px]"
+                      // El margen negativo agranda la zona táctil sin mover la ficha.
+                      className="-m-2 p-2 text-[10px]"
                       style={{ color: 'var(--pp-muted)' }}
                       aria-label="Derretir a Copito"
                       title="Derretir a Copito"
@@ -326,21 +353,7 @@ export function GameTablePage({
             </div>
           </div>
 
-          {round && isMyTurnToVote ? (
-            <Hand
-              cards={game.deck.cards}
-              selected={table.selectedCard}
-              disabled={round.status !== 'OPEN'}
-              hint={round.status === 'OPEN' ? 'Elige tu carta' : 'La ronda ya está revelada'}
-              onSelect={(card) => {
-                table.castVote(card);
-                playVoteSound(table.muted);
-              }}
-              emoji={emoji}
-              viewerId={participantId}
-              throwEmojisEnabled={game.settings.throwEmojis}
-            />
-          ) : null}
+          {compact ? null : hand}
           {snowing ? (
             <Snowfall
               ref={snowfallRef}
@@ -370,6 +383,7 @@ export function GameTablePage({
             remainingMs={table.remainingMs}
             canReveal={table.canReveal}
             onReveal={table.reveal}
+            revealShownElsewhere={revealInDock}
             onRevote={() => {
               if (round) table.startRound(round.issueId);
             }}
@@ -389,6 +403,26 @@ export function GameTablePage({
           />
         </aside>
       </div>
+
+      {compact && hand ? (
+        // Mientras se vota, la mano se queda pegada abajo y la mesa se desliza por encima.
+        <div className={round?.status === 'OPEN' ? 'sticky bottom-0 z-30' : undefined}>
+          {hand}
+          {revealInDock ? (
+            <div className="px-4 pb-3" style={{ background: 'var(--color-bg)' }}>
+              <Button
+                variant="primary"
+                block
+                className="min-h-[52px] text-base"
+                disabled={table.votedCount === 0}
+                onClick={table.reveal}
+              >
+                Revelar las cartas · {table.votedCount} de {table.totalVoters}
+              </Button>
+            </div>
+          ) : null}
+        </div>
+      ) : null}
 
       {issuesOpen ? (
         <div
@@ -472,6 +506,21 @@ export function GameTablePage({
           </div>
         </div>
       ) : null}
+
+      <SeatActionsDialog
+        participant={game.participants.find((p) => p.id === seatActionsFor) ?? null}
+        onMakeFacilitator={(targetId) => {
+          setSeatActionsFor(null);
+          void table.transferFacilitator(targetId);
+        }}
+        onRemove={(targetId) => {
+          setSeatActionsFor(null);
+          void table.removeParticipant(targetId);
+        }}
+        onClose={() => {
+          setSeatActionsFor(null);
+        }}
+      />
 
       <LeaveFacilitatorDialog
         open={leaveDialogOpen}

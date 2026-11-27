@@ -1,5 +1,10 @@
 import type { CSSProperties, JSX } from 'react';
-import { BULB_RADIUS, lightsLayout } from '../lightsLayout.js';
+import {
+  BULB_RADIUS,
+  COMPACT_BULB_BOX,
+  compactLightsLayout,
+  lightsLayout,
+} from '../lightsLayout.js';
 import type { SeatPosition } from '../seatLayout.js';
 
 export interface TableLightsProps {
@@ -7,6 +12,8 @@ export interface TableLightsProps {
   /** Solo quién ha votado, nunca qué: antes de revelar es todo lo que se sabe (invariante 7). */
   readonly votedIds: ReadonlySet<string>;
   readonly revealed: boolean;
+  /** En la mesa compacta del móvil, su ancho / alto: la guirnalda sigue el tapete redondeado. */
+  readonly compactAspect?: number | undefined;
 }
 
 const BULB_COUNT = 34;
@@ -18,8 +25,16 @@ type BulbStyle = CSSProperties & { [key: `--pp-${string}`]: string };
  * Guirnalda del borde de la mesa en invierno (ADR 0031): el tramo de cada asiento se enciende al
  * votar, todo titila cuando ya ha votado la mesa entera y hace una ola al revelar.
  */
-export function TableLights({ seats, votedIds, revealed }: TableLightsProps): JSX.Element {
-  const bulbs = lightsLayout(seats, BULB_COUNT);
+export function TableLights({
+  seats,
+  votedIds,
+  revealed,
+  compactAspect,
+}: TableLightsProps): JSX.Element {
+  const bulbs =
+    compactAspect === undefined
+      ? lightsLayout(seats, BULB_COUNT)
+      : compactLightsLayout(seats, BULB_COUNT, compactAspect);
   const everyoneVoted = seats.length > 0 && seats.every((seat) => votedIds.has(seat.id));
 
   return (
@@ -34,16 +49,31 @@ export function TableLights({ seats, votedIds, revealed }: TableLightsProps): JS
         viewBox="0 0 100 100"
         preserveAspectRatio="none"
       >
-        <ellipse
-          cx="50"
-          cy="50"
-          rx={BULB_RADIUS.x}
-          ry={BULB_RADIUS.y}
-          fill="none"
-          stroke="var(--pp-light-wire)"
-          strokeWidth="1.6"
-          vectorEffect="non-scaling-stroke"
-        />
+        {compactAspect === undefined ? (
+          <ellipse
+            cx="50"
+            cy="50"
+            rx={BULB_RADIUS.x}
+            ry={BULB_RADIUS.y}
+            fill="none"
+            stroke="var(--pp-light-wire)"
+            strokeWidth="1.6"
+            vectorEffect="non-scaling-stroke"
+          />
+        ) : (
+          <rect
+            x={50 - COMPACT_BULB_BOX.halfX}
+            y={50 - COMPACT_BULB_BOX.halfY}
+            width={2 * COMPACT_BULB_BOX.halfX}
+            height={2 * COMPACT_BULB_BOX.halfY}
+            rx={COMPACT_BULB_BOX.cornerX}
+            ry={COMPACT_BULB_BOX.cornerY}
+            fill="none"
+            stroke="var(--pp-light-wire)"
+            strokeWidth="1.6"
+            vectorEffect="non-scaling-stroke"
+          />
+        )}
       </svg>
       {bulbs.map((bulb, index) => {
         const style: BulbStyle = {

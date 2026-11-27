@@ -269,6 +269,9 @@ h4 {
   position: fixed;
   inset: 0;
   display: grid;
+  /* Una sola celda del tamaño de la pantalla: sin ella el diálogo crece con lo que lleva dentro (un
+     enlace largo, el selector de emojis, la lista de gorros) y en el móvil se sale por los lados. */
+  grid-template: minmax(0, 1fr) / minmax(0, 1fr);
   place-items: center;
   padding: var(--space-4);
   background: color-mix(in srgb, var(--color-neutral-900) 50%, transparent);
@@ -276,6 +279,9 @@ h4 {
 }
 .dialog {
   width: min(440px, 100%);
+  max-height: 100%;
+  overflow-y: auto;
+  overscroll-behavior: contain;
   display: flex;
   flex-direction: column;
   gap: var(--space-3);
@@ -286,7 +292,6 @@ h4 {
 }
 .dialog-wide {
   width: min(720px, 100%);
-  max-height: 100%;
 }
 .dialog-title {
   font-family: var(--font-heading);
