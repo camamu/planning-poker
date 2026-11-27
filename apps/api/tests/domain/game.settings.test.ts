@@ -87,3 +87,22 @@ describe('ajuste "lanzar emojis" (throwEmojis)', () => {
     expect(GameSettings.of({ autoReveal: true, whoCanReveal: 'ANYONE' }).throwEmojis).toBe(true);
   });
 });
+
+describe('ajuste "nevada" (snow)', () => {
+  it('viene activado por defecto si no se indica', () => {
+    expect(GameSettings.of({ autoReveal: true, whoCanReveal: 'ANYONE' }).snow).toBe(true);
+  });
+
+  it('solo el facilitador puede apagar la nieve de la sala, igual que la fiesta', () => {
+    const { game, facilitatorId } = createGame();
+    const voterId = addVoter(game);
+    const withoutSnow = GameSettings.of({ autoReveal: false, whoCanReveal: 'ANYONE', snow: false });
+
+    expect(() => {
+      game.updateSettings(withoutSnow, voterId, NOW);
+    }).toThrow(SettingsChangeNotAllowedError);
+
+    game.updateSettings(withoutSnow, facilitatorId, NOW);
+    expect(game.currentSettings().snow).toBe(false);
+  });
+});
