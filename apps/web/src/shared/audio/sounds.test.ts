@@ -3,6 +3,7 @@ import {
   playImpactSound,
   playReactionSound,
   playRevealSound,
+  playSleighBellReveal,
   playThrowSound,
   playVoteSound,
 } from './sounds.js';
@@ -54,6 +55,7 @@ describe('shared/audio/sounds', () => {
       playThrowSound(true);
       playImpactSound(true);
       playReactionSound(true);
+      playSleighBellReveal(true, true);
     }).not.toThrow();
   });
 
@@ -67,6 +69,13 @@ describe('shared/audio/sounds', () => {
     expect(() => {
       playRevealSound(true, false);
       playRevealSound(false, false);
+    }).not.toThrow();
+  });
+
+  it('sintetiza el cascabel de revelar en invierno sin lanzar, con y sin unanimidad', () => {
+    expect(() => {
+      playSleighBellReveal(true, false);
+      playSleighBellReveal(false, false);
     }).not.toThrow();
   });
 });
