@@ -28,6 +28,7 @@ export function createGame(
     allowVoteChange?: boolean;
     celebrate?: boolean;
     throwEmojis?: boolean;
+    snow?: boolean;
     countdownSeconds?: number | null;
     revealOnTimeout?: boolean;
   } = {},
@@ -47,6 +48,7 @@ export function createGame(
           : {}),
         ...(overrides.celebrate !== undefined ? { celebrate: overrides.celebrate } : {}),
         ...(overrides.throwEmojis !== undefined ? { throwEmojis: overrides.throwEmojis } : {}),
+        ...(overrides.snow !== undefined ? { snow: overrides.snow } : {}),
         ...(overrides.countdownSeconds !== undefined
           ? { countdownSeconds: overrides.countdownSeconds }
           : {}),

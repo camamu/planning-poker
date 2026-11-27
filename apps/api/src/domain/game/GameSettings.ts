@@ -9,6 +9,8 @@ export interface GameSettingsProps {
   readonly allowVoteChange?: boolean;
   readonly celebrate?: boolean;
   readonly throwEmojis?: boolean;
+  /** Nieve en la sala durante la temporada de invierno (ADR 0031). */
+  readonly snow?: boolean;
   readonly countdownSeconds?: number | null;
   readonly revealOnTimeout?: boolean;
 }
@@ -23,6 +25,7 @@ export class GameSettings {
     readonly throwEmojis: boolean,
     readonly countdownSeconds: number | null,
     readonly revealOnTimeout: boolean,
+    readonly snow: boolean,
   ) {}
 
   static of(props: GameSettingsProps): GameSettings {
@@ -35,6 +38,7 @@ export class GameSettings {
       props.throwEmojis ?? true,
       props.countdownSeconds ?? null,
       props.revealOnTimeout ?? false,
+      props.snow ?? true,
     );
   }
 }

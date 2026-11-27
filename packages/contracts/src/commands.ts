@@ -17,6 +17,7 @@ export const gameSettingsSchema = z.object({
   allowVoteChange: z.boolean().default(true),
   celebrate: z.boolean().default(true),
   throwEmojis: z.boolean().default(true),
+  snow: z.boolean().default(true),
   countdownSeconds: z.number().int().positive().nullable().default(null),
   revealOnTimeout: z.boolean().default(false),
 });
@@ -85,6 +86,18 @@ export const HAT_IDS = [
   'pirate',
   'viking',
   'chef',
+  'santa',
+  'beanie',
+  'reindeer',
+  'elf',
+] as const satisfies ReadonlyArray<HatIdView>;
+
+/** Gorros de temporada (ADR 0031): el selector solo los ofrece en invierno. */
+export const WINTER_HAT_IDS = [
+  'santa',
+  'beanie',
+  'reindeer',
+  'elf',
 ] as const satisfies ReadonlyArray<HatIdView>;
 
 /**

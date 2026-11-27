@@ -39,6 +39,7 @@ function gameWith(issues: ReadonlyArray<IssueView>): GameView {
       allowVoteChange: true,
       celebrate: true,
       throwEmojis: false,
+      snow: true,
       countdownSeconds: null,
       revealOnTimeout: false,
     },

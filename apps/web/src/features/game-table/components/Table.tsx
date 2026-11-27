@@ -1,6 +1,7 @@
 import type { GameView, HatIdView, RoundView } from '@pp/contracts';
 import type { JSX } from 'react';
 import { useRef } from 'react';
+import { useSeason } from '../../../shared/season/season.js';
 import type { EmojiInFlight } from '../../../shared/store/gameStore.js';
 import { useContainerSize } from '../hooks/useContainerSize.js';
 import { computeResultBadges } from '../resultBadges.js';
@@ -8,6 +9,7 @@ import { computeThrowOffset } from '../seatLayout.js';
 import type { SeatPosition, ThrowOffset } from '../seatLayout.js';
 import { EmojiThrowLayer } from './EmojiThrowLayer.js';
 import { ParticipantSeat } from './ParticipantSeat.js';
+import { TableLights } from './TableLights.js';
 
 export interface TableProps {
   readonly game: GameView;
@@ -50,6 +52,9 @@ export function Table({
       ? computeResultBadges(round.votes)
       : { feathers: new Set<string>(), capes: new Set<string>() };
 
+  const season = useSeason();
+  const votedIds = new Set(round?.votes.map((vote) => vote.participantId) ?? []);
+
   const seatsById = new Map(seats.map((seat) => [seat.id, seat.seat]));
   const containerRef = useRef<HTMLDivElement>(null);
   const containerSize = useContainerSize(containerRef);
@@ -90,6 +95,9 @@ export function Table({
         className="absolute inset-11 rounded-full"
         style={{ border: '1px solid rgba(145,132,217,.28)' }}
       />
+      {season === 'winter' ? (
+        <TableLights seats={seats} votedIds={votedIds} revealed={revealed} />
+      ) : null}
 
       <div className="absolute left-1/2 top-1/2 flex w-[400px] max-w-[85%] -translate-x-1/2 -translate-y-1/2 flex-col items-center gap-2.5 text-center">
         <div className="pp-kicker" style={{ color: 'var(--color-accent-300)' }}>

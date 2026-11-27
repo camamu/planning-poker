@@ -1,6 +1,7 @@
 @import 'tailwindcss';
 @import '../design-system/tokens/colors.css';
 @import '../design-system/tokens/base.css';
+@import '../design-system/tokens/season.css';
 
 /* La fuente Inter se carga desde index.html (mismo patrón que el prototipo: <link> en <head>,
    no @import — evita el aviso de PostCSS por un @import que no precede al resto de reglas). */

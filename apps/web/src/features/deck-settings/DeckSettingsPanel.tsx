@@ -26,6 +26,7 @@ function toFormValue(settings: GameSettingsView): GameSettingsFormValue {
     allowVoteChange: settings.allowVoteChange,
     celebrate: settings.celebrate,
     throwEmojis: settings.throwEmojis,
+    snow: settings.snow,
     countdownSeconds: settings.countdownSeconds,
     revealOnTimeout: settings.revealOnTimeout,
   };

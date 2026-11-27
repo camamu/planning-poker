@@ -1,8 +1,10 @@
 import { useEffect, useRef, useState } from 'react';
 import type { JSX } from 'react';
 import { Link } from 'react-router-dom';
-import { Avatar, Button, Toast } from '../../design-system/index.js';
+import { Avatar, Button, hueForSeed, Snowfall, Toast } from '../../design-system/index.js';
+import type { SnowfallHandle } from '../../design-system/index.js';
 import { addIssue, importIssues } from '../../shared/api/gamesClient.js';
+import { useSeason } from '../../shared/season/season.js';
 import {
   playImpactSound,
   playReactionSound,
@@ -43,6 +45,10 @@ export function GameTablePage({
   const [issuesOpen, setIssuesOpen] = useState(false);
   const [settingsOpen, setSettingsOpen] = useState(false);
   const [leaveDialogOpen, setLeaveDialogOpen] = useState(false);
+  const season = useSeason();
+  const sceneRef = useRef<HTMLDivElement>(null);
+  const snowfallRef = useRef<SnowfallHandle>(null);
+  const [snowmanDone, setSnowmanDone] = useState(false);
 
   const previousEmojiCountRef = useRef(0);
   const pendingImpactTimeoutsRef = useRef(new Set<ReturnType<typeof setTimeout>>());
@@ -142,6 +148,9 @@ export function GameTablePage({
   const summaryHref = `/games/${gameId}/summary`;
   const me = game.participants.find((p) => p.id === participantId);
   const isMyTurnToVote = me?.role === 'VOTER';
+  // Temporada + ajuste de sala + preferencia de cada uno (ADR 0031).
+  const roomSnows = season === 'winter' && game.settings.snow;
+  const snowing = roomSnows && !table.snowOff;
 
   function confirmTransfer(targetId: string): void {
     const name = game.participants.find((p) => p.id === targetId)?.displayName ?? 'esta persona';
@@ -187,6 +196,7 @@ export function GameTablePage({
         remainingMs={round?.status === 'OPEN' ? table.remainingMs : null}
         muted={table.muted}
         onToggleMuted={table.toggleMuted}
+        snow={roomSnows ? { off: table.snowOff, onToggle: table.toggleSnow } : undefined}
         onLeave={() => {
           if (table.isFacilitator) setLeaveDialogOpen(true);
           else if (window.confirm('¿Salir de la partida?'))
@@ -205,85 +215,111 @@ export function GameTablePage({
         }}
       />
       <div className="grid min-h-0 flex-1 grid-cols-1 lg:grid-cols-[1fr_316px]">
-        <div className="flex min-w-0 flex-col" style={{ background: 'var(--pp-felt)' }}>
-          <div className="flex min-h-0 flex-1 items-center justify-center p-6">
-            {table.seats.length === 0 ? (
-              <p className="text-sm" style={{ color: 'var(--pp-muted)' }}>
-                Todavía no hay nadie sentado a la mesa.
-              </p>
-            ) : (
-              <Table
-                game={game}
-                round={round}
-                seats={table.seats}
-                viewerId={participantId}
-                selectedCard={table.selectedCard}
-                emojisInFlight={emoji.emojisInFlight}
-                seatCursor={emoji.armedEmoji ? 'crosshair' : undefined}
-                onSeatClick={emoji.armedEmoji ? emoji.throwAtSeat : undefined}
-                onRemoveSeat={table.isFacilitator ? confirmRemove : undefined}
-                onMakeFacilitatorSeat={table.isFacilitator ? confirmTransfer : undefined}
-              />
-            )}
-          </div>
+        <div className="relative flex min-w-0 flex-col" style={{ background: 'var(--pp-felt)' }}>
+          {/* Su borde de abajo es el suelo donde cuaja la nieve: justo encima de la mano. */}
+          <div ref={sceneRef} className="flex min-h-0 flex-1 flex-col">
+            <div className="flex min-h-0 flex-1 items-center justify-center p-6">
+              {table.seats.length === 0 ? (
+                <p className="text-sm" style={{ color: 'var(--pp-muted)' }}>
+                  Todavía no hay nadie sentado a la mesa.
+                </p>
+              ) : (
+                <Table
+                  game={game}
+                  round={round}
+                  seats={table.seats}
+                  viewerId={participantId}
+                  selectedCard={table.selectedCard}
+                  emojisInFlight={emoji.emojisInFlight}
+                  seatCursor={emoji.armedEmoji ? 'crosshair' : undefined}
+                  onSeatClick={emoji.armedEmoji ? emoji.throwAtSeat : undefined}
+                  onRemoveSeat={table.isFacilitator ? confirmRemove : undefined}
+                  onMakeFacilitatorSeat={table.isFacilitator ? confirmTransfer : undefined}
+                />
+              )}
+            </div>
 
-          <div className="flex flex-none items-center gap-2.5 px-7 pb-3">
-            <span className="pp-kicker">Mirando desde la barrera</span>
-            <div className="flex gap-2">
-              {table.spectators.map((spectator) => (
-                <div
-                  key={spectator.id}
-                  className="flex items-center gap-1.5 rounded-full py-1 pl-1 pr-2.5"
-                  style={{
-                    border: '1px dashed var(--pp-line)',
-                    opacity: spectator.online ? 1 : 0.45,
-                  }}
-                  title={
-                    spectator.online ? undefined : `${spectator.displayName} está desconectado`
-                  }
-                >
-                  <Avatar seed={spectator.id} size={20} opacity={0.85} hat={spectator.hat} />
-                  <span className="text-[11px]" style={{ color: 'var(--pp-muted)' }}>
-                    {spectator.displayName}
-                  </span>
-                  {spectator.isFacilitator ? (
-                    <span
-                      className="text-[11px]"
-                      role="img"
-                      aria-label="Facilitador"
-                      title="Facilitador"
-                    >
-                      👑
+            <div className="flex flex-none items-center gap-2.5 px-7 pb-3">
+              <span className="pp-kicker">Mirando desde la barrera</span>
+              <div className="flex gap-2">
+                {table.spectators.map((spectator) => (
+                  <div
+                    key={spectator.id}
+                    className="flex items-center gap-1.5 rounded-full py-1 pl-1 pr-2.5"
+                    style={{
+                      border: '1px dashed var(--pp-line)',
+                      opacity: spectator.online ? 1 : 0.45,
+                    }}
+                    title={
+                      spectator.online ? undefined : `${spectator.displayName} está desconectado`
+                    }
+                  >
+                    <Avatar seed={spectator.id} size={20} opacity={0.85} hat={spectator.hat} />
+                    <span className="text-[11px]" style={{ color: 'var(--pp-muted)' }}>
+                      {spectator.displayName}
                     </span>
-                  ) : null}
-                  {table.isFacilitator ? (
-                    <button
-                      type="button"
-                      className="text-[10px]"
-                      aria-label={`Hacer facilitador a ${spectator.displayName}`}
-                      title={`Hacer facilitador a ${spectator.displayName}`}
-                      onClick={() => {
-                        confirmTransfer(spectator.id);
-                      }}
-                    >
-                      🔑
-                    </button>
-                  ) : null}
-                  {table.isFacilitator ? (
+                    {spectator.isFacilitator ? (
+                      <span
+                        className="text-[11px]"
+                        role="img"
+                        aria-label="Facilitador"
+                        title="Facilitador"
+                      >
+                        👑
+                      </span>
+                    ) : null}
+                    {table.isFacilitator ? (
+                      <button
+                        type="button"
+                        className="text-[10px]"
+                        aria-label={`Hacer facilitador a ${spectator.displayName}`}
+                        title={`Hacer facilitador a ${spectator.displayName}`}
+                        onClick={() => {
+                          confirmTransfer(spectator.id);
+                        }}
+                      >
+                        🔑
+                      </button>
+                    ) : null}
+                    {table.isFacilitator ? (
+                      <button
+                        type="button"
+                        className="text-[10px]"
+                        style={{ color: 'var(--pp-muted)' }}
+                        aria-label={`Quitar a ${spectator.displayName}`}
+                        onClick={() => {
+                          confirmRemove(spectator.id);
+                        }}
+                      >
+                        ✕
+                      </button>
+                    ) : null}
+                  </div>
+                ))}
+                {snowing && snowmanDone ? (
+                  <div
+                    className="flex items-center gap-1.5 rounded-full py-1 pl-2.5 pr-2"
+                    style={{
+                      border: '1px solid color-mix(in srgb, var(--color-accent) 55%, transparent)',
+                    }}
+                    title="Tu muñeco de nieve. Solo lo ves tú."
+                  >
+                    <span className="text-[11px]">⛄ Copito</span>
                     <button
                       type="button"
                       className="text-[10px]"
                       style={{ color: 'var(--pp-muted)' }}
-                      aria-label={`Quitar a ${spectator.displayName}`}
+                      aria-label="Derretir a Copito"
+                      title="Derretir a Copito"
                       onClick={() => {
-                        confirmRemove(spectator.id);
+                        snowfallRef.current?.melt();
                       }}
                     >
                       ✕
                     </button>
-                  ) : null}
-                </div>
-              ))}
+                  </div>
+                ) : null}
+              </div>
             </div>
           </div>
 
@@ -300,6 +336,16 @@ export function GameTablePage({
               emoji={emoji}
               viewerId={participantId}
               throwEmojisEnabled={game.settings.throwEmojis}
+            />
+          ) : null}
+          {snowing ? (
+            <Snowfall
+              ref={snowfallRef}
+              floorRef={sceneRef}
+              capSelector="[data-snow-cap]"
+              snowmanHat={me?.hat ?? null}
+              snowmanHue={hueForSeed(participantId)}
+              onSnowmanChange={setSnowmanDone}
             />
           ) : null}
         </div>

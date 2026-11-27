@@ -41,6 +41,8 @@ export function ParticipantSeat(props: ParticipantSeatProps): JSX.Element {
         opacity: props.online ? 1 : 0.45,
       }}
       title={props.online ? undefined : `${props.displayName} está desconectado`}
+      // En invierno se posa nieve encima (Snowfall mide los elementos con este atributo).
+      data-snow-cap=""
       onClick={props.onClick}
       role={props.onClick ? 'button' : undefined}
     >
