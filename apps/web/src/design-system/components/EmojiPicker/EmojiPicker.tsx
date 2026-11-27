@@ -1,10 +1,12 @@
-import { EmojiPicker as FrimousseEmojiPicker } from 'frimousse';
+import { defaultEmojiDataResolver, EmojiPicker as FrimousseEmojiPicker } from 'frimousse';
 import type {
+  EmojiDataResolver,
   EmojiPickerListCategoryHeaderProps,
   EmojiPickerListEmojiProps,
   EmojiPickerListRowProps,
 } from 'frimousse';
 import type { CSSProperties, JSX } from 'react';
+import { Emoji, FLUENT_EMOJI_URL, fluentEmojiKey } from '../Emoji/Emoji.js';
 import { Modal } from '../Modal/Modal.js';
 
 export interface EmojiPickerProps {
@@ -18,6 +20,28 @@ export interface EmojiPickerProps {
  * en español y sin pedirlos a un CDN ajeno cada vez que se abre el selector.
  */
 export const EMOJIBASE_URL = '/emojibase';
+
+async function fluentEmojiKeys(signal: AbortSignal | undefined): Promise<ReadonlySet<string>> {
+  const response = await fetch(`${FLUENT_EMOJI_URL}/index.json`, { signal: signal ?? null });
+  const keys: unknown = await response.json();
+  if (!Array.isArray(keys)) throw new Error('El índice de Fluent Emoji no es una lista');
+  return new Set(keys.filter((key): key is string => typeof key === 'string'));
+}
+
+/**
+ * Solo los emojis que Fluent dibuja (ADR 0034): así no se cuela ninguno con la fuente del sistema, y
+ * se ven también los que el dispositivo todavía no sabe pintar. Con un `resolveEmojiData` propio
+ * frimousse ya no esconde los que el navegador no soporta, que aquí es justo lo que se quiere. Si el
+ * índice no carga, se enseñan todos: los que no tengan dibujo se quedan con el del sistema.
+ */
+export const resolveFluentEmojiData: EmojiDataResolver = async (locale, options) => {
+  const [data, keys] = await Promise.all([
+    defaultEmojiDataResolver(locale, options),
+    fluentEmojiKeys(options.signal).catch(() => null),
+  ]);
+  if (!keys) return data;
+  return { ...data, emojis: data.emojis.filter((emoji) => keys.has(fluentEmojiKey(emoji.emoji))) };
+};
 
 /**
  * Celdas de unos 45 px, como la barra de reacciones y por encima del mínimo táctil del móvil:
@@ -40,6 +64,7 @@ export function EmojiPicker({ open, onSelect, onClose }: EmojiPickerProps): JSX.
       <FrimousseEmojiPicker.Root
         locale="es"
         emojibaseUrl={EMOJIBASE_URL}
+        resolveEmojiData={resolveFluentEmojiData}
         columns={columns}
         className="flex h-[min(26rem,60dvh)] w-full flex-col gap-2"
         style={style}
@@ -74,7 +99,9 @@ export function EmojiPicker({ open, onSelect, onClose }: EmojiPickerProps): JSX.
             {({ emoji }) =>
               emoji ? (
                 <>
-                  <span className="text-xl leading-none">{emoji.emoji}</span>
+                  <span className="text-xl leading-none">
+                    <Emoji emoji={emoji.emoji} />
+                  </span>
                   <span className="truncate text-xs" style={{ color: 'var(--color-text)' }}>
                     {emoji.label}
                   </span>
@@ -135,7 +162,7 @@ function EmojiButton({ emoji, style, ...props }: EmojiPickerListEmojiProps): JSX
           : 'transparent',
       }}
     >
-      {emoji.emoji}
+      <Emoji emoji={emoji.emoji} />
     </button>
   );
 }

@@ -42,8 +42,7 @@ herramienta interna, y un selector que se queda en «Cargando…» en una red qu
 - **Dibujar un juego propio, como los sombreros (ADR 0017), se descartó.** Son unos 1.900 emojis, y
   los que se lanzan viajan como texto en `emoji_thrown`, así que cada cliente los pintaría con su
   fuente salvo que se dibujen todos.
-- **Un juego abierto servido como SVG (Twemoji, Noto, Fluent) se deja como posible siguiente paso.**
-  Igualaría el aspecto entre dispositivos, pero solo tiene sentido si lo usa toda la web: con el
-  selector solo, volverían los dos estilos.
+- **Un juego abierto servido como SVG (Twemoji, Noto, Fluent).** Igualaría el aspecto entre
+  dispositivos, pero solo si lo usa toda la web. Se hizo después con Fluent plano: ADR 0034.
 - Actualizar los emojis es subir `emojibase-data`, que vigila Dependabot. frimousse ya esconde los
   que el navegador no sabe pintar.

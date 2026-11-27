@@ -1,7 +1,7 @@
 import { useEffect, useRef, useState } from 'react';
 import type { JSX } from 'react';
 import { Link } from 'react-router-dom';
-import { Button, hueForSeed, Snowfall, Toast } from '../../design-system/index.js';
+import { Button, Emoji, hueForSeed, Snowfall, Toast } from '../../design-system/index.js';
 import type { SnowfallHandle } from '../../design-system/index.js';
 import { addIssue, importIssues } from '../../shared/api/gamesClient.js';
 import { useSeason } from '../../shared/season/season.js';
@@ -333,7 +333,9 @@ export function GameTablePage({
                     }}
                     title="Tu muñeco de nieve. Solo lo ves tú."
                   >
-                    <span className="text-[11px]">⛄ Copito</span>
+                    <span className="text-[11px]">
+                      <Emoji emoji="⛄" /> Copito
+                    </span>
                     <button
                       type="button"
                       // El margen negativo agranda la zona táctil sin mover la ficha.

@@ -1,6 +1,6 @@
 import type { JSX } from 'react';
 import { useState } from 'react';
-import { EmojiPicker, SegmentedControl } from '../../../design-system/index.js';
+import { Emoji, EmojiPicker, SegmentedControl } from '../../../design-system/index.js';
 import type { UseEmojiThrowResult } from '../hooks/useEmojiThrow.js';
 
 export interface EmojiControlsProps {
@@ -51,7 +51,7 @@ export function EmojiControls({ emoji, viewerId, compact }: EmojiControlsProps):
               emoji.pick(emojiChar, viewerId);
             }}
           >
-            {emojiChar}
+            <Emoji emoji={emojiChar} />
           </button>
         ))}
         <button

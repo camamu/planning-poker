@@ -1,4 +1,5 @@
 import type { JSX } from 'react';
+import { EmojiText } from '../Emoji/Emoji.js';
 
 export interface SegmentedOption<T extends string = string> {
   readonly value: T;
@@ -28,7 +29,7 @@ export function SegmentedControl<T extends string = string>(
               props.onChange(option.value);
             }}
           />
-          {option.label}
+          <EmojiText text={option.label} />
         </label>
       ))}
     </div>

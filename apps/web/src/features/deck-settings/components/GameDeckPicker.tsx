@@ -1,6 +1,7 @@
 import type { DeckSummaryView } from '@pp/contracts';
 import { useEffect, useState } from 'react';
 import type { JSX } from 'react';
+import { EmojiText } from '../../../design-system/index.js';
 import { changeGameDeck, listGameDecks } from '../../../shared/api/gamesClient.js';
 
 export interface GameDeckPickerProps {
@@ -84,7 +85,7 @@ export function GameDeckPicker(props: GameDeckPickerProps): JSX.Element {
                 {deck.teamId ? <span className="tag tag-neutral"> personalizada</span> : null}
               </span>
               <span className="font-mono text-[11px]" style={{ color: 'var(--pp-muted)' }}>
-                {deck.cards.join(' · ')}
+                <EmojiText text={deck.cards.join(' · ')} />
               </span>
             </span>
           </label>

@@ -1,5 +1,6 @@
 import type { GameSummaryIssueView } from '@pp/contracts';
 import type { JSX } from 'react';
+import { EmojiText } from '../../../design-system/index.js';
 import {
   attentionOf,
   formatDuration,
@@ -67,7 +68,7 @@ function SummaryRow({ issue }: { readonly issue: GameSummaryIssueView }): JSX.El
       </td>
       <td className="px-3 py-2.5 font-mono font-semibold">
         {estimated ? (
-          (issue.finalEstimate ?? '—')
+          <EmojiText text={issue.finalEstimate ?? '—'} />
         ) : (
           <span className="text-xs font-normal" style={{ color: 'var(--pp-muted)' }}>
             {ISSUE_STATUS_LABELS[issue.status]}

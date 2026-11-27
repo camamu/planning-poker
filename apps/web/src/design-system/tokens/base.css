@@ -34,6 +34,19 @@ h4 {
   color: var(--color-neutral-600);
 }
 
+/* Fluent Emoji (ADR 0034): del tamaño del texto que lo rodea, como un emoji de la fuente. */
+.pp-emoji,
+.pp-emoji-fallback {
+  display: inline-block;
+  flex: none;
+  width: 1.2em;
+  height: 1.2em;
+  line-height: 1.2em;
+  text-align: center;
+  vertical-align: -0.22em;
+  user-select: none;
+}
+
 /* — buttons — */
 .btn {
   display: inline-flex;

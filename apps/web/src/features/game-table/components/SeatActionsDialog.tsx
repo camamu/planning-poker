@@ -1,5 +1,5 @@
 import type { JSX } from 'react';
-import { Button, Modal } from '../../../design-system/index.js';
+import { Button, Emoji, Modal } from '../../../design-system/index.js';
 
 export interface SeatActionsDialogProps {
   /** A quién se le aplican; `null` = cerrado. */
@@ -41,7 +41,7 @@ export function SeatActionsDialog({
               onMakeFacilitator(participant.id);
             }}
           >
-            🔑 Hacer facilitador
+            <Emoji emoji="🔑" /> Hacer facilitador
           </Button>
           <span className="-mt-1 text-xs" style={{ color: 'var(--pp-muted)' }}>
             Dejarás de serlo: los ajustes y el revelado pasan a {participant.displayName}.

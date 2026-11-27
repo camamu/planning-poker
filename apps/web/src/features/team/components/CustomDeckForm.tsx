@@ -1,6 +1,6 @@
 import { useState } from 'react';
 import type { JSX, SubmitEvent } from 'react';
-import { Button, Input } from '../../../design-system/index.js';
+import { Button, EmojiText, Input } from '../../../design-system/index.js';
 
 export interface CustomDeckFormValue {
   readonly name: string;
@@ -63,7 +63,7 @@ export function CustomDeckForm({
           required
         />
         <span className="text-xs" style={{ color: 'var(--pp-muted)' }}>
-          "?" y "☕" se añaden siempre, no hace falta escribirlas.
+          <EmojiText text={'"?" y "☕" se añaden siempre, no hace falta escribirlas.'} />
         </span>
       </div>
       <div className="flex gap-2">

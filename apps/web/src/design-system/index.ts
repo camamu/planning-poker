@@ -10,6 +10,8 @@ export { Button } from './components/Button/Button.js';
 export type { ButtonProps, ButtonVariant } from './components/Button/Button.js';
 export { Card } from './components/Card/Card.js';
 export type { CardProps, CardSize, CardState } from './components/Card/Card.js';
+export { Emoji, EmojiText, fluentEmojiKey, splitEmoji } from './components/Emoji/Emoji.js';
+export type { EmojiProps, TextPart } from './components/Emoji/Emoji.js';
 export { EmojiPicker } from './components/EmojiPicker/EmojiPicker.js';
 export type { EmojiPickerProps } from './components/EmojiPicker/EmojiPicker.js';
 export { Input } from './components/Input/Input.js';

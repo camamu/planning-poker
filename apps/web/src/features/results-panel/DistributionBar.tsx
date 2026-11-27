@@ -1,4 +1,5 @@
 import type { JSX } from 'react';
+import { EmojiText } from '../../design-system/index.js';
 
 export interface DistributionBarProps {
   readonly label: string;
@@ -20,7 +21,7 @@ export function DistributionBar({
         className="w-7 text-sm font-semibold"
         style={{ color: isMostVoted ? 'var(--color-accent)' : 'var(--color-text)' }}
       >
-        {label}
+        <EmojiText text={label} />
       </span>
       <div
         className="h-[22px] flex-1 overflow-hidden rounded-md"

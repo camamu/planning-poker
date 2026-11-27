@@ -1,5 +1,5 @@
 import type { JSX } from 'react';
-import { Tooltip } from '../../design-system/index.js';
+import { EmojiText, Tooltip } from '../../design-system/index.js';
 
 export interface DeckEditorPanelProps {
   readonly onClose: () => void;
@@ -50,7 +50,7 @@ export function DeckEditorPanel({ onClose }: DeckEditorPanelProps): JSX.Element 
                   style={{ border: '1px solid var(--pp-line)', color: 'var(--pp-muted)' }}
                 >
                   <span aria-hidden="true">⠿</span>
-                  {card}
+                  <EmojiText text={card} />
                 </span>
               ))}
             </div>
