@@ -3,32 +3,43 @@ import type { ReactNode } from 'react';
 import { afterEach, describe, expect, it, vi } from 'vitest';
 import { EmojiPicker } from './EmojiPicker.js';
 
+const rootProps = vi.hoisted(() => ({ locale: '', emojibaseUrl: '' }));
+
 vi.mock('frimousse', () => ({
   EmojiPicker: {
     Root: ({
       children,
       onEmojiSelect,
+      locale,
+      emojibaseUrl,
     }: {
       children: ReactNode;
       onEmojiSelect?: (emoji: { emoji: string; label: string }) => void;
-    }) => (
-      <div>
-        {children}
-        <button
-          type="button"
-          onClick={() => {
-            onEmojiSelect?.({ emoji: '🐸', label: 'frog' });
-          }}
-        >
-          mock-emoji
-        </button>
-      </div>
-    ),
+      locale?: string;
+      emojibaseUrl?: string;
+    }) => {
+      rootProps.locale = locale ?? '';
+      rootProps.emojibaseUrl = emojibaseUrl ?? '';
+      return (
+        <div>
+          {children}
+          <button
+            type="button"
+            onClick={() => {
+              onEmojiSelect?.({ emoji: '🐸', label: 'frog' });
+            }}
+          >
+            mock-emoji
+          </button>
+        </div>
+      );
+    },
     Search: () => null,
     Viewport: ({ children }: { children: ReactNode }) => <div>{children}</div>,
     Loading: () => null,
     Empty: () => null,
     List: () => null,
+    ActiveEmoji: () => null,
   },
 }));
 
@@ -61,5 +72,12 @@ describe('EmojiPicker', () => {
     fireEvent.click(screen.getByRole('presentation'));
 
     expect(onClose).toHaveBeenCalled();
+  });
+
+  it('pide los emojis en español a la propia web, no a un CDN', () => {
+    render(<EmojiPicker open onSelect={vi.fn()} onClose={vi.fn()} />);
+
+    expect(rootProps.locale).toBe('es');
+    expect(rootProps.emojibaseUrl).toBe('/emojibase');
   });
 });
