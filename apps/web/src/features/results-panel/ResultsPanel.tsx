@@ -20,6 +20,8 @@ export interface ResultsPanelProps {
   readonly remainingMs: number | null;
   readonly canReveal: boolean;
   readonly onReveal: () => void;
+  /** En el móvil el botón de revelar va fijo abajo con la mano (ADR 0032): aquí no se repite. */
+  readonly revealShownElsewhere?: boolean | undefined;
   readonly onRevote: () => void;
   readonly canEstimate: boolean;
   readonly onAcceptEstimate: (card: string) => void;
@@ -97,10 +99,12 @@ function WaitingPanel(props: ResultsPanelProps & { round: RoundView }): JSX.Elem
       ) : null}
 
       <div className="mt-auto flex flex-col gap-2">
-        <Button variant="primary" block disabled={revealDisabled} onClick={props.onReveal}>
-          Revelar las cartas
-        </Button>
-        {revealDisabled ? (
+        {props.revealShownElsewhere ? null : (
+          <Button variant="primary" block disabled={revealDisabled} onClick={props.onReveal}>
+            Revelar las cartas
+          </Button>
+        )}
+        {revealDisabled && !props.revealShownElsewhere ? (
           <span className="text-center text-[11px]" style={{ color: 'var(--pp-muted)' }}>
             {votedCount === 0 ? 'Nadie ha votado todavía.' : 'No tienes permiso para revelar.'}
           </span>
