@@ -127,6 +127,11 @@ export const FEATURE_GROUPS: ReadonlyArray<FeatureGroupContent> = [
       },
       { icon: 'hat', title: 'Sombreros', description: 'Uno para cada avatar.' },
       {
+        icon: 'snow',
+        title: 'Nieve en Navidad',
+        description: 'Del 1 de diciembre al 6 de enero nieva en la mesa y puedes hacer un muñeco.',
+      },
+      {
         icon: 'deal',
         title: 'Quién reparte',
         description: 'El turno de presentar la tarea va rotando.',

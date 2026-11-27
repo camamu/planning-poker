@@ -12,6 +12,10 @@ export const HAT_LABELS: Record<HatIdView, string> = {
   pirate: 'Pirata',
   viking: 'Vikingo',
   chef: 'Chef',
+  santa: 'Papá Noel',
+  beanie: 'Gorro de lana',
+  reindeer: 'Reno',
+  elf: 'Elfo',
 };
 
 export interface HatProps {
@@ -190,6 +194,66 @@ const HAT_ART: Record<HatIdView, JSX.Element> = {
         fill="none"
         strokeLinecap="round"
       />
+    </g>
+  ),
+  // Gorros de temporada (ADR 0031): el selector solo los ofrece del 1 de diciembre al 6 de enero.
+  santa: (
+    <g>
+      <path
+        d="M8 20.5C9 11 15 5 23 5c6 0 10 4 12 10l-2.6 1.2c-1.4-3.4-3.8-5.4-6.2-5 2.8 3 4.8 6 5.8 9.3Z"
+        fill="#d63a4a"
+      />
+      <path d="M26.2 11.2c2.8 3 4.8 6 5.8 9.3h-3.5c-.5-4-1.5-7-2.3-9.3Z" fill="#a82535" />
+      <rect x="5.5" y="18.8" width="29" height="6" rx="3" fill="#f4f6ff" />
+      <circle cx="34.6" cy="16.6" r="3.1" fill="#f4f6ff" />
+    </g>
+  ),
+  beanie: (
+    <g>
+      <path d="M8.5 20Q8.5 8.5 20 8.5T31.5 20Z" fill="#3f7fd6" />
+      <path d="M9.6 14.6Q20 11.6 30.4 14.6L31 17.4Q20 14.6 9 17.4Z" fill="#f4f6ff" />
+      <rect x="7" y="18.5" width="26" height="6" rx="2" fill="#2c5fae" />
+      <path
+        d="M11 19.4v4.2M14.5 19.4v4.2M18 19.4v4.2M21.5 19.4v4.2M25 19.4v4.2M28.5 19.4v4.2"
+        stroke="#4d8de0"
+        strokeWidth="1.1"
+      />
+      <circle cx="20" cy="6.6" r="3.3" fill="#f4f6ff" />
+    </g>
+  ),
+  reindeer: (
+    <g>
+      <path
+        d="M7.5 24.5Q20 13 32.5 24.5"
+        fill="none"
+        stroke="#5a3a22"
+        strokeWidth="2.6"
+        strokeLinecap="round"
+      />
+      <g
+        fill="none"
+        stroke="#a8743f"
+        strokeWidth="2.1"
+        strokeLinecap="round"
+        strokeLinejoin="round"
+      >
+        <path d="M13.5 18.8 10.5 8.5 9 4.5M10.5 8.5l3.1-3.3M11.6 12l-5-1.8M12.6 15.4l-4.2-.4" />
+        <path d="M26.5 18.8 29.5 8.5 31 4.5M29.5 8.5l-3.1-3.3M28.4 12l5-1.8M27.4 15.4l4.2-.4" />
+      </g>
+    </g>
+  ),
+  elf: (
+    <g>
+      <path d="M10 20.5Q15.5 12 25.5 3.6 29 1 30 4.4q-1.8 7.6 0 16.1Z" fill="#2f9e63" />
+      <path d="M25.5 3.6Q29 1 30 4.4L28.6 6q-1.1-1.6-3.1-2.4Z" fill="#43b878" />
+      <rect x="8" y="18.6" width="24" height="5.6" rx="1.6" fill="#d63a4a" />
+      <path
+        d="m8.8 22.4 2.4-2.2 2.4 2.2 2.4-2.2 2.4 2.2 2.4-2.2 2.4 2.2 2.4-2.2 2.4 2.2 2.4-2.2"
+        fill="none"
+        stroke="#f4f6ff"
+        strokeWidth="1"
+      />
+      <circle cx="29.6" cy="2.6" r="2.3" fill="#f2c94c" />
     </g>
   ),
 };

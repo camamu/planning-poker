@@ -29,6 +29,7 @@ const baseGame: GameView = {
     allowVoteChange: true,
     celebrate: true,
     throwEmojis: false,
+    snow: true,
     countdownSeconds: null,
     revealOnTimeout: false,
   },

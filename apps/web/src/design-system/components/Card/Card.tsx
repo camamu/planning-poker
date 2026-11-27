@@ -1,4 +1,5 @@
 import type { JSX } from 'react';
+import { Holly, Snowflake } from '../Seasonal/Seasonal.js';
 
 export type CardState = 'available' | 'selected' | 'face-down' | 'revealed';
 
@@ -41,20 +42,33 @@ export function Card(props: CardProps): JSX.Element {
       aria-pressed={selected}
       className={[
         SIZES[size],
-        'inline-flex items-center justify-center rounded-[10px] border-[1.5px] font-semibold text-[26px] transition-transform duration-[180ms] ease-[cubic-bezier(0.2,0.85,0.3,1)] disabled:cursor-not-allowed disabled:opacity-45',
+        'relative inline-flex items-center justify-center rounded-[10px] border-[1.5px] font-semibold text-[26px] transition-transform duration-[180ms] ease-[cubic-bezier(0.2,0.85,0.3,1)] disabled:cursor-not-allowed disabled:opacity-45',
         props.special ? 'border-dashed' : '',
         selected
           ? 'border-[var(--color-accent)] bg-[color-mix(in_srgb,var(--color-accent)_16%,transparent)] text-[var(--color-accent)] -translate-y-[14px] shadow-[0_10px_26px_rgba(145,132,217,.32)]'
           : 'border-[var(--pp-line)] bg-[var(--color-surface)] text-[var(--color-text)] hover:-translate-y-3 hover:rotate-[-2deg]',
       ].join(' ')}
     >
+      <span
+        className="pp-winter-only"
+        style={{ position: 'absolute', top: 5, left: 5, lineHeight: 0, color: 'var(--pp-muted)' }}
+      >
+        <Snowflake size={10} />
+      </span>
       {props.label}
     </button>
   );
 }
 
+/** Copo del reverso y acebo de la cara en temporada de invierno (ADR 0031). */
+const WINTER_ART: Record<'sm' | 'lg', { readonly flake: number; readonly holly: number }> = {
+  sm: { flake: 44, holly: 13 },
+  lg: { flake: 64, holly: 18 },
+};
+
 function FlippableCard(props: CardProps & { size: 'sm' | 'lg' }): JSX.Element {
   const revealed = props.state === 'revealed';
+  const art = WINTER_ART[props.size];
   return (
     <div className={SIZES[props.size]} style={{ perspective: '700px' }}>
       <div
@@ -72,8 +86,22 @@ function FlippableCard(props: CardProps & { size: 'sm' | 'lg' }): JSX.Element {
             background: 'var(--color-accent-800)',
           }}
         >
+          <span
+            className="pp-winter-only"
+            style={{
+              position: 'absolute',
+              top: '50%',
+              left: '50%',
+              transform: 'translate(-50%,-50%)',
+              lineHeight: 0,
+              color: 'var(--color-accent-300)',
+              opacity: 0.24,
+            }}
+          >
+            <Snowflake size={art.flake} />
+          </span>
           <div
-            className="flex h-6 w-6 items-center justify-center rounded-full border-[1.5px] text-xs font-bold"
+            className="relative flex h-6 w-6 items-center justify-center rounded-full border-[1.5px] text-xs font-bold"
             style={{ borderColor: 'var(--color-accent-400)', color: 'var(--color-accent-300)' }}
           >
             ✓
@@ -90,6 +118,14 @@ function FlippableCard(props: CardProps & { size: 'sm' | 'lg' }): JSX.Element {
             boxShadow: '0 0 18px rgba(145,132,217,.28)',
           }}
         >
+          {revealed ? (
+            <span
+              className="pp-winter-only"
+              style={{ position: 'absolute', top: 4, right: 4, lineHeight: 0 }}
+            >
+              <Holly size={art.holly} />
+            </span>
+          ) : null}
           {revealed ? props.label : ''}
         </div>
       </div>

@@ -1,7 +1,9 @@
-import { HAT_IDS } from '@pp/contracts';
+import { HAT_IDS, WINTER_HAT_IDS } from '@pp/contracts';
 import type { HatIdView } from '@pp/contracts';
 import type { JSX } from 'react';
 import { Avatar, Button, HAT_LABELS, Modal } from '../../../design-system/index.js';
+import { useSeason } from '../../../shared/season/season.js';
+import type { Season } from '../../../shared/season/season.js';
 
 export interface HatPickerProps {
   readonly open: boolean;
@@ -11,16 +13,37 @@ export interface HatPickerProps {
   readonly onClose: () => void;
 }
 
-const OPTIONS: ReadonlyArray<{ readonly hat: HatIdView | null; readonly label: string }> = [
-  { hat: null, label: 'Sin sombrero' },
-  ...HAT_IDS.map((hat) => ({ hat, label: HAT_LABELS[hat] })),
-];
+export interface HatOption {
+  readonly hat: HatIdView | null;
+  readonly label: string;
+}
+
+const isWinterHat = (hat: HatIdView): boolean =>
+  WINTER_HAT_IDS.some((candidate) => candidate === hat);
+
+/**
+ * En invierno los gorros de temporada van primero; fuera de fechas no se ofrecen, salvo el que ya
+ * lleva puesto quien abre el selector, para que pueda ver cuál es (ADR 0031).
+ */
+export function hatOptions(season: Season | null, current: HatIdView | null): HatOption[] {
+  const regular = HAT_IDS.filter((hat) => !isWinterHat(hat));
+  const winter = HAT_IDS.filter(isWinterHat);
+  const hats =
+    season === 'winter'
+      ? [...winter, ...regular]
+      : [...regular, ...winter.filter((hat) => hat === current)];
+  return [
+    { hat: null, label: 'Sin sombrero' },
+    ...hats.map((hat) => ({ hat, label: HAT_LABELS[hat] })),
+  ];
+}
 
 /**
  * Se aplica al pulsar, sin botón de guardar, y el diálogo sigue abierto para probarse otro: la
  * mesa entera ve el cambio en vivo, igual que con la baraja (ADR 0014).
  */
 export function HatPicker(props: HatPickerProps): JSX.Element | null {
+  const options = hatOptions(useSeason(), props.current);
   return (
     <Modal
       open={props.open}
@@ -33,7 +56,7 @@ export function HatPicker(props: HatPickerProps): JSX.Element | null {
       }
     >
       <div className="grid grid-cols-2 gap-2 sm:grid-cols-5" role="radiogroup">
-        {OPTIONS.map((option) => {
+        {options.map((option) => {
           const selected = option.hat === props.current;
           return (
             <button

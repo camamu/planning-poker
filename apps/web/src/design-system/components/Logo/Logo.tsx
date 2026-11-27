@@ -10,6 +10,8 @@ export interface LogoProps {
 /** Por debajo de este tamaño las muescas y el 8 se emborronan: se pinta la versión simple. */
 const DETAIL_MIN_SIZE = 24;
 const CARD_TRANSFORM = 'rotate(12 32.5 30.5)';
+const SNOW_CAP =
+  'M4.4 15.6C5.6 9.4 11.4 5 20 5s14.4 4.4 15.6 10.6c-1.2 1.2-2.6 1-3.6-.2-1 2-3.2 1.8-4.2.2-1.4 2.2-4.2 2-5.2 0-1.4 1.8-4 1.8-5.2 0-1.2 2-4 2.2-5.2.2-1.2 1.6-3.4 1.6-4.2-.4-1 1.4-2.6 1.4-3.6.2Z';
 
 interface MaskProps {
   readonly id: string;
@@ -97,6 +99,14 @@ export function Logo({ size = 32, title }: LogoProps): JSX.Element {
         fill="var(--pp-brand-warm)"
         transform={CARD_TRANSFORM}
         mask={`url(#${cardMask})`}
+      />
+      {/* Nieve sobre la ficha en temporada de invierno (ADR 0031). */}
+      <path
+        className="pp-winter-only"
+        d={SNOW_CAP}
+        fill="var(--pp-snow)"
+        stroke="var(--pp-snow-outline)"
+        strokeWidth="0.8"
       />
     </svg>
   );

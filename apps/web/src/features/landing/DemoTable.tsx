@@ -76,6 +76,7 @@ const SETTINGS: GameView['settings'] = {
   allowVoteChange: true,
   celebrate: true,
   throwEmojis: true,
+  snow: true,
   countdownSeconds: null,
   revealOnTimeout: false,
 };

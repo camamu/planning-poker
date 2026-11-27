@@ -1,0 +1,81 @@
+/* Temporada de invierno, variante Nochebuena (docs/adr/0031-ambientacion-navidena.md).
+   La paleta de Nocturne no cambia: se añaden nieve y luces cálidas. Los tokens existen siempre;
+   lo que se ve solo aparece con data-season="winter" en <html>, que pone App.tsx. */
+
+:root {
+  --pp-snow: #f6f8ff;
+  --pp-snow-shade: #b6c1e2;
+  --pp-snow-edge: rgba(255, 255, 255, 0.9);
+  /* En oscuro la nieve ya contrasta; en claro necesita contorno para no desaparecer. */
+  --pp-snow-outline: transparent;
+  --pp-light: #f2b86b;
+  --pp-light-soft: #ffd79a;
+  --pp-light-off: #3a3644;
+  --pp-light-wire: #5b5244;
+  --pp-holly: #2f9e63;
+  --pp-berry: #d63a4a;
+}
+
+[data-theme='light'] {
+  --pp-snow: #ffffff;
+  --pp-snow-shade: #d3dbf1;
+  --pp-snow-edge: rgba(93, 82, 148, 0.5);
+  --pp-snow-outline: rgba(93, 82, 148, 0.45);
+  --pp-light-off: #c7c2d6;
+}
+
+/* Piezas de temporada dentro de componentes (copo del reverso, acebo, nieve del logo): están en el
+   DOM todo el año y solo se muestran en invierno. Sin clases de display de Tailwind encima, porque
+   `revert` las desharía. */
+.pp-winter-only {
+  display: none;
+}
+[data-season='winter'] .pp-winter-only {
+  display: revert;
+}
+
+@keyframes ppTwinkle {
+  0%,
+  100% {
+    filter: brightness(1);
+  }
+  50% {
+    filter: brightness(0.5);
+  }
+}
+@keyframes ppChase {
+  0% {
+    background: var(--pp-bulb);
+    box-shadow: 0 0 16px 6px var(--pp-bulb);
+  }
+}
+.pp-bulb {
+  position: absolute;
+  width: 8px;
+  height: 11px;
+  margin: -5.5px 0 0 -4px;
+  border-radius: 50% 50% 45% 45% / 60% 60% 40% 40%;
+  background: var(--pp-light-off);
+  transition:
+    background 0.35s,
+    box-shadow 0.35s;
+}
+.pp-bulb[data-on='true'] {
+  background: var(--pp-bulb);
+  box-shadow:
+    0 0 6px 2px color-mix(in srgb, var(--pp-bulb) 65%, transparent),
+    0 0 16px 4px color-mix(in srgb, var(--pp-bulb) 22%, transparent);
+}
+.pp-lights[data-all='true'] .pp-bulb[data-on='true'] {
+  animation: ppTwinkle 1.8s ease-in-out infinite;
+  animation-delay: calc(var(--pp-i) * -0.21s);
+}
+.pp-lights[data-chase='true'] .pp-bulb {
+  animation: ppChase 0.7s ease-out 2 both;
+  animation-delay: calc(var(--pp-i) * 22ms);
+}
+@media (prefers-reduced-motion: reduce) {
+  .pp-lights .pp-bulb {
+    animation: none !important;
+  }
+}

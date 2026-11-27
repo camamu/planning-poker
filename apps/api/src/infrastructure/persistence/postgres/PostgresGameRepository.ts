@@ -74,6 +74,7 @@ export class PostgresGameRepository implements GameRepository {
             allow_vote_change: gameRow.allow_vote_change,
             celebrate: gameRow.celebrate,
             throw_emojis: gameRow.throw_emojis,
+            snow: gameRow.snow,
             countdown_seconds: gameRow.countdown_seconds,
             reveal_on_timeout: gameRow.reveal_on_timeout,
           }),

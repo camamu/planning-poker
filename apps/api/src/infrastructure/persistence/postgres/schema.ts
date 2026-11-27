@@ -12,6 +12,8 @@ export interface GameTable {
   allow_vote_change: boolean;
   celebrate: boolean;
   throw_emojis: boolean;
+  /** Ajuste «Nevada» (ADR 0031). */
+  snow: boolean;
   /** F5 — segundos de cuenta atrás por ronda, o `null` si está desactivada. */
   countdown_seconds: number | null;
   reveal_on_timeout: boolean;

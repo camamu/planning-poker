@@ -286,6 +286,25 @@ export function defineGameRepositoryContractTests(
       expect(settings?.revealOnTimeout).toBe(true);
     });
 
+    it('conserva el ajuste «Nevada» (snow) tras recargar', async () => {
+      const repository = await makeRepository();
+      const game = Game.create(
+        {
+          id: GameId.of('game-snow'),
+          name: GameName.of('Sprint 42'),
+          deck: Deck.fibonacci(),
+          settings: GameSettings.of({ autoReveal: false, whoCanReveal: 'ANYONE', snow: false }),
+          facilitatorId: ParticipantId.of('game-snow-facilitator'),
+          facilitatorName: DisplayName.of('Ada'),
+        },
+        NOW,
+      );
+      await repository.save(game);
+
+      const reloaded = await repository.findById(GameId.of('game-snow'));
+      expect(reloaded?.currentSettings().snow).toBe(false);
+    });
+
     it('conserva el orden de entrada de los participantes tras recargar (base de Game.currentDealer())', async () => {
       const repository = await makeRepository();
       const { game, facilitatorId } = newGame('game-10');

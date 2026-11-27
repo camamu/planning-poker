@@ -37,6 +37,16 @@ describe('sombreros de avatar', () => {
     }).toThrow(HatChangeNotAllowedError);
   });
 
+  it('los gorros de temporada valen todo el año, no solo en invierno', () => {
+    const { game } = createGame();
+    const voterId = addVoter(game);
+
+    for (const id of ['santa', 'beanie', 'reindeer', 'elf']) {
+      game.changeParticipantHat(voterId, Hat.of(id), voterId, NOW);
+      expect(hatOf(game, voterId.value)).toBe(id);
+    }
+  });
+
   it('permite cambiar de sombrero con una ronda abierta', () => {
     const { game, facilitatorId } = createGame();
     addIssueAndOpenRound(game);
