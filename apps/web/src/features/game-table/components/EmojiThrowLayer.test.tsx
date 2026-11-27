@@ -74,4 +74,48 @@ describe('EmojiThrowLayer', () => {
     expect(span?.style.animation).toContain('ppReact');
     expect(span?.style.left).toBe(seatB.left);
   });
+
+  it('una bola de nieve vuela como bola, no como emoji, y deja un pegote en el asiento de destino', () => {
+    const seatsById = new Map([
+      ['a', seatA],
+      ['b', seatB],
+    ]);
+    const flightGeometryById = new Map<string, ThrowOffset>([
+      ['e1', { dxPx: 360, dyPx: -478, arcHeightPx: 120 }],
+    ]);
+
+    const { container } = render(
+      <EmojiThrowLayer
+        emojisInFlight={[makeEntry({ emoji: '❄️' })]}
+        seatsById={seatsById}
+        flightGeometryById={flightGeometryById}
+      />,
+    );
+
+    expect(container.querySelector('.pp-snowball')).not.toBeNull();
+    const splat = container.querySelector<HTMLElement>('.pp-snow-splat');
+    expect(splat?.style.left).toBe(seatB.left);
+    expect(splat?.style.top).toBe(seatB.top);
+    expect(splat?.style.animation).toContain('ppSnowSplat');
+  });
+
+  it('un emoji cualquiera no deja pegote', () => {
+    const seatsById = new Map([
+      ['a', seatA],
+      ['b', seatB],
+    ]);
+    const flightGeometryById = new Map<string, ThrowOffset>([
+      ['e1', { dxPx: 360, dyPx: -478, arcHeightPx: 120 }],
+    ]);
+
+    const { container } = render(
+      <EmojiThrowLayer
+        emojisInFlight={[makeEntry()]}
+        seatsById={seatsById}
+        flightGeometryById={flightGeometryById}
+      />,
+    );
+
+    expect(container.querySelector('.pp-snow-splat')).toBeNull();
+  });
 });

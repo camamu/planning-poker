@@ -6,8 +6,9 @@ El equipo quería que en Navidad la sala tuviera un aspecto invernal: que nevara
 se pudiera hacer un muñeco. De la propuesta con tres intensidades (Sutil, Nochebuena y Postal) se
 eligió **Nochebuena**: la paleta de Nocturne no cambia, porque la noche azul y el violeta ya son de
 Nochebuena, y se añaden nieve, luces cálidas y detalles de temporada. Del catálogo de ideas se
-eligieron los **gorros nuevos** y la **baraja de invierno**. Las bolas de nieve lanzables, la nevada
-de consenso, el cascabel al revelar y el resumen anual se quedan fuera.
+eligieron los **gorros nuevos** y la **baraja de invierno**. En una segunda entrega (1.11.0) se
+añadieron la **bola de nieve**, la **nieve en la portada**, el **consenso nevado** y el **cascabel al
+revelar**. El resumen anual se queda fuera.
 
 ## Decisión
 
@@ -41,8 +42,20 @@ de consenso, el cascabel al revelar y el resumen anual se quedan fuera.
 - **Baraja de invierno y logo.** `Card` lleva un copo en el reverso, un copo pequeño en la esquina
   de las cartas de la mano y una ramita de acebo en la carta revelada; el `Logo` lleva nieve encima
   de la ficha. Los valores de las cartas no cambian.
+- **Bola de nieve.** ❄️ abre la barra de lanzar en temporada si la sala no ha apagado la nieve. Viaja
+  como un emoji más por `emoji_thrown`, que ya acepta cualquiera, así que no toca la API ni el ajuste
+  «Emojis lanzados». `EmojiThrowLayer` la dibuja como bola blanca y deja un pegote sobre el asiento de
+  destino que se escurre antes de que el lanzamiento se retire (2,5 s). No hay devolución automática.
+- **Nieve en la portada.** `DemoTable` monta `Snowfall` sobre la mesa de ejemplo, con el mismo
+  muñeco. Lee la preferencia «sin nieve» del navegador directamente: la portada no carga el store
+  de la partida.
+- **Consenso nevado y cascabel.** Con unanimidad y «Fiesta» activada, el confeti del panel de
+  resultados pasa a copos dorados y blancos (`Confetti variant="snow"`). Al revelar suena un
+  cascabel de trineo (`playSleighBellReveal`, solo osciladores) en vez del arpegio; respeta el
+  silencio. Los dos dependen solo de la temporada, no del ajuste de nieve de la sala.
 - **Movimiento reducido.** Con `prefers-reduced-motion` no caen copos y las luces no titilan; el
   suelo aparece ya nevado y el muñeco se puede hacer igual, porque solo se mueve cuando arrastras.
+  Tampoco hay pegote de la bola de nieve ni copos de consenso.
 
 ## Consecuencias
 

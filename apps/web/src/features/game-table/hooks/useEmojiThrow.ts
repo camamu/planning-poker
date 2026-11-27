@@ -1,4 +1,6 @@
+import { useSeason } from '../../../shared/season/season.js';
 import { useGameStore } from '../../../shared/store/gameStore.js';
+import { SNOWBALL } from '../snowball.js';
 import type { EmojiInFlight } from '../../../shared/store/gameStore.js';
 
 const REACT_REACTIONS = ['👏', '😂', '😱', '🤔', '🐔'];
@@ -22,12 +24,21 @@ export function useEmojiThrow(): UseEmojiThrowResult {
   const setEmojiMode = useGameStore((state) => state.setEmojiMode);
   const armEmoji = useGameStore((state) => state.armEmoji);
   const sendEmoji = useGameStore((state) => state.sendEmoji);
+  // En invierno, y si la sala no ha apagado la nieve, la bola de nieve abre la barra de lanzar.
+  const season = useSeason();
+  const roomSnows = useGameStore((state) => state.game?.settings.snow ?? false);
+  const snowball = season === 'winter' && roomSnows;
 
   return {
     mode,
     armedEmoji,
     emojisInFlight,
-    reactionBar: mode === 'throw' ? THROW_REACTIONS : REACT_REACTIONS,
+    reactionBar:
+      mode === 'react'
+        ? REACT_REACTIONS
+        : snowball
+          ? [SNOWBALL, ...THROW_REACTIONS]
+          : THROW_REACTIONS,
     setMode: setEmojiMode,
     pick(emoji, ownParticipantId) {
       if (mode === 'react') {
