@@ -134,6 +134,7 @@ export class WsEventPublisher implements EventPublisher {
             allowVoteChange: event.settings.allowVoteChange,
             celebrate: event.settings.celebrate,
             throwEmojis: event.settings.throwEmojis,
+            snow: event.settings.snow,
             countdownSeconds: event.settings.countdownSeconds,
             revealOnTimeout: event.settings.revealOnTimeout,
           },

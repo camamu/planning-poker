@@ -25,6 +25,7 @@ export interface CreateGameCommand {
     readonly allowVoteChange?: boolean;
     readonly celebrate?: boolean;
     readonly throwEmojis?: boolean;
+    readonly snow?: boolean;
     readonly countdownSeconds?: number | null;
     readonly revealOnTimeout?: boolean;
   };
@@ -79,6 +80,7 @@ export class CreateGame {
           ...(command.settings.throwEmojis !== undefined
             ? { throwEmojis: command.settings.throwEmojis }
             : {}),
+          ...(command.settings.snow !== undefined ? { snow: command.settings.snow } : {}),
           ...(command.settings.countdownSeconds !== undefined
             ? { countdownSeconds: command.settings.countdownSeconds }
             : {}),
