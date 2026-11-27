@@ -15,6 +15,7 @@ function baseState(overrides: Partial<GameView> = {}): GameView {
       allowVoteChange: true,
       celebrate: true,
       throwEmojis: false,
+      snow: true,
       countdownSeconds: null,
       revealOnTimeout: false,
     },

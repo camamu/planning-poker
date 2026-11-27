@@ -41,3 +41,6 @@ export { Icon, iconForSeed } from './components/Icon/Icon.js';
 export type { IconName, IconProps } from './components/Icon/Icon.js';
 export { Step } from './components/Step/Step.js';
 export type { StepProps } from './components/Step/Step.js';
+export { Holly, Snowflake } from './components/Seasonal/Seasonal.js';
+export { Snowfall } from './components/Snowfall/Snowfall.js';
+export type { SnowfallHandle, SnowfallProps } from './components/Snowfall/Snowfall.js';

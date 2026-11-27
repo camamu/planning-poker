@@ -5,6 +5,7 @@ import { getSocket } from '../socket/connection.js';
 import { useServerStatusStore } from './serverStatusStore.js';
 import { WEBHOOK_EVENT_LABELS } from '../webhooks/webhookEventLabels.js';
 import { gameEventsReducer, needsResync } from '../socket/gameEventsReducer.js';
+import { readSnowOff, writeSnowOff } from '../season/season.js';
 
 export type ConnectionStatus = 'idle' | 'connecting' | 'connected' | 'disconnected';
 
@@ -43,6 +44,8 @@ interface GameStoreState {
   readonly asyncSelected: Readonly<Record<string, string>>;
   readonly theme: 'dark' | 'light';
   readonly muted: boolean;
+  /** «Sin nieve» solo para este navegador (botón ❄ de la barra, ADR 0031). */
+  readonly snowOff: boolean;
   readonly emojiMode: 'throw' | 'react';
   readonly armedEmoji: string | null;
   readonly emojisInFlight: ReadonlyArray<EmojiInFlight>;
@@ -68,6 +71,7 @@ interface GameStoreState {
   reorderIssueQueue: (issueIds: ReadonlyArray<string>) => Promise<void>;
   toggleTheme: () => void;
   toggleMuted: () => void;
+  toggleSnow: () => void;
   setEmojiMode: (mode: 'throw' | 'react') => void;
   armEmoji: (emoji: string | null) => void;
   sendEmoji: (toParticipantId: string | null, emoji: string) => void;
@@ -91,6 +95,7 @@ export const useGameStore = create<GameStoreState>((set, get) => ({
   asyncSelected: {},
   theme: 'dark',
   muted: false,
+  snowOff: readSnowOff(),
   emojiMode: 'throw',
   armedEmoji: null,
   emojisInFlight: [],
@@ -222,6 +227,12 @@ export const useGameStore = create<GameStoreState>((set, get) => ({
 
   toggleMuted() {
     set((state) => ({ muted: !state.muted }));
+  },
+
+  toggleSnow() {
+    const snowOff = !get().snowOff;
+    writeSnowOff(snowOff);
+    set({ snowOff });
   },
 
   setEmojiMode(mode) {

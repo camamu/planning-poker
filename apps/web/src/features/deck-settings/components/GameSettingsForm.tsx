@@ -1,6 +1,7 @@
 import type { WhoCanRevealView } from '@pp/contracts';
 import type { JSX } from 'react';
 import { SegmentedControl, Select, Switch } from '../../../design-system/index.js';
+import { useSeason } from '../../../shared/season/season.js';
 
 export interface GameSettingsFormValue {
   readonly autoReveal: boolean;
@@ -8,6 +9,7 @@ export interface GameSettingsFormValue {
   readonly allowVoteChange: boolean;
   readonly celebrate: boolean;
   readonly throwEmojis: boolean;
+  readonly snow: boolean;
   readonly countdownSeconds: number | null;
   readonly revealOnTimeout: boolean;
 }
@@ -18,6 +20,7 @@ export const DEFAULT_SETTINGS: GameSettingsFormValue = {
   allowVoteChange: true,
   celebrate: true,
   throwEmojis: true,
+  snow: true,
   countdownSeconds: null,
   revealOnTimeout: false,
 };
@@ -42,6 +45,7 @@ const WHO_CAN_REVEAL_OPTIONS: ReadonlyArray<{ value: WhoCanRevealView; label: st
 
 /** Reutilizado por create-game (colapsado) y por la pantalla de ajustes de deck-settings. */
 export function GameSettingsForm({ value, onChange }: GameSettingsFormProps): JSX.Element {
+  const season = useSeason();
   function set<K extends keyof GameSettingsFormValue>(
     key: K,
     fieldValue: GameSettingsFormValue[K],
@@ -87,6 +91,18 @@ export function GameSettingsForm({ value, onChange }: GameSettingsFormProps): JS
           aria-label="Emojis lanzados"
         />
       </SettingRow>
+      {/* Fuera de temporada no hay nieve que apagar (ADR 0031). */}
+      {season === 'winter' ? (
+        <SettingRow label="Nieve en la sala">
+          <Switch
+            checked={value.snow}
+            onChange={(checked) => {
+              set('snow', checked);
+            }}
+            aria-label="Nieve en la sala"
+          />
+        </SettingRow>
+      ) : null}
 
       <div className="field">
         <label>¿Quién puede revelar?</label>

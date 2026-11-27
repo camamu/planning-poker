@@ -41,6 +41,7 @@ function baseSettings(): GameSettingsView {
     allowVoteChange: true,
     celebrate: true,
     throwEmojis: false,
+    snow: true,
     countdownSeconds: null,
     revealOnTimeout: false,
   };

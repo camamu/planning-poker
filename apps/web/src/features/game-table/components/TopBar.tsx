@@ -12,6 +12,8 @@ export interface TopBarProps {
   readonly remainingMs: number | null;
   readonly muted: boolean;
   readonly onToggleMuted: () => void;
+  /** Solo en temporada y con la nieve de la sala activada: cada uno puede quitársela (ADR 0031). */
+  readonly snow?: { readonly off: boolean; readonly onToggle: () => void } | undefined;
   readonly viewerId: string;
   readonly viewerHat: HatIdView | null;
   readonly onChangeHat: (hat: HatIdView | null) => void | Promise<void>;
@@ -84,6 +86,19 @@ export function TopBar(props: TopBarProps): JSX.Element {
         <button type="button" className="btn btn-secondary" onClick={props.onToggleMuted}>
           {props.muted ? '🔇' : '🔊'}
         </button>
+        {props.snow ? (
+          <button
+            type="button"
+            className="btn btn-secondary"
+            aria-pressed={!props.snow.off}
+            aria-label={props.snow.off ? 'Volver a ver la nieve' : 'Quitar la nieve solo para mí'}
+            title={props.snow.off ? 'Volver a ver la nieve' : 'Quitar la nieve solo para mí'}
+            onClick={props.snow.onToggle}
+            style={props.snow.off ? { opacity: 0.45 } : undefined}
+          >
+            ❄️
+          </button>
+        ) : null}
         <button
           type="button"
           className="btn btn-secondary"

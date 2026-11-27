@@ -69,6 +69,8 @@ export interface UseGameTableResult {
   readonly muted: boolean;
   readonly toggleTheme: () => void;
   readonly toggleMuted: () => void;
+  readonly snowOff: boolean;
+  readonly toggleSnow: () => void;
   readonly canReveal: boolean;
   readonly clearError: () => void;
 }
@@ -98,6 +100,8 @@ export function useGameTable(gameId: string, participantId: string): UseGameTabl
   const muted = useGameStore((state) => state.muted);
   const toggleTheme = useGameStore((state) => state.toggleTheme);
   const toggleMuted = useGameStore((state) => state.toggleMuted);
+  const snowOff = useGameStore((state) => state.snowOff);
+  const toggleSnow = useGameStore((state) => state.toggleSnow);
 
   useEffect(() => {
     connect(gameId, participantId);
@@ -219,6 +223,8 @@ export function useGameTable(gameId: string, participantId: string): UseGameTabl
     muted,
     toggleTheme,
     toggleMuted,
+    snowOff,
+    toggleSnow,
     canReveal: game ? canParticipantReveal(game, participantId) : false,
     clearError,
   };

@@ -25,6 +25,9 @@ const ICONS = {
   play: <path d="M7 4l13 8-13 8z" />,
   repeat: <path d="M17 2l3 3-3 3M4 11V9a4 4 0 0 1 4-4h12M7 22l-3-3 3-3M20 13v2a4 4 0 0 1-4 4H4" />,
   moon: <path d="M21 13A9 9 0 1 1 11 3a7 7 0 0 0 10 10z" />,
+  snow: (
+    <path d="M12 2v20M3.3 7l17.4 10M3.3 17l17.4-10M9.5 3.5 12 6l2.5-2.5M9.5 20.5 12 18l2.5 2.5" />
+  ),
   bars: <path d="M5 20V11M11 20V5M17 20v-7M3 20h18" />,
   percent: (
     <>
