@@ -1,5 +1,16 @@
 # Changelog
 
+## [1.10.0](https://github.com/camamu/planning-poker/compare/planning-poker-v1.9.2...planning-poker-v1.10.0) (2026-11-27)
+
+
+### Features
+
+* **contracts:** snow en los ajustes y gorros de temporada ([27fd2c9](https://github.com/camamu/planning-poker/commit/27fd2c9b9e5ed3f13ae0f9c84c4ceb8c42566768))
+* **domain:** gorros de temporada y ajuste de nieve en la partida ([a938e93](https://github.com/camamu/planning-poker/commit/a938e93a5570b19e61c636113954eb2053902959))
+* **infra:** persiste y transporta el ajuste de nieve ([30ef29e](https://github.com/camamu/planning-poker/commit/30ef29e3b0d49b633823976fbcafb22e4608fafe))
+* **web:** ambientación navideña Nochebuena ([4facc0f](https://github.com/camamu/planning-poker/commit/4facc0fa6463269c3946800750a647f39b93078e))
+* **web:** ambientación navideña Nochebuena ([4df9090](https://github.com/camamu/planning-poker/commit/4df909089cb2dd7b509b06c0908a5b240e3f2968))
+
 ## [1.9.2](https://github.com/camamu/planning-poker/compare/planning-poker-v1.9.1...planning-poker-v1.9.2) (2026-11-19)
 
 
