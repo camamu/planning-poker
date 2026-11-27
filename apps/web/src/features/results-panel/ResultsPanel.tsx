@@ -4,6 +4,7 @@ import { Badge, Button, Tooltip } from '../../design-system/index.js';
 import type { DiscussionTimerState } from '../../shared/store/gameStore.js';
 import { formatCountdown } from '../game-table/hooks/useCountdown.js';
 import { formatPoints } from '../session-summary/summaryFormat.js';
+import { useSeason } from '../../shared/season/season.js';
 import { Confetti } from './Confetti.js';
 import { DiscussionTimerControls } from './DiscussionTimerControls.js';
 import { Distribution } from './Distribution.js';
@@ -124,6 +125,7 @@ function WaitingPanel(props: ResultsPanelProps & { round: RoundView }): JSX.Elem
 
 function RevealedPanel(props: ResultsPanelProps & { round: RoundView }): JSX.Element {
   const { round } = props;
+  const season = useSeason();
   const result = round.result;
   if (!result) {
     return <p className="text-sm">Sin resultado.</p>;
@@ -136,7 +138,9 @@ function RevealedPanel(props: ResultsPanelProps & { round: RoundView }): JSX.Ele
 
   return (
     <div className="relative flex h-full flex-col gap-4">
-      {props.celebrate && result.isUnanimous ? <Confetti /> : null}
+      {props.celebrate && result.isUnanimous ? (
+        <Confetti variant={season === 'winter' ? 'snow' : 'confetti'} />
+      ) : null}
       <div className="flex items-baseline justify-between">
         <span className="text-[15px] font-semibold">Resultado</span>
         <Badge variant={result.isUnanimous ? 'accent' : 'outline'}>

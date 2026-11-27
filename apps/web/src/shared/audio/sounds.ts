@@ -80,3 +80,29 @@ export function playReactionSound(muted: boolean): void {
   if (muted) return;
   tone(getContext(), 880, 'triangle', 0, 0.18, 0.06);
 }
+
+/** Un golpe de cascabel: varios parciales agudos y cortos, un poco desafinados entre sí. */
+function jingle(ctx: AudioContext, startOffset: number, peakGain: number): void {
+  for (const frequency of [2637, 3136, 3951, 4699]) {
+    const detune = 0.98 + Math.random() * 0.04;
+    tone(ctx, frequency * detune, 'sine', startOffset + Math.random() * 0.025, 0.12, peakGain);
+  }
+}
+
+/**
+ * Revelar en temporada de invierno (ADR 0031): cascabel de trineo en vez de arpegio. Con
+ * unanimidad, dos tandas y un acorde final; sin ella, una tanda corta. Solo osciladores, como el
+ * resto de sonidos de la sala.
+ */
+export function playSleighBellReveal(unanimous: boolean, muted: boolean): void {
+  if (muted) return;
+  const ctx = getContext();
+  const shakes = unanimous ? [0, 0.13, 0.26, 0.52, 0.65, 0.78] : [0, 0.14, 0.28];
+  shakes.forEach((at, index) => {
+    jingle(ctx, at, index % 3 === 0 ? 0.03 : 0.02);
+  });
+  if (!unanimous) return;
+  [1319, 1568, 1976].forEach((frequency, index) => {
+    tone(ctx, frequency, 'triangle', 1.05 + index * 0.02, 0.6, 0.05);
+  });
+}

@@ -9,6 +9,7 @@ import {
   playImpactSound,
   playReactionSound,
   playRevealSound,
+  playSleighBellReveal,
   playThrowSound,
   playVoteSound,
 } from '../../shared/audio/sounds.js';
@@ -87,10 +88,12 @@ export function GameTablePage({
   const previousRoundStatusRef = useRef<string | undefined>(undefined);
   useEffect(() => {
     if (previousRoundStatusRef.current === 'OPEN' && table.round?.status === 'REVEALED') {
-      playRevealSound(table.round.result?.isUnanimous ?? false, table.muted);
+      const unanimous = table.round.result?.isUnanimous ?? false;
+      if (season === 'winter') playSleighBellReveal(unanimous, table.muted);
+      else playRevealSound(unanimous, table.muted);
     }
     previousRoundStatusRef.current = table.round?.status;
-  }, [table.round?.status, table.round?.result?.isUnanimous, table.muted]);
+  }, [table.round?.status, table.round?.result?.isUnanimous, table.muted, season]);
 
   useEffect(() => {
     if (!table.game || !table.errorMessage) return;
