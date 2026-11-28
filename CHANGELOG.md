@@ -1,5 +1,19 @@
 # Changelog
 
+## [1.12.0](https://github.com/camamu/planning-poker/compare/planning-poker-v1.11.0...planning-poker-v1.12.0) (2026-11-28)
+
+
+### Features
+
+* **web:** emojis de Fluent en toda la web ([27ab3fd](https://github.com/camamu/planning-poker/commit/27ab3fd74d37d0743fbe30665ecd716685d98210))
+* **web:** sala en el móvil, selector de emojis y emojis de Fluent ([6ab5ee9](https://github.com/camamu/planning-poker/commit/6ab5ee9d6f24df94ebcc7ca697aed414394fb749))
+* **web:** selector de emojis en español, con el aspecto de la app y sin CDN ([d042bc4](https://github.com/camamu/planning-poker/commit/d042bc48b5144b76a8085be1efda114c248cd7c1))
+
+
+### Bug Fixes
+
+* **web:** diálogos, nieve y acciones del facilitador en el móvil ([3dbbbf5](https://github.com/camamu/planning-poker/commit/3dbbbf5e7d824a35558944bbe8fed6cb84f8cc99))
+
 ## [1.11.0](https://github.com/camamu/planning-poker/compare/planning-poker-v1.10.0...planning-poker-v1.11.0) (2026-11-27)
 
 
