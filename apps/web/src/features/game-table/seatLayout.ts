@@ -14,6 +14,26 @@ export function seatPosition(displayIndex: number, total: number): SeatPosition 
   return { left: `${left.toString()}%`, top: `${top.toString()}%` };
 }
 
+/** Columnas de la mesa compacta del móvil (docs/06-handoff-diseno.md §8). */
+export const COMPACT_COLUMNS = 4;
+
+export function compactRows(total: number): number {
+  return Math.ceil(total / COMPACT_COLUMNS);
+}
+
+/**
+ * Asiento en la rejilla de la mesa compacta, en `%` como los de la elipse para que los lanzamientos
+ * de emojis y la guirnalda sigan funcionando igual. La última fila, si no está llena, va centrada.
+ */
+export function compactSeatPosition(index: number, total: number): SeatPosition {
+  const row = Math.floor(index / COMPACT_COLUMNS);
+  const inRow = Math.min(COMPACT_COLUMNS, total - row * COMPACT_COLUMNS);
+  const column = (index % COMPACT_COLUMNS) + (COMPACT_COLUMNS - inRow) / 2;
+  const left = ((column + 0.5) / COMPACT_COLUMNS) * 100;
+  const top = ((row + 0.5) / compactRows(total)) * 100;
+  return { left: `${left.toString()}%`, top: `${top.toString()}%` };
+}
+
 export interface ContainerSize {
   readonly width: number;
   readonly height: number;

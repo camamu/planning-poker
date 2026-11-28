@@ -2,7 +2,7 @@ import type { DeckSummaryView } from '@pp/contracts';
 import { useEffect, useState } from 'react';
 import type { JSX, SubmitEvent } from 'react';
 import { Link, useNavigate, useSearchParams } from 'react-router-dom';
-import { Button, Input, QrCode } from '../../design-system/index.js';
+import { Button, EmojiText, Input, QrCode } from '../../design-system/index.js';
 import { createGame } from '../../shared/api/gamesClient.js';
 import { listDecks } from '../../shared/api/teamsClient.js';
 import type { RememberedGame } from '../../shared/games/rememberedGames.js';
@@ -151,7 +151,7 @@ export function CreateGamePage(): JSX.Element {
                     {deck.teamId ? <span className="tag tag-neutral"> personalizada</span> : null}
                   </span>
                   <span className="font-mono text-[11px]" style={{ color: 'var(--pp-muted)' }}>
-                    {deck.cards.join(' · ')}
+                    <EmojiText text={deck.cards.join(' · ')} />
                   </span>
                 </span>
               </label>

@@ -3,6 +3,7 @@ import tailwindcss from '@tailwindcss/vite';
 import react from '@vitejs/plugin-react';
 import { defineConfig, loadEnv } from 'vite';
 import type { Plugin } from 'vite';
+import { fluentEmoji, selfHostedEmojibase } from './build/emojiAssets.js';
 
 /** La versión que release-please acaba de cortar; el pie de la portada la enseña (ADR 0029). */
 function releasedVersion(): string | undefined {
@@ -35,7 +36,13 @@ export default defineConfig(({ mode }) => {
   const version = releasedVersion();
 
   return {
-    plugins: [react(), tailwindcss(), publicUrlInHtml(publicUrl)],
+    plugins: [
+      react(),
+      tailwindcss(),
+      publicUrlInHtml(publicUrl),
+      selfHostedEmojibase(),
+      fluentEmoji(),
+    ],
     define: version ? { 'import.meta.env.VITE_APP_VERSION': JSON.stringify(version) } : {},
     server: { port: 5173 },
   };

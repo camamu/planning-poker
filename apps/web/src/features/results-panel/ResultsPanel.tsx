@@ -1,6 +1,6 @@
 import type { ParticipantView, RoundView } from '@pp/contracts';
 import type { JSX } from 'react';
-import { Badge, Button, Tooltip } from '../../design-system/index.js';
+import { Badge, Button, EmojiText, Tooltip } from '../../design-system/index.js';
 import type { DiscussionTimerState } from '../../shared/store/gameStore.js';
 import { formatCountdown } from '../game-table/hooks/useCountdown.js';
 import { formatPoints } from '../session-summary/summaryFormat.js';
@@ -21,6 +21,8 @@ export interface ResultsPanelProps {
   readonly remainingMs: number | null;
   readonly canReveal: boolean;
   readonly onReveal: () => void;
+  /** En el móvil el botón de revelar va fijo abajo con la mano (ADR 0032): aquí no se repite. */
+  readonly revealShownElsewhere?: boolean | undefined;
   readonly onRevote: () => void;
   readonly canEstimate: boolean;
   readonly onAcceptEstimate: (card: string) => void;
@@ -98,10 +100,12 @@ function WaitingPanel(props: ResultsPanelProps & { round: RoundView }): JSX.Elem
       ) : null}
 
       <div className="mt-auto flex flex-col gap-2">
-        <Button variant="primary" block disabled={revealDisabled} onClick={props.onReveal}>
-          Revelar las cartas
-        </Button>
-        {revealDisabled ? (
+        {props.revealShownElsewhere ? null : (
+          <Button variant="primary" block disabled={revealDisabled} onClick={props.onReveal}>
+            Revelar las cartas
+          </Button>
+        )}
+        {revealDisabled && !props.revealShownElsewhere ? (
           <span className="text-center text-[11px]" style={{ color: 'var(--pp-muted)' }}>
             {votedCount === 0 ? 'Nadie ha votado todavía.' : 'No tienes permiso para revelar.'}
           </span>
@@ -140,7 +144,7 @@ function RevealedPanel(props: ResultsPanelProps & { round: RoundView }): JSX.Ele
       <div className="flex items-baseline justify-between">
         <span className="text-[15px] font-semibold">Resultado</span>
         <Badge variant={result.isUnanimous ? 'accent' : 'outline'}>
-          {result.isUnanimous ? '🎉 Revelada' : 'Revelada'}
+          <EmojiText text={result.isUnanimous ? '🎉 Revelada' : 'Revelada'} />
         </Badge>
       </div>
 
@@ -228,7 +232,7 @@ function AcceptEstimateButton({
     return (
       <Tooltip label="Solo quien puede revelar cierra la estimación">
         <Button variant="primary" block disabled>
-          Aceptar {card ?? '—'} y pasar página
+          Aceptar <EmojiText text={card ?? '—'} /> y pasar página
         </Button>
       </Tooltip>
     );
@@ -263,7 +267,9 @@ export function StatTile({
       <div className="mb-1 text-[11px]" style={{ color: 'var(--pp-muted)' }}>
         {label}
       </div>
-      <div className="font-mono text-2xl font-semibold">{value}</div>
+      <div className="font-mono text-2xl font-semibold">
+        <EmojiText text={value} />
+      </div>
     </div>
   );
 }

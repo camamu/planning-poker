@@ -1,34 +1,57 @@
 import { cleanup, fireEvent, render, screen } from '@testing-library/react';
 import type { ReactNode } from 'react';
-import { afterEach, describe, expect, it, vi } from 'vitest';
-import { EmojiPicker } from './EmojiPicker.js';
+import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
+import { EmojiPicker, resolveFluentEmojiData } from './EmojiPicker.js';
+
+const rootProps = vi.hoisted(() => ({ locale: '', emojibaseUrl: '' }));
+
+const emojibaseData = vi.hoisted(() => ({
+  locale: 'es',
+  categories: [{ index: 0, label: 'Emoticonos y emociones' }],
+  skinTones: { light: '', 'medium-light': '', medium: '', 'medium-dark': '', dark: '' },
+  emojis: [
+    { emoji: '🔥', category: 0, label: 'fuego', version: 1, tags: [] },
+    { emoji: '❄️', category: 0, label: 'copo de nieve', version: 1, tags: [] },
+    { emoji: '🫩', category: 0, label: 'cara con ojeras', version: 16, tags: [] },
+  ],
+}));
 
 vi.mock('frimousse', () => ({
+  defaultEmojiDataResolver: () => Promise.resolve(emojibaseData),
   EmojiPicker: {
     Root: ({
       children,
       onEmojiSelect,
+      locale,
+      emojibaseUrl,
     }: {
       children: ReactNode;
       onEmojiSelect?: (emoji: { emoji: string; label: string }) => void;
-    }) => (
-      <div>
-        {children}
-        <button
-          type="button"
-          onClick={() => {
-            onEmojiSelect?.({ emoji: '🐸', label: 'frog' });
-          }}
-        >
-          mock-emoji
-        </button>
-      </div>
-    ),
+      locale?: string;
+      emojibaseUrl?: string;
+    }) => {
+      rootProps.locale = locale ?? '';
+      rootProps.emojibaseUrl = emojibaseUrl ?? '';
+      return (
+        <div>
+          {children}
+          <button
+            type="button"
+            onClick={() => {
+              onEmojiSelect?.({ emoji: '🐸', label: 'frog' });
+            }}
+          >
+            mock-emoji
+          </button>
+        </div>
+      );
+    },
     Search: () => null,
     Viewport: ({ children }: { children: ReactNode }) => <div>{children}</div>,
     Loading: () => null,
     Empty: () => null,
     List: () => null,
+    ActiveEmoji: () => null,
   },
 }));
 
@@ -61,5 +84,41 @@ describe('EmojiPicker', () => {
     fireEvent.click(screen.getByRole('presentation'));
 
     expect(onClose).toHaveBeenCalled();
+  });
+
+  it('pide los emojis en español a la propia web, no a un CDN', () => {
+    render(<EmojiPicker open onSelect={vi.fn()} onClose={vi.fn()} />);
+
+    expect(rootProps.locale).toBe('es');
+    expect(rootProps.emojibaseUrl).toBe('/emojibase');
+  });
+});
+
+describe('resolveFluentEmojiData', () => {
+  beforeEach(() => {
+    vi.stubGlobal(
+      'fetch',
+      vi.fn(() => Promise.resolve(new Response(JSON.stringify(['1f525', '2744'])))),
+    );
+  });
+  afterEach(() => {
+    vi.unstubAllGlobals();
+  });
+
+  it('solo ofrece los emojis que Fluent dibuja, aunque el dispositivo no los sepa pintar', async () => {
+    const data = await resolveFluentEmojiData('es', {});
+
+    expect(data.emojis.map((emoji) => emoji.emoji)).toEqual(['🔥', '❄️']);
+  });
+
+  it('si no se puede saber cuáles tiene, los ofrece todos', async () => {
+    vi.stubGlobal(
+      'fetch',
+      vi.fn(() => Promise.reject(new Error('sin red'))),
+    );
+
+    const data = await resolveFluentEmojiData('es', {});
+
+    expect(data.emojis).toHaveLength(3);
   });
 });

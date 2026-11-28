@@ -1,5 +1,5 @@
 import type { JSX } from 'react';
-import { Button } from '../../design-system/index.js';
+import { Button, Emoji } from '../../design-system/index.js';
 import { formatCountdown, useCountdown } from '../game-table/hooks/useCountdown.js';
 import type { DiscussionTimerState } from '../../shared/store/gameStore.js';
 
@@ -42,7 +42,7 @@ export function DiscussionTimerControls(props: DiscussionTimerControlsProps): JS
   return (
     <div className="flex items-center gap-2">
       <span className="flex-1 font-mono text-sm" style={{ color: 'var(--pp-muted)' }}>
-        ⏱ {formatCountdown(remainingMs ?? 0)}
+        <Emoji emoji="⏱️" /> {formatCountdown(remainingMs ?? 0)}
       </span>
       <button
         type="button"

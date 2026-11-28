@@ -1,5 +1,6 @@
 import type { ParticipantView, PastRoundView, RoundResultView, RoundView } from '@pp/contracts';
 import type { JSX } from 'react';
+import { EmojiText } from '../../design-system/index.js';
 import { voteChanges } from './compareRounds.js';
 import { Distribution } from './Distribution.js';
 
@@ -55,7 +56,7 @@ export function RoundComparison({
             <li key={change.participantId} className="flex items-baseline gap-1.5">
               <span>{nameOf(change.participantId)}</span>
               <span className="font-mono" style={{ color: 'var(--pp-muted)' }}>
-                {change.from} → {change.to}
+                <EmojiText text={`${change.from} → ${change.to}`} />
               </span>
             </li>
           ))}

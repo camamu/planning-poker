@@ -1,5 +1,11 @@
 import { describe, expect, it } from 'vitest';
-import { computeThrowOffset, orderSeatsWithViewerAt, seatPosition } from './seatLayout.js';
+import {
+  compactRows,
+  compactSeatPosition,
+  computeThrowOffset,
+  orderSeatsWithViewerAt,
+  seatPosition,
+} from './seatLayout.js';
 
 describe('seatPosition', () => {
   it('el índice 4 cae abajo del centro (left 50%, top máximo)', () => {
@@ -62,5 +68,24 @@ describe('computeThrowOffset', () => {
     const offset = computeThrowOffset(from, to, container);
 
     expect(offset.arcHeightPx).toBeLessThanOrEqual(120);
+  });
+});
+
+describe('compactSeatPosition', () => {
+  it('reparte los asientos en filas de cuatro', () => {
+    expect(compactRows(4)).toBe(1);
+    expect(compactRows(5)).toBe(2);
+    expect(compactRows(12)).toBe(3);
+    expect(compactSeatPosition(0, 8)).toEqual({ left: '12.5%', top: '25%' });
+    expect(compactSeatPosition(7, 8)).toEqual({ left: '87.5%', top: '75%' });
+  });
+
+  it('centra la última fila cuando no está llena', () => {
+    expect(compactSeatPosition(4, 6)).toEqual({ left: '37.5%', top: '75%' });
+    expect(compactSeatPosition(5, 6)).toEqual({ left: '62.5%', top: '75%' });
+  });
+
+  it('con una sola persona, en el centro de la mesa', () => {
+    expect(compactSeatPosition(0, 1)).toEqual({ left: '50%', top: '50%' });
   });
 });

@@ -2,7 +2,7 @@ import { isHttpUrl } from '@pp/contracts';
 import type { IssueView } from '@pp/contracts';
 import { useRef, useState } from 'react';
 import type { DragEvent, JSX, SubmitEvent } from 'react';
-import { Button, Input } from '../../design-system/index.js';
+import { Button, EmojiText, Input } from '../../design-system/index.js';
 
 /** Solo las tareas por estimar se reordenan: la tarea de la mesa y las estimadas ya tienen su sitio. */
 export interface IssueRowReorder {
@@ -178,7 +178,7 @@ export function IssueRow({
             className="flex h-[30px] w-[38px] flex-none items-center justify-center rounded-md font-mono text-xs font-semibold"
             style={{ border: '1px solid var(--pp-line)' }}
           >
-            {issue.finalEstimate}
+            <EmojiText text={issue.finalEstimate} />
           </span>
         ) : null}
 

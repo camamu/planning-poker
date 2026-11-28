@@ -208,3 +208,23 @@ describe('ResultsPanel: media', () => {
     expect(screen.getByText('Media').nextElementSibling).toHaveTextContent(/^5$/);
   });
 });
+
+describe('ResultsPanel: botón de revelar en el móvil', () => {
+  afterEach(cleanup);
+
+  const openRound = (): RoundView =>
+    revealedRound({ status: 'OPEN', result: null, previousRounds: [] });
+
+  it('no repite el botón de revelar cuando la sala ya lo enseña fijo abajo con la mano', () => {
+    renderPanel(openRound(), { revealShownElsewhere: true });
+
+    expect(screen.queryByRole('button', { name: 'Revelar las cartas' })).not.toBeInTheDocument();
+    expect(screen.getByText('Quién ha votado')).toBeInTheDocument();
+  });
+
+  it('sin la mano fija abajo, el botón de revelar sigue en el panel', () => {
+    renderPanel(openRound());
+
+    expect(screen.getByRole('button', { name: 'Revelar las cartas' })).toBeEnabled();
+  });
+});
