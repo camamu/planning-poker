@@ -1,5 +1,6 @@
 import { Fragment } from 'react';
 import type { CSSProperties, JSX } from 'react';
+import { Emoji } from '../../../design-system/index.js';
 import type { EmojiInFlight } from '../../../shared/store/gameStore.js';
 import type { SeatPosition, ThrowOffset } from '../seatLayout.js';
 import { SNOWBALL } from '../snowball.js';
@@ -71,7 +72,7 @@ export function EmojiThrowLayer({
               {snowball && throwing ? (
                 <span className="pp-snowball" aria-hidden="true" />
               ) : (
-                entry.emoji
+                <Emoji emoji={entry.emoji} />
               )}
             </span>
             {snowball && target ? (

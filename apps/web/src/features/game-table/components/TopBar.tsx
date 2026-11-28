@@ -1,7 +1,7 @@
 import type { HatIdView } from '@pp/contracts';
 import { useEffect, useState } from 'react';
 import type { JSX, ReactNode } from 'react';
-import { Avatar, Logo } from '../../../design-system/index.js';
+import { Avatar, Emoji, Logo } from '../../../design-system/index.js';
 import { formatCountdown } from '../hooks/useCountdown.js';
 import { HatPicker } from './HatPicker.js';
 import { InviteDialog } from './InviteDialog.js';
@@ -99,7 +99,7 @@ export function TopBar(props: TopBarProps): JSX.Element {
       <div className="ml-auto flex flex-wrap items-center justify-end gap-2.5">
         {props.remainingMs !== null ? <Countdown remainingMs={props.remainingMs} /> : null}
         <button type="button" className="btn btn-secondary" onClick={props.onToggleIssues}>
-          📋 Tareas
+          <Emoji emoji="📋" /> Tareas
           {props.asyncToVote > 0 ? (
             <span
               className="tag tag-accent ml-1.5"
@@ -115,13 +115,18 @@ export function TopBar(props: TopBarProps): JSX.Element {
           rel="noopener noreferrer"
           className="btn btn-secondary"
         >
-          📊 Resumen
+          <Emoji emoji="📊" /> Resumen
         </a>
         <button type="button" className="btn btn-secondary" onClick={props.onToggleSettings}>
-          ⚙️ Ajustes
+          <Emoji emoji="⚙️" /> Ajustes
         </button>
-        <button type="button" className="btn btn-secondary" onClick={props.onToggleMuted}>
-          {props.muted ? '🔇' : '🔊'}
+        <button
+          type="button"
+          className="btn btn-secondary"
+          aria-label={props.muted ? 'Activar el sonido' : 'Silenciar'}
+          onClick={props.onToggleMuted}
+        >
+          <Emoji emoji={props.muted ? '🔇' : '🔊'} />
         </button>
         {props.snow ? (
           <button
@@ -133,7 +138,7 @@ export function TopBar(props: TopBarProps): JSX.Element {
             onClick={props.snow.onToggle}
             style={props.snow.off ? { opacity: 0.45 } : undefined}
           >
-            ❄️
+            <Emoji emoji="❄️" />
           </button>
         ) : null}
         <button
@@ -143,7 +148,7 @@ export function TopBar(props: TopBarProps): JSX.Element {
             setHatPickerOpen(true);
           }}
         >
-          🎩 Sombrero
+          <Emoji emoji="🎩" /> Sombrero
         </button>
         <button
           type="button"
@@ -152,7 +157,7 @@ export function TopBar(props: TopBarProps): JSX.Element {
             setInviteOpen(true);
           }}
         >
-          🔗 Invitar
+          <Emoji emoji="🔗" /> Invitar
         </button>
         {props.onLeave ? (
           <button type="button" className="btn btn-ghost" onClick={props.onLeave}>
@@ -188,7 +193,7 @@ function Countdown({ remainingMs }: { readonly remainingMs: number }): JSX.Eleme
       className="flex flex-none items-center gap-1.5 rounded-lg px-2.5 py-1.5 text-xs font-medium"
       style={{ background: 'rgba(145,132,217,.12)', color: 'var(--color-accent)' }}
     >
-      ⏱ {formatCountdown(remainingMs)}
+      <Emoji emoji="⏱️" /> {formatCountdown(remainingMs)}
     </div>
   );
 }
@@ -245,7 +250,7 @@ function CompactTopBar(
         aria-label={props.muted ? 'Activar el sonido' : 'Silenciar'}
         onClick={props.onToggleMuted}
       >
-        {props.muted ? '🔇' : '🔊'}
+        <Emoji emoji={props.muted ? '🔇' : '🔊'} />
       </button>
       <button
         type="button"
@@ -292,7 +297,7 @@ function CompactTopBar(
             }}
           >
             <MenuItem onClick={choose(props.onToggleIssues)}>
-              📋 Tareas
+              <Emoji emoji="📋" /> Tareas
               {props.asyncToVote > 0 ? (
                 <span
                   className="tag tag-accent ml-auto"
@@ -311,12 +316,14 @@ function CompactTopBar(
                 setMenuOpen(false);
               }}
             >
-              📊 Resumen
+              <Emoji emoji="📊" /> Resumen
             </a>
-            <MenuItem onClick={choose(props.onToggleSettings)}>⚙️ Ajustes</MenuItem>
+            <MenuItem onClick={choose(props.onToggleSettings)}>
+              <Emoji emoji="⚙️" /> Ajustes
+            </MenuItem>
             {props.snow ? (
               <MenuItem onClick={choose(props.snow.onToggle)} pressed={!props.snow.off}>
-                ❄️ {snowLabel}
+                <Emoji emoji="❄️" /> {snowLabel}
               </MenuItem>
             ) : null}
             <MenuItem onClick={choose(props.onOpenHatPicker)}>
@@ -329,7 +336,9 @@ function CompactTopBar(
               />
               Sombrero
             </MenuItem>
-            <MenuItem onClick={choose(props.onOpenInvite)}>🔗 Invitar</MenuItem>
+            <MenuItem onClick={choose(props.onOpenInvite)}>
+              <Emoji emoji="🔗" /> Invitar
+            </MenuItem>
             {props.onLeave ? (
               <MenuItem onClick={choose(props.onLeave)} accent>
                 Salir de la partida

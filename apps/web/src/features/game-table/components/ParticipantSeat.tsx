@@ -1,6 +1,6 @@
 import type { HatIdView } from '@pp/contracts';
 import type { JSX } from 'react';
-import { Avatar, Card } from '../../../design-system/index.js';
+import { Avatar, Card, Emoji } from '../../../design-system/index.js';
 import type { SeatPosition } from '../seatLayout.js';
 
 export type SeatBadge = 'feather' | 'cape';
@@ -89,7 +89,7 @@ export function ParticipantSeat(props: ParticipantSeatProps): JSX.Element {
             props.onMakeFacilitator?.();
           }}
         >
-          🔑
+          <Emoji emoji="🔑" />
         </button>
       ) : null}
       {props.onRemove ? (
@@ -135,7 +135,7 @@ export function ParticipantSeat(props: ParticipantSeatProps): JSX.Element {
             aria-label="Facilitador"
             title="Facilitador"
           >
-            👑
+            <Emoji emoji="👑" />
           </span>
         ) : null}
         {props.isDealer ? (
@@ -153,7 +153,7 @@ export function ParticipantSeat(props: ParticipantSeatProps): JSX.Element {
           className={`truncate rounded-full border ${look.badge}`}
           style={{ borderColor: 'var(--color-neutral-400)', color: 'var(--color-neutral-100)' }}
         >
-          🐔 Cobarde
+          <Emoji emoji="🐔" /> Cobarde
         </span>
       ) : null}
       {props.badge === 'cape' ? (
@@ -161,7 +161,7 @@ export function ParticipantSeat(props: ParticipantSeatProps): JSX.Element {
           className={`truncate rounded-full border ${look.badge}`}
           style={{ borderColor: 'var(--color-accent-400)', color: 'var(--color-accent-200)' }}
         >
-          🦸 Valiente
+          <Emoji emoji="🦸" /> Valiente
         </span>
       ) : null}
     </div>

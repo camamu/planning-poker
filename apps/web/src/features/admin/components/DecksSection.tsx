@@ -1,7 +1,7 @@
 import type { AdminDeckView } from '@pp/contracts';
 import { useCallback, useState } from 'react';
 import type { JSX } from 'react';
-import { Button } from '../../../design-system/index.js';
+import { Button, EmojiText } from '../../../design-system/index.js';
 import { deleteAdminDeck, listAdminDecks } from '../../../shared/api/adminClient.js';
 import { matchesQuery } from '../matchesQuery.js';
 import { useAdminList } from '../useAdminList.js';
@@ -67,7 +67,7 @@ export function DecksSection({ token, query, onUnauthorized }: AdminSectionProps
                   className="rounded-md px-2 py-1 text-xs"
                   style={{ border: '1px solid var(--pp-line)', color: 'var(--pp-muted)' }}
                 >
-                  {card}
+                  <EmojiText text={card} />
                 </span>
               ))}
             </div>

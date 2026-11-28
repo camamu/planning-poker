@@ -2,7 +2,7 @@ import type { DeckSummaryView, TeamView } from '@pp/contracts';
 import { useEffect, useState } from 'react';
 import type { JSX } from 'react';
 import { Link, useParams, useSearchParams } from 'react-router-dom';
-import { Button, Tabs } from '../../design-system/index.js';
+import { Button, EmojiText, Tabs } from '../../design-system/index.js';
 import {
   authenticateTeam,
   deleteCustomDeck,
@@ -166,7 +166,7 @@ export function TeamPage(): JSX.Element {
                       className="rounded-md px-2 py-1 text-xs"
                       style={{ border: '1px solid var(--pp-line)', color: 'var(--pp-muted)' }}
                     >
-                      {card}
+                      <EmojiText text={card} />
                     </span>
                   ))}
                 </div>

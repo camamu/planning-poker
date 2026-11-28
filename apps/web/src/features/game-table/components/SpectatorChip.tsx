@@ -1,6 +1,6 @@
 import type { HatIdView } from '@pp/contracts';
 import type { JSX, ReactNode } from 'react';
-import { Avatar } from '../../../design-system/index.js';
+import { Avatar, Emoji } from '../../../design-system/index.js';
 
 export interface SpectatorChipProps {
   readonly spectator: {
@@ -35,7 +35,7 @@ export function SpectatorChip({
       </span>
       {spectator.isFacilitator ? (
         <span className="text-[11px]" role="img" aria-label="Facilitador" title="Facilitador">
-          👑
+          <Emoji emoji="👑" />
         </span>
       ) : null}
     </>
@@ -73,7 +73,7 @@ export function SpectatorChip({
           title={`Hacer facilitador a ${spectator.displayName}`}
           onClick={onMakeFacilitator}
         >
-          🔑
+          <Emoji emoji="🔑" />
         </button>
       ) : null}
       {onRemove ? (

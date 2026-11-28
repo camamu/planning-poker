@@ -1,6 +1,6 @@
 import type { ParticipantView, RoundView } from '@pp/contracts';
 import type { JSX } from 'react';
-import { Badge, Button, Tooltip } from '../../design-system/index.js';
+import { Badge, Button, EmojiText, Tooltip } from '../../design-system/index.js';
 import type { DiscussionTimerState } from '../../shared/store/gameStore.js';
 import { formatCountdown } from '../game-table/hooks/useCountdown.js';
 import { formatPoints } from '../session-summary/summaryFormat.js';
@@ -144,7 +144,7 @@ function RevealedPanel(props: ResultsPanelProps & { round: RoundView }): JSX.Ele
       <div className="flex items-baseline justify-between">
         <span className="text-[15px] font-semibold">Resultado</span>
         <Badge variant={result.isUnanimous ? 'accent' : 'outline'}>
-          {result.isUnanimous ? '🎉 Revelada' : 'Revelada'}
+          <EmojiText text={result.isUnanimous ? '🎉 Revelada' : 'Revelada'} />
         </Badge>
       </div>
 
@@ -232,7 +232,7 @@ function AcceptEstimateButton({
     return (
       <Tooltip label="Solo quien puede revelar cierra la estimación">
         <Button variant="primary" block disabled>
-          Aceptar {card ?? '—'} y pasar página
+          Aceptar <EmojiText text={card ?? '—'} /> y pasar página
         </Button>
       </Tooltip>
     );
@@ -267,7 +267,9 @@ export function StatTile({
       <div className="mb-1 text-[11px]" style={{ color: 'var(--pp-muted)' }}>
         {label}
       </div>
-      <div className="font-mono text-2xl font-semibold">{value}</div>
+      <div className="font-mono text-2xl font-semibold">
+        <EmojiText text={value} />
+      </div>
     </div>
   );
 }

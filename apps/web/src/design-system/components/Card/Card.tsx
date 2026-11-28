@@ -1,4 +1,5 @@
 import type { JSX } from 'react';
+import { EmojiText } from '../Emoji/Emoji.js';
 import { Holly, Snowflake } from '../Seasonal/Seasonal.js';
 
 export type CardState = 'available' | 'selected' | 'face-down' | 'revealed';
@@ -71,7 +72,7 @@ export function Card(props: CardProps): JSX.Element {
       >
         <Snowflake size={10} />
       </span>
-      {props.label}
+      <EmojiText text={props.label} />
     </button>
   );
 }
@@ -146,7 +147,7 @@ function FlippableCard(props: CardProps & { size: CardSize }): JSX.Element {
               <Holly size={art.holly} />
             </span>
           ) : null}
-          {revealed ? props.label : ''}
+          {revealed ? <EmojiText text={props.label} /> : ''}
         </div>
       </div>
     </div>
